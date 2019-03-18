@@ -22,42 +22,42 @@ instance IsString Bind where
 
 
 -- Rule -------------------------------------------------------------------------------------------
-rule n ms mBody = Rule n ms mBody
-match n r ac mb = Match n r ac mb
+rule n ms mBody         = Rule n ms mBody
+match n r ac mb         = Match n r ac mb
 
 rake g s c              = Rake g s c
 rake'facts n g c        = rake (facts n) g c
 rake'when n ms g c      = rake (when n ms) g c
 
-facts n         = GatherWhen n []
-when  n ms      = GatherWhen n ms
+facts n                 = GatherWhen n []
+when  n ms              = GatherWhen n ms
 
-oneof           = SelectOne
-anyof           = SelectAny
-allof           = SelectAll
-firstof         = SelectFirst
-lastof          = SelectLast
+oneof                   = SelectOne
+anyof                   = SelectAny
+allof                   = SelectAll
+firstof                 = SelectFirst
+lastof                  = SelectLast
 
-ret             = ConsumeRet
-collect         = ConsumeCollect
-weight m        = ConsumeWeight m
-consume n       = ConsumeWeight (MNat n)
+ret                     = ConsumeRet
+collect                 = ConsumeCollect
+weight m                = ConsumeWeight m
+consume n               = ConsumeWeight (MNat n)
 
-same            = AcquireSame
-acquire m       = AcquireTerm m
+same                    = AcquireSame
+acquire m               = AcquireTerm m
 
 -- Term -------------------------------------------------------------------------------------------
-unit            = MUnit
-bool  b         = MBool  b
-sym   s         = MSym   s
-nat   n         = MNat   n
-text  t         = MText  t
-party n         = MParty n
-auth  ns        = MAuth  ns
-rules ns        = MRules ns
+unit                    = MUnit
+bool  b                 = MBool  b
+sym   s                 = MSym   s
+nat   n                 = MNat   n
+text  t                 = MText  t
+party n                 = MParty n
+auth  ns                = MAuth  ns
+rules ns                = MRules ns
 
-(!) m n         = MPrj m n
-pattern (:=) a b = (a, b)
+(!) m n                 = MPrj m n
+pattern (:=) a b        = (a, b)
 
 
 -- Prim -------------------------------------------------------------------------------------------

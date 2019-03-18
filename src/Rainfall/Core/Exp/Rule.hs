@@ -33,15 +33,6 @@ data Rake a
         } deriving Show
 
 
----------------------------------------------------------------------------------------------------
-data Acquire a
-        = AcquireAnn    a (Acquire a)
-        | AcquireSame                      -- ^ Retain the same authority.
-        | AcquireTerm   (Term a)           -- ^ Acquire the given authority.
-        deriving Show
-
-
----------------------------------------------------------------------------------------------------
 -- | How to select facts for consideration.
 data Gather a
         = GatherAnn    a (Gather a)
@@ -49,9 +40,6 @@ data Gather a
         -- | Terms must all produce true.
         | GatherWhen  Name [Term a]
         deriving Show
-
-pattern GatherFacts n
-        = GatherWhen n []
 
 
 data Select a
@@ -88,5 +76,10 @@ data Consume a
         deriving Show
 
 
-pattern ConsumeNat n    = ConsumeWeight (MNat n)
+---------------------------------------------------------------------------------------------------
+data Acquire a
+        = AcquireAnn    a (Acquire a)
+        | AcquireSame                      -- ^ Retain the same authority.
+        | AcquireTerm   (Term a)           -- ^ Acquire the given authority.
+        deriving Show
 
