@@ -4,8 +4,8 @@ module Rainfall.EDSL
         , rule, match
         , rake, rake'facts, rake'when
         , facts, when
-        , oneof, anyof, allof, firstof, lastof
-        , ret, collect, weight, consume
+        , oneof, anyof, firstof, lastof
+        , retain, collect, weight, consume
         , same, acquire
         , unit, bool, sym, nat, text, party, auth, rules
         , (!), pattern (:=)
@@ -17,28 +17,30 @@ import Data.String
 instance IsString (Term a) where
  fromString s = MVar s
 
+instance IsString (Value a) where
+ fromString s = VText s
+
 instance IsString Bind where
  fromString s = BindName s
 
 
 -- Rule -------------------------------------------------------------------------------------------
-rule n ms mBody         = Rule n ms mBody
-match n r ac mb         = Match n r ac mb
+rule n ms mBody         = Rule  n ms mBody
+match rake acq          = Match rake acq
 
-rake g s c              = Rake g s c
-rake'facts n g c        = rake (facts n) g c
-rake'when n ms g c      = rake (when n ms) g c
+rake x g s c            = Rake x g s c
+rake'facts x n g c      = rake x (facts n) g c
+rake'when  x n ms g c   = rake x (when n ms) g c
 
 facts n                 = GatherWhen n []
 when  n ms              = GatherWhen n ms
 
 oneof                   = SelectOne
 anyof                   = SelectAny
-allof                   = SelectAll
 firstof                 = SelectFirst
 lastof                  = SelectLast
 
-ret                     = ConsumeRet
+retain                  = ConsumeRetain
 collect                 = ConsumeCollect
 weight m                = ConsumeWeight m
 consume n               = ConsumeWeight (MNat n)
@@ -61,7 +63,10 @@ pattern (:=) a b        = (a, b)
 
 
 -- Prim -------------------------------------------------------------------------------------------
-say n nmsFields nmsMeta = MApp (MPrm "say") [MRcd nmsFields, MRcd nmsMeta]
+say n nmsFields nmsMeta
+ = let  (nsFields, vsFields)    = unzip nmsFields
+        (nsMeta,   vsMeta)      = unzip nmsMeta
+   in   MApp (MPrm "say") [MRcd nsFields vsFields, MRcd nsMeta vsMeta]
 
 symbol'eq mx my         = MApp (MPrm "symbol'eq") [mx, my]
 party'eq  mx my         = MApp (MPrm "party'eq")  [mx, my]

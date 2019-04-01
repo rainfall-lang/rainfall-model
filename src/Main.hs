@@ -1,44 +1,60 @@
 
 import Rainfall.EDSL
-import qualified Data.List      as List
+import Rainfall.Core.Eval
+
+store1  = Store
+        [ Fact  "Coin"  ["holder" := "Alice", "stamp" := "RainCoin"]
+                ["Alice"] [] ["transfer"]
+        := 1 ]
 
 
-sees  :: Auth -> Fact a -> Bool
-sees aHas (Fact n _env aBy aObs _nsRules)
- = not $ null $ List.intersect aHas (List.union aBy aObs)
-
-
-
-aBob    = ["Bob"]
-
-fTok    = Fact "Tok" [("stamp", VSym "Dude")] aBob aBob []
-mcFalse = MAbs "x" TAuth MFalse
-
-
-
-ruleTransfer
+rule'transfer
  = rule "transfer"
- [ match "a" "accept"
-        (rake'facts "Accept" anyof (consume 1))
-        (acquire ("a" ! "receiver"))
-
- , match "o" "offer"
-        (rake'when "Offer"
-                [ symbol'eq ("accept" ! "id") ("o" ! "id")
-                , party'eq  ("accept" ! "accepter") ("o" ! "receiver") ]
+ [ match (rake'facts "accept" "Accept"
                 anyof (consume 1))
-        (acquire ("o" ! "giver"))
+         (acquire ("accept" ! "receiver"))
 
- , match "c" "coin"
-        (rake'when "Coin"
-                [ party'eq ("c" ! "holder") ("offer" ! "giver") ]
+ , match (rake'when "offer" "Offer"
+                [ symbol'eq ("accept" ! "id") ("offer" ! "id")
+                , party'eq  ("accept" ! "accepter") ("offer" ! "receiver") ]
                 anyof (consume 1))
-        (acquire ("c" ! "owner"))]
+         (acquire ("offer" ! "giver"))
+
+ , match (rake'when "coin" "Coin"
+                [ party'eq ("coin" ! "holder") ("offer" ! "giver") ]
+                anyof (consume 1))
+         (acquire ("coin" ! "owner"))]
  $ say  "Coin"
         [ "stamp"       := sym   "RainCoin"
         , "holder"      := party "Alice" ]
         [ "by"          := auth  ["Alice", "Bank"]
         , "rules"       := rules ["transfer"] ]
+
+
+
+-- rakeCoin = rake'when "Coin" [party'eq ("c" ! "holder") ("offer" ! "giver")] anyof (consume 1)
+
+
+-- Coin [ stamp: Symbol, holder: Party ]
+
+
+-- rakeFromStore :: Rake a -> Store -> ([Fact ()], Consume ())
+-- rakeFromStore (Rake n _gather _select _consume)
+
+
+-- | Gather visible facts from the store that match the gather predicates,
+--   returning all matching facts and the available weight of each one.
+-- gatherFromStore :: Auth -> Env a -> Bind -> Gather a -> Store -> [(Fact (), Weight)]
+-- gatherFromStore aHas env bFact (GatherAnn _a gg) store
+-- = gatherFromStore bFact gg
+
+-- gatherFromStore aHas env bFact (GatherWhen nFact msPred) (Store fws)
+-- = [ fact | (fact, weight)   <- fws
+--          , factName fact == nFact
+--          , seesFact aHas fact
+--          , all (isVTrue . eval env) msPred ]    -- TODO: bind fact into env.
+
+
 
 
 

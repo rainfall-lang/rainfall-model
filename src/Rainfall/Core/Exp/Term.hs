@@ -17,30 +17,30 @@ data Type a
 
 ---------------------------------------------------------------------------------------------------
 data Term a
-        = MAnn  a (Term a)
+        = MAnn  a (Term a)                      -- ^ Annotation.
 
-        | MVar  Name
-        | MApp  (Term a) [Term a]
-        | MAbs  Name (Type a) (Term a)
+        | MVar  Name                            -- ^ Variable.
+        | MAbs  [Bind] [Type a] (Term a)        -- ^ Abstraction.
+        | MApp  (Term a) [Term a]               -- ^ Application.
 
-        | MRef  (TermRef a)
+        | MRef  (TermRef a)                     -- ^ Reference.
 
-        | MRcd  [(Name, Term a)]
-        | MPrj  (Term a) Name
+        | MRcd  [Name]   [Term a]               -- ^ Record former.
+        | MPrj  (Term a) Name                   -- ^ Record projection.
         deriving Show
 
 
 data TermRef a
-        = MRPrm Name
-        | MRVal (Value a)
+        = MRVal (Value a)                       -- ^ Embed a value.
         deriving Show
 
 
 ---------------------------------------------------------------------------------------------------
 data Value a
-        = VLit  Lit
-        | VClo  (Env  a) Name (Type a) (Term a)
-        | VRcd  [(Name, Value a)]
+        = VLit  Lit                             -- ^ Literal value.
+        | VPrm  Name                            -- ^ Primitive reference.
+        | VClo  (Env a) [Bind] [Type a] (Term a)
+        | VRcd  [Name] [Value a]
         | VFact (Fact a)
         deriving Show
 
@@ -55,7 +55,7 @@ data Lit
         | LRules [Name]
         deriving Show
 
-data Clo a = Clo  (Env a) Name (Type a) (Term a)
+data Clo a = Clo  (Env a) [(Bind, Type a)] (Term a)
 type Env a = [(Name, Value a)]
 
 
@@ -70,4 +70,8 @@ data Fact a
         deriving Show
 
 type Weight = Int
-data Store  = Store [ (Fact (), Weight) ]
+
+data Store
+        = Store [ (Fact (), Weight) ]
+        deriving Show
+

@@ -17,23 +17,23 @@ data Match a
         = MatchAnn    a (Match a)
 
         | Match
-        { matchBind     :: Bind             -- ^ Binder for facts in the following clauses.
-        , matchResult   :: Bind             -- ^ Binder for the result.
-        , matchRake     :: Rake a           -- ^ Rake for the facts.
+        { matchRake     :: Rake a           -- ^ Rake for the facts.
         , matchAcquire  :: Acquire a        -- ^ Authority to acquire from raked facts.
         } deriving Show
 
 
 ---------------------------------------------------------------------------------------------------
+-- | Specifies how to retrieve facts from the store.
 data Rake a
         = Rake
-        { rakeGather    :: Gather a         -- ^ How to gather facts from the store.
+        { rakeBind      :: Bind             -- ^ Binder for facts in the following clauses.
+        , rakeGather    :: Gather a         -- ^ How to gather facts from the store.
         , rakeSelect    :: Select a         -- ^ How to select result from the gathered facts.
         , rakeConsume   :: Consume a        -- ^ How to consume the gathered facts.
         } deriving Show
 
 
--- | How to select facts for consideration.
+-- | Specifies which facts to consider during a rake.
 data Gather a
         = GatherAnn    a (Gather a)
 
@@ -42,6 +42,7 @@ data Gather a
         deriving Show
 
 
+-- | Specifies how to select facts from the gathered set.
 data Select a
         = SelectAnn     a (Select a)
 
@@ -51,22 +52,20 @@ data Select a
         -- | Select any fact which matches, pseudo non-determinstically.
         | SelectAny
 
-        -- | Select all facts that match, collecting them into a set.
-        | SelectAll
-
         -- | Sort facts by the given term, and select the first that matches.
-        | SelectFirst
+        | SelectFirst   (Term a)
 
         -- | Sort facts by the given term, and select the last that matches.
-        | SelectLast
+        | SelectLast    (Term a)
         deriving Show
 
 
+-- | Specifies how to treat selected facts.
 data Consume a
         = ConsumeAnn    a (Consume a)
 
         -- | Return facts without consuming them.
-        | ConsumeRet
+        | ConsumeRetain
 
         -- | Consume entire available quantity from each selected fact.
         | ConsumeCollect

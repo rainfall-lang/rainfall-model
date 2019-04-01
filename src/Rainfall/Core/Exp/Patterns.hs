@@ -6,8 +6,8 @@ import Rainfall.Core.Exp.Term
 
 
 ------------------------------------------------------------------------------------------- Term --
-pattern MPrm n          = MRef (MRPrm n)
 pattern MVal v          = MRef (MRVal v)
+pattern MPrm n          = MRef (MRVal (VPrm n))
 pattern MLit l          = MRef (MRVal (VLit l))
 
 pattern MUnit           = MLit (LUnit)
