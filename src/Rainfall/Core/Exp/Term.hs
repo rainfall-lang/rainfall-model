@@ -37,11 +37,11 @@ data TermRef a
 
 ---------------------------------------------------------------------------------------------------
 data Value a
-        = VLit  Lit                             -- ^ Literal value.
-        | VPrm  Name                            -- ^ Primitive reference.
-        | VClo  (Env a) [Bind] [Type a] (Term a)
-        | VRcd  [Name] [Value a]
-        | VFact (Fact a)
+        = VLit  Lit                              -- ^ Literal value.
+        | VPrm  Name                             -- ^ Primitive reference.
+        | VClo  (Env a) [Bind] [Type a] (Term a) -- ^ Function closure
+        | VRcd  [Name] [Value a]                 -- ^ Record value.
+        | VFact (Fact a)                         -- ^ Fact value.
         deriving Show
 
 data Lit
