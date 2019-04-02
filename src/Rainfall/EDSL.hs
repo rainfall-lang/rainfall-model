@@ -5,7 +5,7 @@ module Rainfall.EDSL
         , rake, rake'facts, rake'when
         , facts, when
         , oneof, anyof, firstof, lastof
-        , retain, collect, weight, consume
+        , retain, weight, consume
         , same, acquire
         , unit, bool, sym, nat, text, party, auth, rules
         , (!), pattern (:=)
@@ -41,7 +41,6 @@ firstof                 = SelectFirst
 lastof                  = SelectLast
 
 retain                  = ConsumeRetain
-collect                 = ConsumeCollect
 weight m                = ConsumeWeight m
 consume n               = ConsumeWeight (MNat n)
 

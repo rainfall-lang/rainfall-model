@@ -3,6 +3,7 @@ module Rainfall.Core.Exp.Rule where
 import Rainfall.Core.Exp.Base
 import Rainfall.Core.Exp.Term
 
+
 ---------------------------------------------------------------------------------------------------
 data Rule a
         = Rule
@@ -18,7 +19,7 @@ data Match a
 
         | Match
         { matchRake     :: Rake a           -- ^ Rake for the facts.
-        , matchAcquire  :: Acquire a        -- ^ Authority to acquire from raked facts.
+        , matchAcquire  :: Acquire a        -- ^ Authority to acquire from raked fact.
         } deriving Show
 
 
@@ -67,10 +68,7 @@ data Consume a
         -- | Return facts without consuming them.
         | ConsumeRetain
 
-        -- | Consume entire available quantity from each selected fact.
-        | ConsumeCollect
-
-        -- | Consume the given weight of facts.
+        -- | Consume the given weight of the fact.
         | ConsumeWeight (Term a)
         deriving Show
 

@@ -12,7 +12,7 @@ data Type a
         | TNat
         | TText
         | TAuth
-        deriving Show
+        deriving (Show, Eq, Ord)
 
 
 ---------------------------------------------------------------------------------------------------
@@ -27,12 +27,12 @@ data Term a
 
         | MRcd  [Name]   [Term a]               -- ^ Record former.
         | MPrj  (Term a) Name                   -- ^ Record projection.
-        deriving Show
+        deriving (Show, Eq, Ord)
 
 
 data TermRef a
         = MRVal (Value a)                       -- ^ Embed a value.
-        deriving Show
+        deriving (Show, Eq, Ord)
 
 
 ---------------------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ data Value a
         | VClo  (Env a) [Bind] [Type a] (Term a) -- ^ Function closure
         | VRcd  [Name] [Value a]                 -- ^ Record value.
         | VFact (Fact a)                         -- ^ Fact value.
-        deriving Show
+        deriving (Show, Eq, Ord)
 
 data Lit
         = LUnit
@@ -53,7 +53,7 @@ data Lit
         | LParty Name
         | LAuth  Auth
         | LRules [Name]
-        deriving Show
+        deriving (Show, Eq, Ord)
 
 data Clo a = Clo  (Env a) [(Bind, Type a)] (Term a)
 type Env a = [(Name, Value a)]
@@ -67,11 +67,6 @@ data Fact a
         , factBy        :: Auth
         , factObs       :: Auth
         , factRules     :: [Name] }
-        deriving Show
+        deriving (Show, Eq, Ord)
 
-type Weight = Int
-
-data Store
-        = Store [ (Fact (), Weight) ]
-        deriving Show
 

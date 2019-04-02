@@ -7,4 +7,4 @@ type Auth       = [Name]
 data Bind
         = BindName Name
         | BindNone
-        deriving Show
+        deriving (Show, Eq, Ord)
