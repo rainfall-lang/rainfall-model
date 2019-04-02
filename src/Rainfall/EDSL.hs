@@ -9,7 +9,11 @@ module Rainfall.EDSL
         , same, acquire
         , unit, bool, sym, nat, text, party, auth, rules
         , (!), pattern (:=)
-        , say, symbol'eq, party'eq)
+
+        , say
+        , symbol'eq
+        , party'eq
+        , auth'one, auth'union)
 where
 import Rainfall.Core.Exp
 import Data.String
@@ -67,9 +71,10 @@ say n nmsFields nmsMeta
         (nsMeta,   vsMeta)      = unzip nmsMeta
    in   MApp (MPrm "say") [MRcd nsFields vsFields, MRcd nsMeta vsMeta]
 
-symbol'eq mx my         = MApp (MPrm "symbol'eq") [mx, my]
-party'eq  mx my         = MApp (MPrm "party'eq")  [mx, my]
+symbol'eq mx my         = MApp (MPrm "symbol'eq")       [mx, my]
+party'eq  mx my         = MApp (MPrm "party'eq")        [mx, my]
 
-
+auth'one mp             = MApp (MPrm "auth'one")        [mp]
+auth'union ma mb        = MApp (MPrm "auth'union")      [ma, mb]
 
 

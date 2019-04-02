@@ -18,9 +18,3 @@ canSeeFact aHas (Fact n _env aBy aObs _nsRules)
  = not $ null $ List.intersect aHas (List.union aBy aObs)
 
 
--- | Check if we can consume a fact with the given rule and authority.
-canConsumeFact :: Name -> Auth -> Fact a -> Bool
-canConsumeFact nRule aHas (Fact n _env aBy aObs nsRules)
- =  elem nRule nsRules
- && Set.isSubsetOf (Set.fromList aBy) (Set.fromList aHas)
-

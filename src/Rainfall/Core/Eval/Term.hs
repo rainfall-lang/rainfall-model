@@ -1,8 +1,10 @@
 
 module Rainfall.Core.Eval.Term where
 import Rainfall.Core.Exp
+import qualified Data.List.Extra        as List
 
 
+---------------------------------------------------------------------------------------------------
 -- | Reduce a term to a value.
 evalTerm :: Show a => Env a -> Term a -> Value a
 
@@ -24,9 +26,9 @@ evalTerm env (MApp mFun msArg)
                                    | v          <- map (evalTerm env) msArg ]
             in  evalTerm env' mBody
 
-        VPrm "add"
-         | [VNat n1, VNat n2]   <- map (evalTerm env) msArg
-         -> VNat (n1 + n2)
+        VPrm name
+         -> let vsArg   = map (evalTerm env) msArg
+            in  evalPrim name vsArg
 
         vFun -> error $ unlines
                 [ "evalTerm: invalid application"
@@ -57,3 +59,22 @@ evalTerm env (MPrj mRcd nField)
                 [ "evalTerm: cannot project field from non-record"
                 , "  value = " ++ show v
                 , "  field = " ++ show nField ]
+
+
+---------------------------------------------------------------------------------------------------
+evalPrim :: Show a => Name -> [Value a] -> Value a
+
+evalPrim "nat'add"      [VNat n1, VNat n2]      = VNat (n1 + n2)
+
+evalPrim "symbol'eq"    [VSym s1, VSym s2]      = VBool (s1 == s2)
+
+evalPrim "party'eq"     [VParty p1, VParty p2]  = VBool (p1 == p2)
+
+evalPrim "auth'one"     [VParty p]              = VAuth [p]
+evalPrim "auth'union"   [VAuth a1, VAuth a2]    = VAuth (List.nubOrd $ a1 ++ a2)
+
+evalPrim name vsArg
+ = error $ unlines
+        [ "evalPrim: invalid primitive application"
+        , "  name = " ++ show name
+        , "  args = " ++ show vsArg ]

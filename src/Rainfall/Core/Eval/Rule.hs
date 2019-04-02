@@ -46,20 +46,21 @@ applyRuleToStore
         :: Rule ()              -- ^ Rule to apply.
         -> Auth                 -- ^ Initial authority.
         -> Store                -- ^ Initial store.
-        -> Result () (Auth, Store, Env ())
+        -> Result () (Auth, [(Fact (), Weight)], Store, Env ())
 
 applyRuleToStore rule aHas0 store0
- = goMatch aHas0 store0 [] (ruleMatch rule)
+ = goMatch aHas0 [] store0 [] (ruleMatch rule)
  where
-        goMatch aHas store env (match : matches)
+        goMatch aHas fwsSpent store env (match : matches)
          = case matchFromStore (ruleName rule) aHas store env match of
                 Fizz fizz -> Fizz fizz
-                Fire (aHas', store', env')
-                 -> goMatch aHas' store' env' matches
+
+                Fire (aHas', fwSpent, store', env')
+                 -> goMatch aHas' (fwSpent : fwsSpent) store' env' matches
 
         -- TODO: need to evaluate the body to get the new facts.
-        goMatch aHas store env []
-         = Fire (aHas, store, env)
+        goMatch aHas fwsSpent store env []
+         = Fire (aHas, fwsSpent, store, env)
 
 
 ---------------------------------------------------------------------------------------------------
@@ -70,7 +71,7 @@ matchFromStore
         -> Store                -- ^ Initial store.
         -> Env ()               -- ^ Initial environment.
         -> Match ()
-        -> Result () (Auth, Store, Env ())
+        -> Result () (Auth, (Fact (), Weight), Store, Env ())
 
 matchFromStore nRule aHas store env (MatchAnn a match)
  = matchFromStore nRule aHas store env match
@@ -80,11 +81,12 @@ matchFromStore nRule aHas store env (Match rake acquire)
  where
         goRake
          = case rakeFromStore nRule aHas store env rake of
-                Fire (fact, store', env')
+                Fire (fwSpent@(fact, _weight), store', env')
                  -> let aHas' = acquireFromFact aHas fact env' acquire
-                    in  Fire (aHas', store', env')
+                    in  Fire (aHas', fwSpent, store', env')
 
                 Fizz fizz -> Fizz fizz
+
 
 ---------------------------------------------------------------------------------------------------
 -- | Rake facts from the store,
@@ -94,7 +96,7 @@ rakeFromStore
         -> Store                -- ^ Store to rake facts from.
         -> Env ()               -- ^ Current environment.
         -> Rake ()              -- ^ Rake to perform.
-        -> Result () (Fact (), Store, Env ())
+        -> Result () ((Fact (), Weight), Store, Env ())
 
 rakeFromStore nRule aHas store env (Rake bFact gather select consume)
  = goGather
@@ -117,7 +119,7 @@ rakeFromStore nRule aHas store env (Rake bFact gather select consume)
          = let  env' = envBind bFact (VFact fact) env
            in   case consumeFromStore nRule aHas store fact weight env' consume of
                  Nothing        -> Fizz (FizzConsumeFail nRule aHas store fact weight env' consume)
-                 Just store'    -> Fire (fact, store', env')
+                 Just store'    -> Fire ((fact, weight), store', env')
 
 
 ---------------------------------------------------------------------------------------------------
@@ -205,7 +207,7 @@ consumeFromStore _nRule _aHas store _fact _weight _env ConsumeRetain
  = Just store
 
 consumeFromStore  nRule  aHas store fact weight env (ConsumeWeight mWeight)
- | canConsumeFact nRule aHas fact
+ | elem nRule (factRules fact)
  , nWeightWant
      <- case evalTerm env mWeight of
          VNat n  -> n
@@ -238,13 +240,6 @@ acquireFromFact aHas fact env (AcquireTerm mAuth)
         VAuth aFact
           |  Set.isSubsetOf (Set.fromList aFact) (Set.fromList $ factBy fact)
           -> List.nubOrd (aHas ++ aFact)
-
-          |  otherwise -> error $ "acquireFromFact: invalid delegation"
-
-        -- TODO: sort out overload of 'acquire' between auth and party values.
-        VParty nParty
-         |  Set.isSubsetOf (Set.fromList [nParty]) (Set.fromList $ factBy fact)
-         -> List.nubOrd (aHas ++ [nParty])
 
           |  otherwise -> error $ "acquireFromFact: invalid delegation"
 

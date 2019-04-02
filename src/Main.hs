@@ -19,7 +19,7 @@ store1  = Map.fromList
           := 1
 
         , Fact "Accept" [ "id"          := VSym   "1234"
-                        , "receiver"    := VParty "Bob" ]
+                        , "accepter"    := VParty "Bob" ]
                 ["Bob"] [] ["transfer"]
           := 1
         ]
@@ -29,19 +29,19 @@ rule'transfer
  = rule "transfer"
  [ match (rake'facts "accept" "Accept"
                 anyof (consume 1))
-         (acquire ("accept" ! "receiver"))
+         (acquire (auth'one ("accept" ! "accepter")))
 
  , match (rake'when "offer" "Offer"
                 [ symbol'eq ("accept" ! "id") ("offer" ! "id")
                 , party'eq  ("accept" ! "accepter") ("offer" ! "receiver") ]
                 anyof (consume 1))
-         (acquire ("offer" ! "giver"))
+         (acquire (auth'one ("offer" ! "giver")))
 
  , match (rake'when "coin" "Coin"
                 [ party'eq ("coin" ! "holder") ("offer" ! "giver") ]
                 anyof (consume 1))
-         (acquire ("coin" ! "owner"))]
-
+         (acquire (auth'union (auth'one ("coin" ! "holder")) (auth'one (party "Bank"))))
+ ]
  $ say  "Coin"
         [ "stamp"       := sym   "RainCoin"
         , "holder"      := party "Alice" ]
