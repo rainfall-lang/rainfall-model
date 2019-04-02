@@ -14,6 +14,12 @@ import Data.Maybe
 type Weight = Integer
 type Store  = Map (Fact ()) Weight
 
+data Factoid a
+        = Factoid (Fact a) Weight
+        deriving (Show, Eq, Ord)
+
+pattern (:*) f w        = Factoid f w
+
 
 data Result a b
         = Fire b
@@ -27,7 +33,7 @@ data Fizz a
 
         | FizzSelectNone
         { fizzSelect    :: Select a
-        , fizzStore     :: Store }
+        , fizzFactoids  :: [Factoid ()] }
 
         | FizzConsumeFail
         { fizzRule      :: Name
@@ -46,7 +52,7 @@ applyRuleToStore
         :: Rule ()              -- ^ Rule to apply.
         -> Auth                 -- ^ Initial authority.
         -> Store                -- ^ Initial store.
-        -> Result () (Auth, [(Fact (), Weight)], Store, Env ())
+        -> Result () (Auth, [Factoid ()], Store, Env ())
 
 applyRuleToStore rule aHas0 store0
  = goMatch aHas0 [] store0 [] (ruleMatch rule)
@@ -71,7 +77,7 @@ matchFromStore
         -> Store                -- ^ Initial store.
         -> Env ()               -- ^ Initial environment.
         -> Match ()
-        -> Result () (Auth, (Fact (), Weight), Store, Env ())
+        -> Result () (Auth, Factoid (), Store, Env ())
 
 matchFromStore nRule aHas store env (MatchAnn a match)
  = matchFromStore nRule aHas store env match
@@ -81,7 +87,7 @@ matchFromStore nRule aHas store env (Match rake acquire)
  where
         goRake
          = case rakeFromStore nRule aHas store env rake of
-                Fire (fwSpent@(fact, _weight), store', env')
+                Fire (fwSpent@(fact :* _weight), store', env')
                  -> let aHas' = acquireFromFact aHas fact env' acquire
                     in  Fire (aHas', fwSpent, store', env')
 
@@ -96,7 +102,7 @@ rakeFromStore
         -> Store                -- ^ Store to rake facts from.
         -> Env ()               -- ^ Current environment.
         -> Rake ()              -- ^ Rake to perform.
-        -> Result () ((Fact (), Weight), Store, Env ())
+        -> Result () (Factoid (), Store, Env ())
 
 rakeFromStore nRule aHas store env (Rake bFact gather select consume)
  = goGather
@@ -111,15 +117,15 @@ rakeFromStore nRule aHas store env (Rake bFact gather select consume)
         -- Select a subset of facts to consider.
         goSelect fws
          = case selectFromFacts fws env bFact select of
-                Nothing         -> Fizz (FizzSelectNone select (Map.fromList fws))
+                Nothing         -> Fizz (FizzSelectNone select fws)
                 Just fw         -> goConsume fw
 
         -- Consume the selected facts from the store.
-        goConsume (fact, weight)
+        goConsume f@(Factoid fact weight)
          = let  env' = envBind bFact (VFact fact) env
            in   case consumeFromStore nRule aHas store fact weight env' consume of
                  Nothing        -> Fizz (FizzConsumeFail nRule aHas store fact weight env' consume)
-                 Just store'    -> Fire ((fact, weight), store', env')
+                 Just store'    -> Fire (f, store', env')
 
 
 ---------------------------------------------------------------------------------------------------
@@ -131,18 +137,15 @@ gatherFromStore
         -> Env ()               -- ^ Current environment, used in gather predicates.
         -> Bind                 -- ^ Binder for the fact value in the gather predicate.
         -> Gather ()            -- ^ The gather predicates.
-        -> [(Fact (), Weight)]
+        -> [Factoid ()]
 
 gatherFromStore aHas store env bFact (GatherAnn _a gg)
  = gatherFromStore aHas store env bFact gg
 
 gatherFromStore aHas store env bFact (GatherWhen nFact msPred)
- = [ (fact, weight)
+ = [ Factoid fact weight
         | (fact, weight)   <- Map.toList store
-        , factName fact == nFact        -- Fact has the name that we want.
-        , canSeeFact aHas fact || True
-                -- Fact is visible with the current authority.
-                -- TODO: hardwired True until get private store working.
+        , factName fact == nFact
         , let env' = envBind bFact (VFact fact) env
           in  all (isVTrue . evalTerm env') msPred ]
 
@@ -150,11 +153,11 @@ gatherFromStore aHas store env bFact (GatherWhen nFact msPred)
 ---------------------------------------------------------------------------------------------------
 -- TODO: To model a concurrent system, select a fact pseudo randomly in the 'any' mode.
 selectFromFacts
-        :: [(Fact (), Weight)]  -- ^ Gathered facts to select from.
+        :: [Factoid ()]         -- ^ Gathered facts to select from.
         -> Env ()               -- ^ Current environment.
         -> Bind                 -- ^ Fact binder within the rake.
         -> Select ()            -- ^ Selection specifier.
-        -> Maybe (Fact (), Weight)
+        -> Maybe (Factoid ())
 
 selectFromFacts fws env bFact (SelectAnn a select)
  = selectFromFacts fws env bFact select
@@ -171,8 +174,8 @@ selectFromFacts fws _env _bFact SelectAny
 
 selectFromFacts fws env bFact (SelectFirst mKey)
  = let  kfws = [ ( evalTerm (envBind bFact (VFact fact) env) mKey
-               , (fact, weight))
-               | (fact, weight) <- fws ]
+                 , fact :* weight)
+               | fact :* weight <- fws ]
 
    in   case List.sortOn fst kfws of
          (k, fw) : _ -> Just fw
@@ -180,8 +183,8 @@ selectFromFacts fws env bFact (SelectFirst mKey)
 
 selectFromFacts fws env bFact (SelectLast mKey)
  = let  kfws = [ ( evalTerm (envBind bFact (VFact fact) env) mKey
-               , (fact, weight))
-               | (fact, weight) <- fws ]
+                 , fact :* weight)
+               | fact :* weight <- fws ]
 
    in   case reverse $ List.sortOn fst kfws of
          (k, fw) : _ -> Just fw

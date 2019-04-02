@@ -70,3 +70,4 @@ data Fact a
         deriving (Show, Eq, Ord)
 
 
+

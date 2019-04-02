@@ -13,8 +13,9 @@ isVTrue _               = False
 
 
 -- | Check if we can see a fact with the given authority.
-canSeeFact  :: Auth -> Fact a -> Bool
-canSeeFact aHas (Fact n _env aBy aObs _nsRules)
- = not $ null $ List.intersect aHas (List.union aBy aObs)
+--   TODO: currently not used as we have a globally visible store.
+-- canSeeFact  :: Auth -> Fact a -> Bool
+-- canSeeFact aHas (Fact n _env aBy aObs _nsRules)
+--  = not $ null $ List.intersect aHas (List.union aBy aObs)
 
 
