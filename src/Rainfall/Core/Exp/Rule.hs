@@ -7,9 +7,9 @@ import Rainfall.Core.Exp.Term
 ---------------------------------------------------------------------------------------------------
 data Rule a
         = Rule
-        { ruleName      :: Name         -- ^ Name of the rule.
-        , ruleMatch     :: [Match a]    -- ^ Matches for the rule.
-        , ruleBody      :: Term a       -- ^ Body of the rule.
+        { ruleName      :: Name                 -- ^ Name of the rule.
+        , ruleMatch     :: [Match a]            -- ^ Matches for the rule.
+        , ruleBody      :: Term a               -- ^ Body of the rule.
         } deriving Show
 
 

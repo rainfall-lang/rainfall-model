@@ -2,13 +2,27 @@
 import Rainfall.EDSL
 import Rainfall.Core.Eval
 import qualified Data.Map       as Map
+import Text.Show.Pretty
 
 
 store1  :: Store
 store1  = Map.fromList
-        [ Fact  "Coin"  ["holder" := "Alice", "stamp" := "RainCoin"]
+        [ Fact  "Coin"  [ "holder"      := VParty "Alice"
+                        , "stamp"       := VSym   "RainCoin"]
+                ["Alice", "Bank"] [] ["transfer"]
+          := 1
+
+        , Fact "Offer"  [ "id"          := VSym   "1234"
+                        , "giver"       := VParty "Alice"
+                        , "receiver"    := VParty "Bob" ]
                 ["Alice"] [] ["transfer"]
-        := 1 ]
+          := 1
+
+        , Fact "Accept" [ "id"          := VSym   "1234"
+                        , "receiver"    := VParty "Bob" ]
+                ["Bob"] [] ["transfer"]
+          := 1
+        ]
 
 
 rule'transfer
