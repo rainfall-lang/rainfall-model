@@ -5,15 +5,13 @@ import Data.Map                         (Map)
 import qualified Data.Map.Strict        as Map
 
 
-type Weight = Integer
+type Weight     = Integer
 
-type Store  = Map (Fact ()) Weight
+type Store      = Map (Fact ()) Weight
 
-data Factoid a
-        = Factoid (Fact a) Weight
-        deriving (Show, Eq, Ord)
+type Factoid a  = (Fact a, Weight)
 
-pattern (:*) f w        = Factoid f w
+pattern (:*) f w        = (f, w)
 
 
 -- | Delete all factoids whose weight is one from the store.

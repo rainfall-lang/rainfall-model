@@ -108,7 +108,7 @@ execTerm env (MSay nFact mData mMeta)
                 , factObs       = aObs
                 , factRules     = nsRule }
 
-        factoid = Factoid fact nWeight
+        factoid = (fact, nWeight)
 
    in   ( VUnit
         , [factoid] ++ fsData ++ fsMeta)

@@ -67,14 +67,12 @@ applyRuleToStore rule aHas0 store0
                 (VUnit, fwsNew)
                  -> goCommit aHas fwsSpent fwsNew store
 
-        goCommit aHas fdsSpent fdsNew store
+        goCommit aHas fwsSpent fwsNew store
          -- Unack the new factoids and check the authority delegated to the
          -- rule covers the authority of all new factoids.
-         | fwsNew       <- [ (f, w) | Factoid f w <- fdsNew ]
-         , (fsNew, _)   <- unzip $ fwsNew
-         , all (authCoversFact aHas) fsNew
+         | all (authCoversFact aHas) $ map fst fwsNew
          = let  store'  = Map.unionWith (+) (Map.fromList fwsNew) store
-           in   Fire (fdsSpent, fdsNew, storePrune $ store')
+           in   Fire (fwsSpent, fwsNew, storePrune $ store')
 
 
 ---------------------------------------------------------------------------------------------------
@@ -129,11 +127,11 @@ rakeFromStore nRule aHas store env (Rake bFact gather select consume)
                 Just fw         -> goConsume fw
 
         -- Consume the selected facts from the store.
-        goConsume f@(Factoid fact weight)
+        goConsume fw@(fact, weight)
          = let  env' = envBind bFact (VFact fact) env
            in   case consumeFromStore nRule aHas store fact weight env' consume of
                  Nothing        -> Fizz (FizzConsumeFail nRule aHas store fact weight env' consume)
-                 Just store'    -> Fire (f, store', env')
+                 Just store'    -> Fire (fw, store', env')
 
 
 ---------------------------------------------------------------------------------------------------
@@ -151,8 +149,7 @@ gatherFromStore aHas store env bFact (GatherAnn _a gg)
  = gatherFromStore aHas store env bFact gg
 
 gatherFromStore aHas store env bFact (GatherWhen nFact msPred)
- = [ Factoid fact weight
-        | (fact, weight)   <- Map.toList store
+ = [ fw | fw@(fact, weight)   <- Map.toList store
         , factName fact == nFact
         , let env' = envBind bFact (VFact fact) env
           in  all (isVTrue . evalTerm env') msPred ]
