@@ -7,9 +7,9 @@ import Rainfall.Core.Exp.Term
 ---------------------------------------------------------------------------------------------------
 data Rule a
         = Rule
-        { ruleName      :: Name                 -- ^ Name of the rule.
-        , ruleMatch     :: [Match a]            -- ^ Matches for the rule.
-        , ruleBody      :: Term a               -- ^ Body of the rule.
+        { ruleName      :: Name         -- ^ Name of the rule.
+        , ruleMatch     :: [Match a]    -- ^ Matches for the rule.
+        , ruleBody      :: Term a       -- ^ Body of the rule.
         } deriving Show
 
 
@@ -18,8 +18,8 @@ data Match a
         = MatchAnn    a (Match a)
 
         | Match
-        { matchRake     :: Rake a           -- ^ Rake for the facts.
-        , matchAcquire  :: Acquire a        -- ^ Authority to acquire from raked fact.
+        { matchRake     :: Rake a       -- ^ Rake for the facts.
+        , matchGain     :: Gain a       -- ^ Authority to gain from raked fact.
         } deriving Show
 
 
@@ -27,10 +27,10 @@ data Match a
 -- | Specifies how to retrieve facts from the store.
 data Rake a
         = Rake
-        { rakeBind      :: Bind             -- ^ Binder for facts in the following clauses.
-        , rakeGather    :: Gather a         -- ^ How to gather facts from the store.
-        , rakeSelect    :: Select a         -- ^ How to select result from the gathered facts.
-        , rakeConsume   :: Consume a        -- ^ How to consume the gathered facts.
+        { rakeBind      :: Bind         -- ^ Binder for facts in the following clauses.
+        , rakeGather    :: Gather a     -- ^ How to gather facts from the store.
+        , rakeSelect    :: Select a     -- ^ How to select result from the gathered facts.
+        , rakeConsume   :: Consume a    -- ^ How to consume the gathered facts.
         } deriving Show
 
 
@@ -74,9 +74,9 @@ data Consume a
 
 
 ---------------------------------------------------------------------------------------------------
-data Acquire a
-        = AcquireAnn    a (Acquire a)
-        | AcquireSame                      -- ^ Retain the same authority.
-        | AcquireTerm   (Term a)           -- ^ Acquire the given authority.
+data Gain a
+        = GainAnn    a (Gain a)
+        | GainNone                      -- ^ Retain the same authority.
+        | GainTerm   (Term a)           -- ^ Gain the given authority.
         deriving Show
 

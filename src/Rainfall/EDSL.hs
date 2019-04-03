@@ -6,7 +6,7 @@ module Rainfall.EDSL
         , facts, when
         , oneof, anyof, firstof, lastof
         , retain, weight, consume
-        , same, acquire
+        , none, gain
         , unit, bool, sym, nat, text, party, auth, rules
         , (!), pattern (:=)
 
@@ -48,8 +48,8 @@ retain                  = ConsumeRetain
 weight m                = ConsumeWeight m
 consume n               = ConsumeWeight (MNat n)
 
-same                    = AcquireSame
-acquire m               = AcquireTerm m
+none                    = GainNone
+gain m                  = GainTerm m
 
 
 -- Term -------------------------------------------------------------------------------------------

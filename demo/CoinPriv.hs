@@ -35,18 +35,18 @@ rule'transfer
  = rule "transfer"
  [ match (rake'facts "accept" "Accept"
                 anyof (consume 1))
-         (acquire (auth'one ("accept" ! "accepter")))
+         (gain (auth'one ("accept" ! "accepter")))
 
  , match (rake'when "offer" "Offer"
                 [ symbol'eq ("accept" ! "id") ("offer" ! "id")
                 , party'eq  ("accept" ! "accepter") ("offer" ! "receiver") ]
                 anyof (consume 1))
-         (acquire (auth'one ("offer" ! "giver")))
+         (gain (auth'one ("offer" ! "giver")))
 
  , match (rake'when "coin" "Coin"
                 [ party'eq ("coin" ! "holder") ("offer" ! "giver") ]
                 anyof (consume 1))
-         (acquire (auth'one ("coin" ! "issuer")))
+         (gain (auth'one ("coin" ! "issuer")))
  ]
  $ say  "Coin"
         [ "issuer"      := ("coin"  ! "issuer")

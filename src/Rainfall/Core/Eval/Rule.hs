@@ -89,13 +89,13 @@ matchFromStore
 matchFromStore nRule aSub aHas store env (MatchAnn a match)
  = matchFromStore nRule aSub aHas store env match
 
-matchFromStore nRule aSub aHas store env (Match rake acquire)
+matchFromStore nRule aSub aHas store env (Match rake gain)
  = goRake
  where
         goRake
          = case rakeFromStore nRule aSub aHas store env rake of
                 Fire (fwSpent@(fact :* _weight), store', env')
-                 -> let aHas' = acquireFromFact aHas fact env' acquire
+                 -> let aHas' = gainFromFact aHas fact env' gain
                     in  Fire (aHas', fwSpent, store', env')
 
                 Fizz fizz -> Fizz fizz
@@ -232,28 +232,28 @@ consumeFromStore  nRule  aHas store fact weight env (ConsumeWeight mWeight)
 
 
 ---------------------------------------------------------------------------------------------------
--- | Aquire delegated authority from a given fact.
-acquireFromFact
+-- | Gain delegated authority from a given fact.
+gainFromFact
         :: Auth                 -- ^ Current authority.
         -> Fact ()              -- ^ Fact to acquire authority from.
         -> Env ()               -- ^ Current environment.
-        -> Acquire ()           -- ^ Acquire specification.
+        -> Gain ()              -- ^ Gain specification.
         -> Auth                 -- ^ Resulting authority, including what we started with.
 
-acquireFromFact aHas fact env (AcquireAnn a acquire)
- = acquireFromFact aHas fact env acquire
+gainFromFact aHas fact env (GainAnn a acquire)
+ = gainFromFact aHas fact env acquire
 
-acquireFromFact aHas fact env AcquireSame
+gainFromFact aHas fact env GainNone
  = aHas
 
-acquireFromFact aHas fact env (AcquireTerm mAuth)
+gainFromFact aHas fact env (GainTerm mAuth)
  = case evalTerm env mAuth of
         VAuth aFact
           |  Set.isSubsetOf (Set.fromList aFact) (Set.fromList $ factBy fact)
           -> List.nubOrd (aHas ++ aFact)
 
-          |  otherwise -> error $ "acquireFromFact: invalid delegation"
+          |  otherwise -> error $ "gainFromFact: invalid delegation"
 
         v -> error $ unlines
-                [ "acquireFromFact: auth term is ill-typed"
+                [ "gainFromFact: auth term is ill-typed"
                 , "  value = " ++ show v ]
