@@ -90,15 +90,12 @@ matchFromStore nRule aSub aHas store env (MatchAnn a match)
  = matchFromStore nRule aSub aHas store env match
 
 matchFromStore nRule aSub aHas store env (Match rake gain)
- = goRake
- where
-        goRake
-         = case rakeFromStore nRule aSub aHas store env rake of
-                Fire (fwSpent@(fact :* _weight), store', env')
-                 -> let aHas' = gainFromFact aHas fact env' gain
-                    in  Fire (aHas', fwSpent, store', env')
+ = case rakeFromStore nRule aSub aHas store env rake of
+        Fire (fwSpent@(fact :* _weight), store', env')
+         -> let aHas' = gainFromFact aHas fact env' gain
+            in  Fire (aHas', fwSpent, store', env')
 
-                Fizz fizz -> Fizz fizz
+        Fizz fizz -> Fizz fizz
 
 
 ---------------------------------------------------------------------------------------------------
@@ -117,10 +114,9 @@ rakeFromStore nRule aSub aHas store env (Rake bFact gather select consume)
  where
         -- Gather initial facts that match the predicates.
         goGather
-         = let  fws     = gatherFromStore aSub store env bFact gather
-           in   if null fws
-                 then Fizz (FizzGatherNone gather store)
-                 else goSelect fws
+         = case gatherFromStore aSub store env bFact gather of
+                []              -> Fizz (FizzGatherNone gather store)
+                fws             -> goSelect fws
 
         -- Select a subset of facts to consider.
         goSelect fws
