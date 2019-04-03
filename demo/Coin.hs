@@ -11,21 +11,23 @@ store1 :: Store
 store1
  = Map.fromList
  [ Fact  "Coin" [ "holder"      := VParty "Alice"
-                , "issuer"      := VParty "Bank"]
-        ["Alice", "Bank"] [] ["transfer"]
+                , "issuer"      := VParty "Isabelle"]
+        ["Isabelle", "Alice"] psAll ["transfer"]
    := 1
 
  , Fact "Offer" [ "id"          := VSym   "1234"
                 , "giver"       := VParty "Alice"
                 , "receiver"    := VParty "Bob" ]
-        ["Alice"] [] ["transfer"]
+        ["Alice"] psAll ["transfer"]
    := 1
 
  , Fact "Accept" [ "id"          := VSym   "1234"
                  , "accepter"    := VParty "Bob" ]
-        ["Bob"] [] ["transfer"]
+        ["Bob"]  psAll ["transfer"]
    := 1
- ]
+  ]
+
+psAll   = ["Isabelle", "Alice", "Bob"]
 
 
 ---------------------------------------------------------------------------------------------------
@@ -49,7 +51,7 @@ rule'transfer
  $ say  "Coin"
         [ "issuer"      := ("coin"  ! "issuer")
         , "holder"      := ("offer" ! "receiver") ]
-        [ "by"          := auth'union (auth'one (party "Bank")) (auth'one ("offer" ! "receiver"))
+        [ "by"          := auth'union (auth'one ("coin" ! "issuer")) (auth'one ("offer" ! "receiver"))
         , "rules"       := rules ["transfer"] ]
 
 

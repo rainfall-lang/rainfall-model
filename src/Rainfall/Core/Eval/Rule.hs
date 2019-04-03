@@ -41,18 +41,18 @@ data Fizz a
 -- | Try to fire a rule applied to a store.
 applyRuleToStore
         :: Rule ()              -- ^ Rule to apply.
-        -> Auth                 -- ^ Initial authority.
+        -> Auth                 -- ^ Authority of submitter.
         -> Store                -- ^ Initial store.
         -> Result () ([Factoid ()], [Factoid ()], Store)
 
-applyRuleToStore rule aHas0 store0
- = goMatch aHas0 [] store0 [] (ruleMatch rule)
+applyRuleToStore rule aSub store0
+ = goMatch [] [] store0 [] (ruleMatch rule)
  where
         -- Match patterns against facts in the store,
         --   building up our delegated authority, list of spent factoids,
         --   and the term environment.
         goMatch aHas fwsSpent store env (match : matches)
-         = case matchFromStore (ruleName rule) aHas store env match of
+         = case matchFromStore (ruleName rule) aSub aHas store env match of
                 -- The current pattern didn't match, so the whole rule fizzes.
                 Fizz fizz -> Fizz fizz
 
@@ -79,20 +79,21 @@ applyRuleToStore rule aHas0 store0
 -- | Match rule against facts in the store.
 matchFromStore
         :: Name                 -- ^ Name of the current rule.
-        -> Auth                 -- ^ Initial authority.
+        -> Auth                 -- ^ Authority of submitter.
+        -> Auth                 -- ^ Initial authority of rule.
         -> Store                -- ^ Initial store.
         -> Env ()               -- ^ Initial environment.
         -> Match ()
         -> Result () (Auth, Factoid (), Store, Env ())
 
-matchFromStore nRule aHas store env (MatchAnn a match)
- = matchFromStore nRule aHas store env match
+matchFromStore nRule aSub aHas store env (MatchAnn a match)
+ = matchFromStore nRule aSub aHas store env match
 
-matchFromStore nRule aHas store env (Match rake acquire)
+matchFromStore nRule aSub aHas store env (Match rake acquire)
  = goRake
  where
         goRake
-         = case rakeFromStore nRule aHas store env rake of
+         = case rakeFromStore nRule aSub aHas store env rake of
                 Fire (fwSpent@(fact :* _weight), store', env')
                  -> let aHas' = acquireFromFact aHas fact env' acquire
                     in  Fire (aHas', fwSpent, store', env')
@@ -104,18 +105,19 @@ matchFromStore nRule aHas store env (Match rake acquire)
 -- | Rake facts from the store,
 rakeFromStore
         :: Name                 -- ^ Name of the current rule.
+        -> Auth                 -- ^ Authority of the submitter.
         -> Auth                 -- ^ Authority of the rule performing the rake.
         -> Store                -- ^ Store to rake facts from.
         -> Env ()               -- ^ Current environment.
         -> Rake ()              -- ^ Rake to perform.
         -> Result () (Factoid (), Store, Env ())
 
-rakeFromStore nRule aHas store env (Rake bFact gather select consume)
+rakeFromStore nRule aSub aHas store env (Rake bFact gather select consume)
  = goGather
  where
         -- Gather initial facts that match the predicates.
         goGather
-         = let  fws     = gatherFromStore aHas store env bFact gather
+         = let  fws     = gatherFromStore aSub store env bFact gather
            in   if null fws
                  then Fizz (FizzGatherNone gather store)
                  else goSelect fws
@@ -138,19 +140,20 @@ rakeFromStore nRule aHas store env (Rake bFact gather select consume)
 -- | Gather visible facts from the store that match the gather predicates,
 --   returning all matching facts and the available weight of each one.
 gatherFromStore
-        :: Auth                 -- ^ Authority of the rule performing the gather.
+        :: Auth                 -- ^ Authority of the submitter.
         -> Store                -- ^ Store to gather facts from.
         -> Env ()               -- ^ Current environment, used in gather predicates.
         -> Bind                 -- ^ Binder for the fact value in the gather predicate.
         -> Gather ()            -- ^ The gather predicates.
         -> [Factoid ()]
 
-gatherFromStore aHas store env bFact (GatherAnn _a gg)
- = gatherFromStore aHas store env bFact gg
+gatherFromStore aSub store env bFact (GatherAnn _a gg)
+ = gatherFromStore aSub store env bFact gg
 
-gatherFromStore aHas store env bFact (GatherWhen nFact msPred)
+gatherFromStore aSub store env bFact (GatherWhen nFact msPred)
  = [ fw | fw@(fact, weight)   <- Map.toList store
         , factName fact == nFact
+        , canSeeFact aSub fact
         , let env' = envBind bFact (VFact fact) env
           in  all (isVTrue . evalTerm env') msPred ]
 
