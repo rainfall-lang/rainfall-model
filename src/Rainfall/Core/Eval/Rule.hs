@@ -43,21 +43,38 @@ applyRuleToStore
         :: Rule ()              -- ^ Rule to apply.
         -> Auth                 -- ^ Initial authority.
         -> Store                -- ^ Initial store.
-        -> Result () (Auth, [Factoid ()], Store, Env ())
+        -> Result () ([Factoid ()], [Factoid ()], Store)
 
 applyRuleToStore rule aHas0 store0
  = goMatch aHas0 [] store0 [] (ruleMatch rule)
  where
+        -- Match patterns against facts in the store,
+        --   building up our delegated authority, list of spent factoids,
+        --   and the term environment.
         goMatch aHas fwsSpent store env (match : matches)
          = case matchFromStore (ruleName rule) aHas store env match of
+                -- The current pattern didn't match, so the whole rule fizzes.
                 Fizz fizz -> Fizz fizz
 
+                -- The current pattern matched, so continue on to the next one.
                 Fire (aHas', fwSpent, store', env')
                  -> goMatch aHas' (fwSpent : fwsSpent) store' env' matches
 
-        -- TODO: need to evaluate the body to get the new facts.
+        -- We have satisfied all the patterns,
+        -- so now execute the body of the rule.
         goMatch aHas fwsSpent store env []
-         = Fire (aHas, fwsSpent, store, env)
+         = case execTerm env (ruleBody rule) of
+                (VUnit, fwsNew)
+                 -> goCommit aHas fwsSpent fwsNew store
+
+        goCommit aHas fdsSpent fdsNew store
+         -- Unack the new factoids and check the authority delegated to the
+         -- rule covers the authority of all new factoids.
+         | fwsNew       <- [ (f, w) | Factoid f w <- fdsNew ]
+         , (fsNew, _)   <- unzip $ fwsNew
+         , all (authCoversFact aHas) fsNew
+         = let  store'  = Map.unionWith (+) (Map.fromList fwsNew) store
+           in   Fire (fdsSpent, fdsNew, storePrune $ store')
 
 
 ---------------------------------------------------------------------------------------------------

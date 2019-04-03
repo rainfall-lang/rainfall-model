@@ -19,3 +19,7 @@ isVTrue _               = False
 --  = not $ null $ List.intersect aHas (List.union aBy aObs)
 
 
+-- | Check if the 'by' authority of a fact is a subset of the given authority.
+authCoversFact :: Auth -> Fact a -> Bool
+authCoversFact auth fact
+ = Set.isSubsetOf (Set.fromList (factBy fact)) (Set.fromList auth)

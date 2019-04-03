@@ -45,7 +45,7 @@ rule'transfer
  $ say  "Coin"
         [ "stamp"       := sym   "RainCoin"
         , "holder"      := ("offer" ! "receiver") ]
-        [ "by"          := auth'union (auth'one "Bank") ("offer" ! "receiver")
+        [ "by"          := auth'union (auth'one (party "Bank")) (auth'one ("offer" ! "receiver"))
         , "rules"       := rules ["transfer"] ]
 
 
