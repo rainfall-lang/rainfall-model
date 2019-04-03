@@ -44,10 +44,8 @@ rule'transfer
  ]
  $ say  "Coin"
         [ "stamp"       := sym   "RainCoin"
-        , "holder"      := party "Alice" ]
-        [ "by"          := auth  ["Alice", "Bank"]
+        , "holder"      := ("offer" ! "receiver") ]
+        [ "by"          := auth'union (auth'one "Bank") ("offer" ! "receiver")
         , "rules"       := rules ["transfer"] ]
 
-
--- rakeCoin = rake'when "Coin" [party'eq ("c" ! "holder") ("offer" ! "giver")] anyof (consume 1)
 

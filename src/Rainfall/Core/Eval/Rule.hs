@@ -1,5 +1,6 @@
 
 module Rainfall.Core.Eval.Rule where
+import Rainfall.Core.Eval.Store
 import Rainfall.Core.Eval.Term
 import Rainfall.Core.Exp
 
@@ -11,16 +12,6 @@ import Data.Map                         (Map)
 import Data.Maybe
 
 ---------------------------------------------------------------------------------------------------
-type Weight = Integer
-type Store  = Map (Fact ()) Weight
-
-data Factoid a
-        = Factoid (Fact a) Weight
-        deriving (Show, Eq, Ord)
-
-pattern (:*) f w        = Factoid f w
-
-
 data Result a b
         = Fire b
         | Fizz (Fizz a)

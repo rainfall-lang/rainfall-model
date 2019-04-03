@@ -51,6 +51,7 @@ consume n               = ConsumeWeight (MNat n)
 same                    = AcquireSame
 acquire m               = AcquireTerm m
 
+
 -- Term -------------------------------------------------------------------------------------------
 unit                    = MUnit
 bool  b                 = MBool  b
@@ -66,10 +67,10 @@ pattern (:=) a b        = (a, b)
 
 
 -- Prim -------------------------------------------------------------------------------------------
-say n nmsFields nmsMeta
+say nFact nmsFields nmsMeta
  = let  (nsFields, vsFields)    = unzip nmsFields
         (nsMeta,   vsMeta)      = unzip nmsMeta
-   in   MApp (MPrm "say") [MRcd nsFields vsFields, MRcd nsMeta vsMeta]
+   in   MSay nFact (MRcd nsFields vsFields) (MRcd nsMeta vsMeta)
 
 symbol'eq mx my         = MApp (MPrm "symbol'eq")       [mx, my]
 party'eq  mx my         = MApp (MPrm "party'eq")        [mx, my]

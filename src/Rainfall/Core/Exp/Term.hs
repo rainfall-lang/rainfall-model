@@ -20,18 +20,25 @@ data Term a
         = MAnn  a (Term a)                      -- ^ Annotation.
 
         | MVar  Name                            -- ^ Variable.
-        | MAbs  [Bind] [Type a] (Term a)        -- ^ Abstraction.
-        | MApp  (Term a) [Term a]               -- ^ Application.
+        | MAbs  [Bind] [Type a] (Term a)        -- ^ Function Abstraction.
+        | MApp  (Term a) [Term a]               -- ^ Function Application.
 
         | MRef  (TermRef a)                     -- ^ Reference.
 
         | MRcd  [Name]   [Term a]               -- ^ Record former.
         | MPrj  (Term a) Name                   -- ^ Record projection.
+
+        | MKey  (TermKey a) [Term a]            -- ^ Keyword application.
         deriving (Show, Eq, Ord)
 
 
 data TermRef a
         = MRVal (Value a)                       -- ^ Embed a value.
+        deriving (Show, Eq, Ord)
+
+
+data TermKey a
+        = MKSay
         deriving (Show, Eq, Ord)
 
 

@@ -21,6 +21,7 @@ pattern MParty s        = MLit (LParty s)
 pattern MAuth  ns       = MLit (LAuth ns)
 pattern MRules ns       = MLit (LRules ns)
 
+pattern MSay n mD mM    = MKey MKSay [MSym n, mD, mM]
 
 ------------------------------------------------------------------------------------------ Value --
 pattern VUnit           = VLit LUnit
