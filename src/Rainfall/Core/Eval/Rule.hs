@@ -30,8 +30,6 @@ data Fizz a
         { fizzRule      :: Name
         , fizzAuth      :: Auth
         , fizzStore     :: Store
-        , fizzFact      :: Fact a
-        , fizzWeight    :: Weight
         , fizzEnv       :: Env a
         , fizzConsume   :: Consume a }
         deriving Show
@@ -43,9 +41,14 @@ data Trans a
         , transCreated  :: [Factoid ()] }
         deriving Show
 
----------------------------------------------------------------------------------------------------
--- TODO: need to handle non-determinism in the selection,
--- if there are multiple possibilities for the 'any' selection.
+data Firing
+        = Firing
+        { firingName    :: Name
+        , firingSpent   :: [Factoid ()]
+        , firingNew     :: [Factoid ()]
+        , firingStore   :: Store }
+        deriving Show
+
 
 ---------------------------------------------------------------------------------------------------
 -- | Try to fire a rule applied to a store.
@@ -53,7 +56,7 @@ applyRuleToStore
         :: Rule ()              -- ^ Rule to apply.
         -> Auth                 -- ^ Authority of submitter.
         -> Store                -- ^ Initial store.
-        -> Result () ([Factoid ()], [Factoid ()], Store)
+        -> [Result () Firing]
 
 applyRuleToStore rule aSub store0
  = goMatch [] [] store0 [] (ruleMatch rule)
@@ -61,28 +64,41 @@ applyRuleToStore rule aSub store0
         -- Match patterns against facts in the store,
         --   building up our delegated authority, list of spent factoids,
         --   and the term environment.
+        goMatch :: Auth
+                -> [Factoid ()]
+                -> Store
+                -> Env ()
+                -> [Match ()]
+                -> [Result () Firing]
+
         goMatch aHas fwsSpent store env (match : matches)
          = case matchFromStore (ruleName rule) aSub aHas store env match of
                 -- The current pattern didn't match, so the whole rule fizzes.
-                Fizz fizz -> Fizz fizz
+                Fizz fizz -> [Fizz fizz]
 
                 -- The current pattern matched, so continue on to the next one.
-                Fire (aHas', fwSpent, store', env')
-                 -> goMatch aHas' (fwSpent : fwsSpent) store' env' matches
+                --
+                --  This map handles non-determinism in the evaluation rules as we
+                --  compare all the ways the current pattern can match
+                --  with all the ways the rest of the rules can match.
+                Fire opts
+                 -> concat [ goMatch aHas' (fwSpent' : fwsSpent) store' env' matches
+                           | (aHas', fwSpent', store', env') <- opts ]
 
-        -- We have satisfied all the patterns,
-        -- so now execute the body of the rule.
+
+        -- We have satisfied all the patterns, so now execute the body of the rule.
+        -- Unack the new factoids and check the authority delegated to the
+        -- rule covers the authority of all new factoids.
         goMatch aHas fwsSpent store env []
-         = case execTerm env (ruleBody rule) of
-                (VUnit, fwsNew)
-                 -> goCommit aHas fwsSpent fwsNew store
-
-        goCommit aHas fwsSpent fwsNew store
-         -- Unack the new factoids and check the authority delegated to the
-         -- rule covers the authority of all new factoids.
-         | all (authCoversFact aHas) $ map fst fwsNew
+         | fwsNew <- case execTerm env (ruleBody rule) of
+                       (VUnit, fwsNew) -> fwsNew
+                       _               -> error "result of say is ill-typed"
+         , all (authCoversFact aHas) $ map fst fwsNew
          = let  store'  = Map.unionWith (+) (Map.fromList fwsNew) store
-           in   Fire (fwsSpent, fwsNew, storePrune $ store')
+           in   [Fire $ Firing (ruleName rule) fwsSpent fwsNew (storePrune $ store')]
+
+         | otherwise
+         = []
 
 
 ---------------------------------------------------------------------------------------------------
@@ -94,22 +110,29 @@ matchFromStore
         -> Store                -- ^ Initial store.
         -> Env ()               -- ^ Initial environment.
         -> Match ()
-        -> Result () (Auth, Factoid (), Store, Env ())
+        -> Result () [(Auth, Factoid (), Store, Env ())]
 
 matchFromStore nRule aSub aHas store env (MatchAnn a match)
  = matchFromStore nRule aSub aHas store env match
 
 matchFromStore nRule aSub aHas store env (Match rake gain)
- = case rakeFromStore nRule aSub aHas store env rake of
-        Fire (fwSpent@(fact :* _weight), store', env')
-         -> let aHas' = gainFromFact aHas fact env' gain
-            in  Fire (aHas', fwSpent, store', env')
+ = goRake
+ where
+        goRake
+         = case rakeFromStore nRule aSub aHas store env rake of
+                Fizz fizz       -> Fizz fizz
+                Fire opts       -> case mapMaybe goGain opts of
+                                        []      -> error "fizz"
+                                        result  -> Fire result
 
-        Fizz fizz -> Fizz fizz
+        goGain (fwSpent@(fact :* _weight), store', env')
+         = case gainFromFact aHas fact env' gain of
+                Just aHas'      -> Just (aHas', fwSpent, store', env')
+                Nothing         -> Nothing
 
 
 ---------------------------------------------------------------------------------------------------
--- | Rake facts from the store,
+-- | Apply a rake to the store, producing the possible matches.
 rakeFromStore
         :: Name                 -- ^ Name of the current rule.
         -> Auth                 -- ^ Authority of the submitter.
@@ -117,7 +140,7 @@ rakeFromStore
         -> Store                -- ^ Store to rake facts from.
         -> Env ()               -- ^ Current environment.
         -> Rake ()              -- ^ Rake to perform.
-        -> Result () (Factoid (), Store, Env ())
+        -> Result () [(Factoid (), Store, Env ())]
 
 rakeFromStore nRule aSub aHas store env (Rake bFact gather select consume)
  = goGather
@@ -125,24 +148,26 @@ rakeFromStore nRule aSub aHas store env (Rake bFact gather select consume)
         -- Gather initial facts that match the predicates.
         goGather
          = case gatherFromStore aSub store env bFact gather of
-                []              -> Fizz (FizzGatherNone gather store)
-                fws             -> goSelect fws
+                []      -> Fizz (FizzGatherNone gather store)
+                fws     -> goSelect fws
 
         -- Select a subset of facts to consider.
         goSelect fws
          = case selectFromFacts fws env bFact select of
-                Nothing         -> Fizz (FizzSelectNone select fws)
-                Just fw         -> goConsume fw
+                []      -> Fizz (FizzSelectNone select fws)
+                fws     -> case mapMaybe goConsume fws of
+                                []      -> Fizz (FizzConsumeFail nRule aHas store env consume)
+                                result  -> Fire result
 
-        -- Consume the selected facts from the store.
+        -- Consume the weight of the selected fact from the store.
         goConsume fw@(fact, weight)
          | elem nRule (factRules fact)
          , env'         <- envBind bFact (VFact fact) env
          , Just store'  <- consumeFromStore fact store env' consume
-         = Fire (fw, store', env')
+         = Just (fw, store', env')
 
          | otherwise
-         = Fizz (FizzConsumeFail nRule aHas store fact weight env consume)
+         = Nothing
 
 
 ---------------------------------------------------------------------------------------------------
@@ -168,20 +193,21 @@ gatherFromStore aSub store env bFact (GatherWhen nFact msPred)
 
 
 ---------------------------------------------------------------------------------------------------
+-- | Select a single fact from the given list,
+--   according to the selection specifier,
+--   returning all the available options.
 selectFromFacts
         :: [Factoid ()]         -- ^ Gathered facts to select from.
         -> Env ()               -- ^ Current environment.
         -> Bind                 -- ^ Fact binder within the rake.
         -> Select ()            -- ^ Selection specifier.
-        -> Maybe (Factoid ())
+        -> [Factoid ()]
 
 selectFromFacts fws env bFact (SelectAnn a select)
  = selectFromFacts fws env bFact select
 
 selectFromFacts fws _env _bFact SelectAny
- = case fws of
-        fw : _  -> Just fw
-        _       -> Nothing
+ = fws
 
 selectFromFacts fws env bFact (SelectFirst mKey)
  = let  kfws = [ ( evalTerm (envBind bFact (VFact fact) env) mKey
@@ -189,8 +215,8 @@ selectFromFacts fws env bFact (SelectFirst mKey)
                | fact :* weight <- fws ]
 
    in   case List.sortOn fst kfws of
-         (k, fw) : _ -> Just fw
-         _           -> Nothing
+         (k, fw) : _ -> [fw]
+         _           -> []
 
 selectFromFacts fws env bFact (SelectLast mKey)
  = let  kfws = [ ( evalTerm (envBind bFact (VFact fact) env) mKey
@@ -198,8 +224,8 @@ selectFromFacts fws env bFact (SelectLast mKey)
                | fact :* weight <- fws ]
 
    in   case reverse $ List.sortOn fst kfws of
-         (k, fw) : _ -> Just fw
-         _           -> Nothing
+         (k, fw) : _ -> [fw]
+         _           -> []
 
 
 ---------------------------------------------------------------------------------------------------
@@ -241,21 +267,21 @@ gainFromFact
         -> Fact ()              -- ^ Fact to acquire authority from.
         -> Env ()               -- ^ Current environment.
         -> Gain ()              -- ^ Gain specification.
-        -> Auth                 -- ^ Resulting authority, including what we started with.
+        -> Maybe Auth           -- ^ Resulting authority, including what we started with.
 
 gainFromFact aHas fact env (GainAnn a acquire)
  = gainFromFact aHas fact env acquire
 
 gainFromFact aHas fact env GainNone
- = aHas
+ = Just aHas
 
 gainFromFact aHas fact env (GainTerm mAuth)
  = case evalTerm env mAuth of
         VAuth aFact
           |  Set.isSubsetOf (Set.fromList aFact) (Set.fromList $ factBy fact)
-          -> List.nubOrd (aHas ++ aFact)
+          -> Just (List.nubOrd (aHas ++ aFact))
 
-          |  otherwise -> error $ "gainFromFact: invalid delegation"
+          |  otherwise -> Nothing
 
         v -> error $ unlines
                 [ "gainFromFact: auth term is ill-typed"
