@@ -9,6 +9,7 @@ module Rainfall.EDSL
         , none, gain
         , unit, bool, sym, nat, text, party, auth, rules
         , (!), pattern (:=)
+        , auths
 
         , say
         , symbol'eq
@@ -18,6 +19,7 @@ module Rainfall.EDSL
 where
 import Rainfall.Core.Exp
 import Data.String
+import qualified Data.Set       as Set
 
 instance IsString (Term a) where
  fromString s = MVar s
@@ -59,12 +61,13 @@ sym   s                 = MSym   s
 nat   n                 = MNat   n
 text  t                 = MText  t
 party n                 = MParty n
-auth  ns                = MAuth  ns
+auth  ns                = MAuth  (Set.fromList ns)
 rules ns                = MRules ns
 
 (!) m n                 = MPrj m n
 pattern (:=) a b        = (a, b)
 
+auths ns                = Set.fromList ns
 
 -- Prim -------------------------------------------------------------------------------------------
 say nFact nmsFields nmsMeta

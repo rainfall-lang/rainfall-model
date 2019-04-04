@@ -5,6 +5,7 @@ import Rainfall.Core.Exp
 
 import Data.Maybe
 import qualified Data.List.Extra        as List
+import qualified Data.Set               as Set
 
 
 ---------------------------------------------------------------------------------------------------
@@ -85,11 +86,11 @@ execTerm env (MSay nFact mData mMeta)
  , (VRcd nsMeta vsMeta, fsMeta) <- execTerm env mMeta
  , envMeta                      <- zip nsMeta vsMeta
  = let
-        vBy     = fromMaybe (VAuth []) $ lookup "by" envMeta
+        vBy     = fromMaybe (VAuth Set.empty) $ lookup "by" envMeta
         aBy     = fromMaybe (error "execTerm: 'by' value in say statement is not an auth set")
                 $ takeAuthOfValue vBy
 
-        vObs    = fromMaybe (VAuth []) $ lookup "obs" envMeta
+        vObs    = fromMaybe (VAuth Set.empty) $ lookup "obs" envMeta
         aObs    = fromMaybe (error "execTerm: 'obs' value in say statement is not an auth set")
                 $ takeAuthOfValue vObs
 
@@ -123,8 +124,8 @@ evalPrim "symbol'eq"    [VSym s1, VSym s2]      = VBool (s1 == s2)
 
 evalPrim "party'eq"     [VParty p1, VParty p2]  = VBool (p1 == p2)
 
-evalPrim "auth'one"     [VParty p]              = VAuth [p]
-evalPrim "auth'union"   [VAuth a1, VAuth a2]    = VAuth (List.nubOrd $ a1 ++ a2)
+evalPrim "auth'one"     [VParty p]              = VAuth (Set.singleton p)
+evalPrim "auth'union"   [VAuth a1, VAuth a2]    = VAuth (Set.union a1 a2)
 
 evalPrim name vsArg
  = error $ unlines

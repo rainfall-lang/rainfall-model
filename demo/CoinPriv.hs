@@ -12,18 +12,18 @@ store1
  = Map.fromList
  [ Fact  "Coin" [ "holder"      := VParty "Alice"
                 , "issuer"      := VParty "Issuer"]
-        ["Issuer", "Alice"] ["Monitor"] ["transfer"]
+        (auths ["Issuer", "Alice"]) (auths ["Monitor"]) ["transfer"]
    := 1
 
  , Fact "Offer" [ "id"          := VSym   "1234"
                 , "giver"       := VParty "Alice"
                 , "receiver"    := VParty "Bob" ]
-        ["Alice"] ["Monitor", "Bob"]    ["transfer"]
+        (auths ["Alice"]) (auths ["Monitor", "Bob"])    ["transfer"]
    := 1
 
  , Fact "Accept" [ "id"         := VSym   "1234"
                  , "accepter"   := VParty "Bob" ]
-        ["Bob"]   ["Monitor", "Alice"]  ["transfer"]
+        (auths ["Bob"])   (auths ["Monitor", "Alice"])  ["transfer"]
    := 1
   ]
 
@@ -59,4 +59,4 @@ rule'transfer
 
 ---------------------------------------------------------------------------------------------------
 test1   = putStrLn $ ppShow
-        $ applyRuleToStore rule'transfer ["Alice"] store1
+        $ applyRuleToStore rule'transfer (auths ["Alice"]) store1

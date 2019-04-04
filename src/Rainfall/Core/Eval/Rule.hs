@@ -24,7 +24,7 @@ data Fizz a
 
         | FizzSelectNone
         { fizzSelect    :: Select a
-        , fizzFactoids  :: [Factoid ()] }
+        , fizzFacts     :: [Fact ()] }
 
         | FizzConsumeFail
         { fizzRule      :: Name
@@ -59,7 +59,7 @@ applyRuleToStore
         -> [Result () Firing]
 
 applyRuleToStore rule aSub store0
- = goMatch [] [] store0 [] (ruleMatch rule)
+ = goMatch Set.empty [] store0 [] (ruleMatch rule)
  where
         -- Match patterns against facts in the store,
         --   building up our delegated authority, list of spent factoids,
@@ -119,7 +119,7 @@ matchFromStore nRule aSub aHas store env (Match rake gain)
  = goRake
  where
         goRake
-         = case rakeFromStore nRule aSub aHas store env rake of
+         = case rakeFromStore nRule aSub store env rake of
                 Fizz fizz       -> Fizz fizz
                 Fire opts       -> case mapMaybe goGain opts of
                                         []      -> error "fizz"
@@ -136,35 +136,34 @@ matchFromStore nRule aSub aHas store env (Match rake gain)
 rakeFromStore
         :: Name                 -- ^ Name of the current rule.
         -> Auth                 -- ^ Authority of the submitter.
-        -> Auth                 -- ^ Authority of the rule performing the rake.
         -> Store                -- ^ Store to rake facts from.
         -> Env ()               -- ^ Current environment.
         -> Rake ()              -- ^ Rake to perform.
         -> Result () [(Factoid (), Store, Env ())]
 
-rakeFromStore nRule aSub aHas store env (Rake bFact gather select consume)
+rakeFromStore nRule aSub store env (Rake bFact gather select consume)
  = goGather
  where
         -- Gather initial facts that match the predicates.
         goGather
          = case gatherFromStore aSub store env bFact gather of
                 []      -> Fizz (FizzGatherNone gather store)
-                fws     -> goSelect fws
+                fs      -> goSelect fs
 
         -- Select a subset of facts to consider.
-        goSelect fws
-         = case selectFromFacts fws env bFact select of
-                []      -> Fizz (FizzSelectNone select fws)
-                fws     -> case mapMaybe goConsume fws of
-                                []      -> Fizz (FizzConsumeFail nRule aHas store env consume)
+        goSelect fs
+         = case selectFromFacts fs env bFact select of
+                []      -> Fizz (FizzSelectNone select fs)
+                fs'     -> case mapMaybe goConsume fs of
+                                []      -> Fizz (FizzConsumeFail nRule aSub store env consume)
                                 result  -> Fire result
 
         -- Consume the weight of the selected fact from the store.
-        goConsume fw@(fact, weight)
+        goConsume fact
          | elem nRule (factRules fact)
-         , env'         <- envBind bFact (VFact fact) env
-         , Just store'  <- consumeFromStore fact store env' consume
-         = Just (fw, store', env')
+         , env'                  <- envBind bFact (VFact fact) env
+         , Just (weight, store') <- consumeFromStore fact store env' consume
+         = Just ((fact, weight), store', env')
 
          | otherwise
          = Nothing
@@ -179,17 +178,18 @@ gatherFromStore
         -> Env ()               -- ^ Current environment, used in gather predicates.
         -> Bind                 -- ^ Binder for the fact value in the gather predicate.
         -> Gather ()            -- ^ The gather predicates.
-        -> [Factoid ()]
+        -> [Fact ()]
 
 gatherFromStore aSub store env bFact (GatherAnn _a gg)
  = gatherFromStore aSub store env bFact gg
 
 gatherFromStore aSub store env bFact (GatherWhen nFact msPred)
- = [ fw | fw@(fact, weight)   <- Map.toList store
-        , factName fact == nFact
-        , canSeeFact aSub fact
-        , let env' = envBind bFact (VFact fact) env
-          in  all (isVTrue . evalTerm env') msPred ]
+ = [ fact       | fw@(fact, weight) <- Map.toList store
+                , weight >= 0
+                , factName fact == nFact
+                , canSeeFact aSub fact
+                , let env' = envBind bFact (VFact fact) env
+                  in  all (isVTrue . evalTerm env') msPred ]
 
 
 ---------------------------------------------------------------------------------------------------
@@ -197,34 +197,32 @@ gatherFromStore aSub store env bFact (GatherWhen nFact msPred)
 --   according to the selection specifier,
 --   returning all the available options.
 selectFromFacts
-        :: [Factoid ()]         -- ^ Gathered facts to select from.
+        :: [Fact ()]            -- ^ Gathered facts to select from.
         -> Env ()               -- ^ Current environment.
         -> Bind                 -- ^ Fact binder within the rake.
         -> Select ()            -- ^ Selection specifier.
-        -> [Factoid ()]
+        -> [Fact ()]
 
-selectFromFacts fws env bFact (SelectAnn a select)
- = selectFromFacts fws env bFact select
+selectFromFacts fs env bFact (SelectAnn a select)
+ = selectFromFacts fs env bFact select
 
-selectFromFacts fws _env _bFact SelectAny
- = fws
+selectFromFacts fs _env _bFact SelectAny
+ = fs
 
-selectFromFacts fws env bFact (SelectFirst mKey)
- = let  kfws = [ ( evalTerm (envBind bFact (VFact fact) env) mKey
-                 , fact :* weight)
-               | fact :* weight <- fws ]
+selectFromFacts fs env bFact (SelectFirst mKey)
+ = let  kfs =   [ (evalTerm (envBind bFact (VFact fact) env) mKey, fact)
+                | fact <- fs ]
 
-   in   case List.sortOn fst kfws of
-         (k, fw) : _ -> [fw]
-         _           -> []
+   in   case List.sortOn fst kfs of
+         (k, f) : _     -> [f]
+         _              -> []
 
-selectFromFacts fws env bFact (SelectLast mKey)
- = let  kfws = [ ( evalTerm (envBind bFact (VFact fact) env) mKey
-                 , fact :* weight)
-               | fact :* weight <- fws ]
+selectFromFacts fs env bFact (SelectLast mKey)
+ = let  kfs =   [ (evalTerm (envBind bFact (VFact fact) env) mKey, fact)
+                | fact <- fs ]
 
-   in   case reverse $ List.sortOn fst kfws of
-         (k, fw) : _ -> [fw]
+   in   case reverse $ List.sortOn fst kfs of
+         (k, f) : _  -> [f]
          _           -> []
 
 
@@ -239,13 +237,13 @@ consumeFromStore
         -> Store                -- ^ Initial store.
         -> Env ()               -- ^ Current environment.
         -> Consume ()           -- ^ Consume specifier.
-        -> Maybe Store
+        -> Maybe (Weight, Store)
 
 consumeFromStore fact store env (ConsumeAnn _ consume)
  = consumeFromStore fact store env consume
 
 consumeFromStore _fact store _env ConsumeRetain
- = Just store
+ = Just (0, store)
 
 consumeFromStore fact store env (ConsumeWeight mWeight)
  | nWeightWant
@@ -255,7 +253,7 @@ consumeFromStore fact store env (ConsumeWeight mWeight)
  , nWeightAvail
      <- fromMaybe 0 $ Map.lookup fact store
  , nWeightAvail >= nWeightWant
- = Just $ Map.insert fact (nWeightAvail - nWeightWant) store
+ = Just (nWeightWant, Map.insert fact (nWeightAvail - nWeightWant) store)
 
  | otherwise    = Nothing
 
@@ -277,9 +275,9 @@ gainFromFact aHas fact env GainNone
 
 gainFromFact aHas fact env (GainTerm mAuth)
  = case evalTerm env mAuth of
-        VAuth aFact
-          |  Set.isSubsetOf (Set.fromList aFact) (Set.fromList $ factBy fact)
-          -> Just (List.nubOrd (aHas ++ aFact))
+        VAuth aGain
+          |  Set.isSubsetOf aGain (factBy fact)
+          -> Just (Set.union aHas aGain)
 
           |  otherwise -> Nothing
 
