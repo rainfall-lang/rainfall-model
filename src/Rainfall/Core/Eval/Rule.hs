@@ -36,6 +36,16 @@ data Fizz a
         , fizzConsume   :: Consume a }
         deriving Show
 
+data Trans a
+        = Trans
+        { transRule     :: Name
+        , transSpent    :: [Factoid ()]
+        , transCreated  :: [Factoid ()] }
+        deriving Show
+
+---------------------------------------------------------------------------------------------------
+-- TODO: need to handle non-determinism in the selection,
+-- if there are multiple possibilities for the 'any' selection.
 
 ---------------------------------------------------------------------------------------------------
 -- | Try to fire a rule applied to a store.
@@ -126,10 +136,13 @@ rakeFromStore nRule aSub aHas store env (Rake bFact gather select consume)
 
         -- Consume the selected facts from the store.
         goConsume fw@(fact, weight)
-         = let  env' = envBind bFact (VFact fact) env
-           in   case consumeFromStore nRule aHas store fact weight env' consume of
-                 Nothing        -> Fizz (FizzConsumeFail nRule aHas store fact weight env' consume)
-                 Just store'    -> Fire (fw, store', env')
+         | elem nRule (factRules fact)
+         , env'         <- envBind bFact (VFact fact) env
+         , Just store'  <- consumeFromStore fact store env' consume
+         = Fire (fw, store', env')
+
+         | otherwise
+         = Fizz (FizzConsumeFail nRule aHas store fact weight env consume)
 
 
 ---------------------------------------------------------------------------------------------------
@@ -155,7 +168,6 @@ gatherFromStore aSub store env bFact (GatherWhen nFact msPred)
 
 
 ---------------------------------------------------------------------------------------------------
--- TODO: To model a concurrent system, select a fact pseudo randomly in the 'any' mode.
 selectFromFacts
         :: [Factoid ()]         -- ^ Gathered facts to select from.
         -> Env ()               -- ^ Current environment.
@@ -165,11 +177,6 @@ selectFromFacts
 
 selectFromFacts fws env bFact (SelectAnn a select)
  = selectFromFacts fws env bFact select
-
-selectFromFacts fws _env _bFact SelectOne
- = case fws of
-        [fw]    -> Just fw
-        _       -> Nothing
 
 selectFromFacts fws _env _bFact SelectAny
  = case fws of
@@ -196,26 +203,26 @@ selectFromFacts fws env bFact (SelectLast mKey)
 
 
 ---------------------------------------------------------------------------------------------------
--- | Try to consume the given weight of a fact from the store.
+-- | Try to consume the given weight of a fact from the store,
+--   returning a new store if possible.
+--
+--   The fact
+--
 consumeFromStore
-        :: Name                 -- ^ Name of the current rule.
-        -> Auth                 -- ^ Authority of the rule.
+        :: Fact ()              -- ^ Fact to consume.
         -> Store                -- ^ Initial store.
-        -> Fact ()              -- ^ Fact to consume.
-        -> Weight               -- ^ Weight of the fact to consume.
         -> Env ()               -- ^ Current environment.
         -> Consume ()           -- ^ Consume specifier.
         -> Maybe Store
 
-consumeFromStore  nRule aHas store fact weight env (ConsumeAnn _ consume)
- = consumeFromStore nRule aHas store fact weight env consume
+consumeFromStore fact store env (ConsumeAnn _ consume)
+ = consumeFromStore fact store env consume
 
-consumeFromStore _nRule _aHas store _fact _weight _env ConsumeRetain
+consumeFromStore _fact store _env ConsumeRetain
  = Just store
 
-consumeFromStore  nRule  aHas store fact weight env (ConsumeWeight mWeight)
- | elem nRule (factRules fact)
- , nWeightWant
+consumeFromStore fact store env (ConsumeWeight mWeight)
+ | nWeightWant
      <- case evalTerm env mWeight of
          VNat n  -> n
          _       -> error "consumeFromStore: weight is not a Nat value"

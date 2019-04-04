@@ -47,9 +47,6 @@ data Gather a
 data Select a
         = SelectAnn     a (Select a)
 
-        -- | Require there to be a single gathered fact.
-        | SelectOne
-
         -- | Select any fact which matches, pseudo non-determinstically.
         | SelectAny
 

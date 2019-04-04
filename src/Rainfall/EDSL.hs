@@ -4,7 +4,7 @@ module Rainfall.EDSL
         , rule, match
         , rake, rake'facts, rake'when
         , facts, when
-        , oneof, anyof, firstof, lastof
+        , anyof, firstof, lastof
         , retain, weight, consume
         , none, gain
         , unit, bool, sym, nat, text, party, auth, rules
@@ -13,7 +13,8 @@ module Rainfall.EDSL
         , say
         , symbol'eq
         , party'eq
-        , auth'one, auth'union)
+        , auth'one, auth'union
+        , nat'add, nat'le, nat'ge )
 where
 import Rainfall.Core.Exp
 import Data.String
@@ -39,7 +40,6 @@ rake'when  x n ms g c   = rake x (when n ms) g c
 facts n                 = GatherWhen n []
 when  n ms              = GatherWhen n ms
 
-oneof                   = SelectOne
 anyof                   = SelectAny
 firstof                 = SelectFirst
 lastof                  = SelectLast
@@ -73,9 +73,13 @@ say nFact nmsFields nmsMeta
    in   MSay nFact (MRcd nsFields vsFields) (MRcd nsMeta vsMeta)
 
 symbol'eq mx my         = MApp (MPrm "symbol'eq")       [mx, my]
+
 party'eq  mx my         = MApp (MPrm "party'eq")        [mx, my]
 
 auth'one mp             = MApp (MPrm "auth'one")        [mp]
 auth'union ma mb        = MApp (MPrm "auth'union")      [ma, mb]
 
+nat'add nx ny           = MApp (MPrm "nat'add")         [nx, ny]
+nat'le  nx ny           = MApp (MPrm "nat'le")          [nx, ny]
+nat'ge  nx ny           = MApp (MPrm "nat'ge")          [nx, ny]
 
