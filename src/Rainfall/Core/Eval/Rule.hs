@@ -43,7 +43,7 @@ applyMatches
         -> [Factoid ()] -- ^ Factoids spent so far.
         -> Store        -- ^ Initial store.
         -> Env ()       -- ^ Initial environment.
-        -> [Match ()]   -- ^ Matches to apply.          -- TODO: rename Match -> Pattern.
+        -> [Match ()]   -- ^ Matches to apply.
         -> [(Auth, [Factoid ()], Store, Env ())]
 
 applyMatches _name _aSub aHas dsSpent store env []
@@ -77,7 +77,7 @@ applyMatch
 applyMatch nRule aSub store env (MatchAnn a match)
  = applyMatch nRule aSub store env match
 
-applyMatch nRule aSub store env (Match (Rake bFact gather select consume) gain)
+applyMatch nRule aSub store env (Match bFact gather select consume gain)
  = do
         -- Gather facts that match the patterns.
         fsGather <- applyGather aSub store env bFact gather

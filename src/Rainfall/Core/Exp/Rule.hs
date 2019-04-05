@@ -18,19 +18,11 @@ data Match a
         = MatchAnn    a (Match a)
 
         | Match
-        { matchRake     :: Rake a       -- ^ Rake for the facts.
+        { matchBind     :: Bind         -- ^ Binder for facts in the following clauses.
+        , matchGather   :: Gather a     -- ^ How to gather facts from the store.
+        , matchSelect   :: Select a     -- ^ How to select result from the gathered facts.
+        , matchConsume  :: Consume a    -- ^ How to consume the gathered facts.
         , matchGain     :: Gain a       -- ^ Authority to gain from raked fact.
-        } deriving Show
-
-
----------------------------------------------------------------------------------------------------
--- | Specifies how to retrieve facts from the store.
-data Rake a
-        = Rake
-        { rakeBind      :: Bind         -- ^ Binder for facts in the following clauses.
-        , rakeGather    :: Gather a     -- ^ How to gather facts from the store.
-        , rakeSelect    :: Select a     -- ^ How to select result from the gathered facts.
-        , rakeConsume   :: Consume a    -- ^ How to consume the gathered facts.
         } deriving Show
 
 
@@ -70,7 +62,6 @@ data Consume a
         deriving Show
 
 
----------------------------------------------------------------------------------------------------
 data Gain a
         = GainAnn    a (Gain a)
         | GainNone                      -- ^ Retain the same authority.

@@ -1,9 +1,9 @@
 
 module Rainfall.EDSL
         ( module Rainfall.Core.Exp
-        , rule, match
-        , rake, rake'facts, rake'when
-        , facts, when
+        , rule
+        , match'any, match'when
+        , when
         , anyof, firstof, lastof
         , retain, weight, consume
         , none, gain
@@ -33,13 +33,9 @@ instance IsString Bind where
 
 -- Rule -------------------------------------------------------------------------------------------
 rule n ms mBody         = Rule  n ms mBody
-match rake acq          = Match rake acq
+match'any  x n g c i    = Match x (when n []) g c i
+match'when x n ms g c i = Match x (when n ms) g c i
 
-rake x g s c            = Rake x g s c
-rake'facts x n g c      = rake x (facts n) g c
-rake'when  x n ms g c   = rake x (when n ms) g c
-
-facts n                 = GatherWhen n []
 when  n ms              = GatherWhen n ms
 
 anyof                   = SelectAny

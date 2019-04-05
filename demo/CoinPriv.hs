@@ -33,20 +33,20 @@ psAll   = ["Issuer", "Monitor", "Alice", "Bob"]
 ---------------------------------------------------------------------------------------------------
 rule'transfer
  = rule "transfer"
- [ match (rake'facts "accept" "Accept"
-                anyof (consume 1))
-         (gain (auth'one ("accept" ! "accepter")))
+ [ match'any  "accept" "Accept"
+        anyof (consume 1)
+        (gain (auth'one ("accept" ! "accepter")))
 
- , match (rake'when "offer" "Offer"
-                [ symbol'eq ("accept" ! "id") ("offer" ! "id")
-                , party'eq  ("accept" ! "accepter") ("offer" ! "receiver") ]
-                anyof (consume 1))
-         (gain (auth'one ("offer" ! "giver")))
+ , match'when "offer" "Offer"
+        [ symbol'eq ("accept" ! "id") ("offer" ! "id")
+        , party'eq  ("accept" ! "accepter") ("offer" ! "receiver") ]
+        anyof (consume 1)
+        (gain (auth'one ("offer" ! "giver")))
 
- , match (rake'when "coin" "Coin"
-                [ party'eq ("coin" ! "holder") ("offer" ! "giver") ]
-                anyof (consume 1))
-         (gain (auth'one ("coin" ! "issuer")))
+ , match'when "coin" "Coin"
+        [ party'eq ("coin" ! "holder") ("offer" ! "giver") ]
+        anyof (consume 1)
+        (gain (auth'one ("coin" ! "issuer")))
  ]
  $ say  "Coin"
         [ "issuer"      := ("coin"  ! "issuer")
