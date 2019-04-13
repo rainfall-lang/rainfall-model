@@ -1,7 +1,7 @@
 (* Sketch of rainfall with HOAS *)
 (* very rough, just to make sure I understand the semantics *)
 theory Rainfall0
-  imports Main "HOL-Library.Multiset"
+  imports Main "HOL-Library.Multiset" "HOL-Eisbach.Eisbach" "HOL-Eisbach.Eisbach_Tools"
 begin
 
 datatype party = party string
@@ -72,12 +72,12 @@ fun nat_of_val :: "val \<Rightarrow> nat" where
 | "nat_of_val _               = undefined"
 
 (* Get all the facts with a minimum value, according to some function *)
-fun find_firsts :: "fact list \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> trm \<Rightarrow> fact list" where
-  "find_firsts [] _ _ _ = []"
-| "find_firsts fs h v e =
-     (let d = map (\<lambda>f. (nat_of_val (e (h (v := vfact f))), f)) fs
-   in let v' = min_list (map fst d)
-   in map snd (filter (\<lambda>(v,f). v = v') d))"
+fun find_firsts :: "store \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> trm \<Rightarrow> store" where
+"find_firsts fs h v e = (
+  if fs = {#} then {#}
+  else let d = image_mset (\<lambda>f. (nat_of_val (e (h (v := vfact f))), f)) fs
+    in let v' = Min_mset (image_mset fst d)
+    in image_mset snd (filter_mset (\<lambda>(v,f). v = v') d))"
 
 (* Examples to make sure find_firsts works *)
 definition mk_vfact :: "string \<Rightarrow> val \<Rightarrow> val fact_info" where
@@ -86,19 +86,20 @@ definition mk_vfact :: "string \<Rightarrow> val \<Rightarrow> val fact_info" wh
 definition vnat :: "nat \<Rightarrow> val" where
 "vnat i = vlit (lnat i)"
 
-lemma "find_firsts [mk_vfact ''alice'' (vnat 0), mk_vfact ''bob'' (vnat 1), mk_vfact ''charlie'' (vnat 0)] (\<lambda>_. undefined) (term_var ''x'') (\<lambda>s. case s (term_var ''x'') of vfact f \<Rightarrow> fact_value f)
-= [\<lparr>fact_ctor = ctor_name ''fact'', fact_value = vlit (lnat 0), fact_by = {party ''alice''}, fact_obs = {}, fact_rules = {}\<rparr>,
+lemma "find_firsts {# mk_vfact ''alice'' (vnat 0), mk_vfact ''bob'' (vnat 1), mk_vfact ''charlie'' (vnat 0)#}
+   (\<lambda>_. undefined) (term_var ''x'') (\<lambda>s. case s (term_var ''x'') of vfact f \<Rightarrow> fact_value f)
+= {# \<lparr>fact_ctor = ctor_name ''fact'', fact_value = vlit (lnat 0), fact_by = {party ''alice''}, fact_obs = {}, fact_rules = {}\<rparr>,
   \<lparr>fact_ctor = ctor_name ''fact'', fact_value = vlit (lnat 0), fact_by = {party ''charlie''}, fact_obs = {},
-     fact_rules = {}\<rparr>]"
+     fact_rules = {}\<rparr>
+  #}"
   by eval
 
 
 (* Dynamic semantics for select *)
-inductive EvSelect :: "fact list \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> select \<Rightarrow> fact \<Rightarrow> bool" where
-  EvAny: "f \<in> set fs \<Longrightarrow> EvSelect fs _ _ select_any f"
-| EvFirst: "f \<in> set (find_firsts fs h v e) \<Longrightarrow> EvSelect fs h v (select_first e) f"
-
-find_consts "'a multiset" "'a list"
+inductive EvSelect :: "store \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> select \<Rightarrow> fact \<Rightarrow> bool" where
+  EvAny: "f \<in># fs \<Longrightarrow> EvSelect fs _ _ select_any f"
+(* | EvFirst: "f \<in># find_firsts fs h v e \<Longrightarrow> EvSelect fs h v (select_first e) f" *)
+(* disable first for now *)
 
 definition can_see_fact :: "auth \<Rightarrow> fact \<Rightarrow> bool" where
 "can_see_fact a f \<equiv> {} \<noteq> (a \<inter> (fact_by f \<union> fact_obs f))"
@@ -109,11 +110,11 @@ definition check_gather :: "auth \<Rightarrow> term_heap \<Rightarrow> term_var 
   can_see_fact Asub f \<and>
   pred (h(v := vfact f)) = vlit (lbool True))"
 
-inductive EvGather :: "auth \<Rightarrow> store \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> gather \<Rightarrow> fact list \<Rightarrow> bool" where
-  EvGather: "fs = fold_mset (\<lambda>f s. if check_gather Asub h v ctor pred f then (f # s) else s) [] s \<Longrightarrow> EvGather Asub s h v (gather_when ctor pred) fs"
+inductive EvGather :: "auth \<Rightarrow> store \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> gather \<Rightarrow> store \<Rightarrow> bool" where
+  EvGather: "fs = filter_mset (check_gather Asub h v ctor pred) s \<Longrightarrow> EvGather Asub s h v (gather_when ctor pred) fs"
 
 inductive EvConsume :: "fact \<Rightarrow> store \<Rightarrow> term_heap \<Rightarrow> consume \<Rightarrow> nat \<Rightarrow> store \<Rightarrow> bool" where
-  EvConsume: "w h = vlit (lnat w_need) \<Longrightarrow> count s f \<ge> w_need \<Longrightarrow> s' = (s - replicate_mset w_need f) \<Longrightarrow> EvConsume f s h (consume_weight w) w_need s'"
+  EvConsume: "w h = vlit (lnat w_need) \<Longrightarrow> count s f \<ge> w_need \<Longrightarrow> w_need > 0 \<Longrightarrow> s' = (s - replicate_mset w_need f) \<Longrightarrow> EvConsume f s h (consume_weight w) w_need s'"
 
 inductive EvGain :: "fact \<Rightarrow> term_heap \<Rightarrow> gain \<Rightarrow> auth \<Rightarrow> bool" where
   EvGain: "t h = vlit (lauth a) \<Longrightarrow> a \<subseteq> fact_by f \<Longrightarrow> EvGain f h (gain_auth t) a"
@@ -137,15 +138,45 @@ inductive EvMatches :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Right
   EvMatchNil: "EvMatches n a s h [] {} {#} h"
 | EvMatchCons: "EvMatch n a s h m ag fw s' h' \<Longrightarrow>
     EvMatches n a s' h' ms ag' ds' h'' \<Longrightarrow>
-    EvMatches n a s h (m # ms) (ag \<union> ag') (store_of_factoid fw \<union># ds') h''"
+    EvMatches n a s h (m # ms) (ag \<union> ag') (store_of_factoid fw + ds') h''"
 
 inductive EvFire :: "auth \<Rightarrow> store \<Rightarrow> rule \<Rightarrow> store \<Rightarrow> store \<Rightarrow> store \<Rightarrow> bool" where
   EvFire: "EvMatches rn asub s (\<lambda>_. undefined) matches ahas dspent h' \<Longrightarrow>
     EvExec h' say dnew \<Longrightarrow>
-    s' = ((s - dspent) \<union># dnew) \<Longrightarrow>
+    s' = ((s - dspent) + dnew) \<Longrightarrow>
     EvFire asub s (rule rn matches say) dspent dnew s'"
 
+method elim_Ev = (elim EvFire.cases EvMatch.cases EvGather.cases EvSelect.cases EvConsume.cases EvGain.cases; clarsimp)
 
+(* trivial *)
+lemma EvFire_new_is_added:
+  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
+   dnew \<subseteq># store'"
+  by elim_Ev
+
+(* We only spend what we have - trivial *)
+lemma EvMatches_spent_is_subset:
+  "EvMatches rn asub store h matches ahas dspent h' \<Longrightarrow>
+  dspent \<subseteq># store"
+proof (induct rule: EvMatches.induct)
+  case (EvMatchNil n a s h)
+  then show ?case by auto
+next
+  case (EvMatchCons n a s h m ag fw s' h' ms ag' ds' h'')
+  then show ?case
+    apply (simp add: store_of_factoid_def)
+    apply elim_Ev
+    by (simp add: add.commute count_le_replicate_mset_subset_eq subset_mset.le_diff_conv2)
+qed
+
+lemma EvFire_spent_is_subset:
+  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
+   dspent \<subseteq># store"
+  apply (elim EvFire.cases; clarsimp)
+  using EvMatches_spent_is_subset
+  by simp
+
+(* We only use what we spend *)
 lemma frame_constriction_EvMatches:
   "EvMatches rn asub store h matches ahas dspent h' \<Longrightarrow>
    EvMatches rn asub dspent h matches ahas dspent h'"
@@ -156,32 +187,106 @@ proof (induct rule: EvMatches.induct)
 next
   case (EvMatchCons n a s h m ag fw s' h' ms ag' ds' h'')
   then show ?case
-    apply (intro EvMatches.intros)
-     apply (cases m; clarsimp)
+    apply -
     apply (erule EvMatch.cases; clarsimp)
-     apply (intro EvMatch.intros)
-          apply auto
-     apply (erule EvGather.cases; clarsimp; intro EvGather.intros)
-    sledgehammer
-    oops
+    apply elim_Ev
+    apply (intro EvMatches.intros)
+    apply (intro EvMatch.intros)
+         apply (intro EvGather.intros)
+         apply (rule refl)
+         apply (intro EvSelect.intros)
+          apply (clarsimp simp add: store_of_factoid_def)
+         apply simp
+        apply (intro EvConsume.intros)
+          apply simp
+    using store_of_factoid_def
+         apply force
+        apply simp
+        apply simp
+        apply (intro EvGain.intros)
+         apply simp
+        apply simp
+       apply simp
+      apply (simp add: store_of_factoid_def)
+    using EvMatchCons.hyps(3)
+    apply blast
+    done
+qed
 
 lemma frame_constriction:
   "EvFire asub store rul dspent dnew store' \<Longrightarrow>
    EvFire asub dspent rul dspent dnew dnew"
-  oops
+  apply elim_Ev
+  using frame_constriction_EvMatches EvFire.intros
+  by fastforce
 
-(* We can always add new facts if they're not visible *)
+(* We only spend visible facts *)
+lemma spend_only_accessible_EvMatches:
+  "EvMatches rn asub store h matches ahas dspent h' \<Longrightarrow>
+   (\<forall>f \<in># dspent. can_see_fact asub f)"
+proof (induct rule: EvMatches.induct)
+  case (EvMatchNil n a s h)
+  then show ?case by simp
+next
+  case (EvMatchCons n a s h m ag fw s' h' ms ag' ds' h'')
+  then show ?case
+    apply (simp add: store_of_factoid_def)
+    apply elim_Ev
+    using check_gather_def by blast
+qed
+
 lemma spend_only_accessible:
   "EvFire asub store rul dspent dnew store' \<Longrightarrow>
    (\<forall>f \<in># dspent. can_see_fact asub f)"
-  oops
+  apply elim_Ev
+  using spend_only_accessible_EvMatches by blast
+
 
 (* We can always add new facts if they're not visible *)
+lemma store_weaken_inaccessible_EvMatches:
+  "EvMatches rn asub store h matches ahas dspent h' \<Longrightarrow>
+   (\<forall>f \<in># others. \<not>(can_see_fact asub f)) \<Longrightarrow>
+   EvMatches rn asub (store + others) h matches ahas dspent h'"
+proof (induct rule: EvMatches.induct)
+  case (EvMatchNil n a s h)
+  then show ?case
+    using EvMatches.EvMatchNil by blast
+next
+  case (EvMatchCons n a s h m ag fw s' h' ms ag' ds' h'')
+  then show ?case
+    apply -
+    apply elim_Ev
+    apply (intro EvMatches.intros)
+     apply (intro EvMatch.intros)
+          apply (intro EvGather.intros)
+          apply simp
+         apply (intro EvSelect.intros)
+         apply simp
+        apply simp
+       apply (intro EvConsume.intros)
+          apply simp
+         apply simp
+        apply simp
+       apply simp
+      apply (intro EvGain.intros)
+       apply simp
+      apply simp
+     apply simp
+    by (metis (no_types, lifting) EvMatchCons.hyps(3) add.commute add.left_commute add_diff_cancel_left' count_le_replicate_mset_subset_eq subset_mset.add_diff_inverse)
+qed
+
+
 lemma store_weaken_inaccessible:
   "EvFire asub store rul dspent dnew store' \<Longrightarrow>
    (\<forall>f \<in># others. \<not>(can_see_fact asub f)) \<Longrightarrow>
-   EvFire asub (store \<union># others) rul dspent dnew store'"
-  oops
+   EvFire asub (store + others) rul dspent dnew (store' + others)"
+  apply elim_Ev
+  apply (intro EvFire.intros)
+  using store_weaken_inaccessible_EvMatches apply blast
+  apply blast
+  using EvMatches_spent_is_subset by fastforce
+
+(* TODO: auth of new facts is subset of auth of all spent facts *)
 
 fun rule_only_any :: "rule \<Rightarrow> bool" where
 "rule_only_any (rule _ matches _) = list_all (\<lambda>m. case m of match x gath sel con gain \<Rightarrow> sel = select_any) matches"
