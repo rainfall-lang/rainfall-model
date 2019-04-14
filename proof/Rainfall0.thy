@@ -1,4 +1,4 @@
-(* Sketch of rainfall with HOAS *)
+(* Sketch of rainfall with HOAS, simplified values *)
 (* very rough, just to make sure I understand the semantics *)
 theory Rainfall0
   imports Main "HOL-Library.Multiset" "HOL-Eisbach.Eisbach" "HOL-Eisbach.Eisbach_Tools"
@@ -11,19 +11,9 @@ datatype symbol = symbol string
 datatype label = label string
 datatype ctor_name = ctor_name string
 datatype rule_name = rule_name string
-datatype term_var = term_var string
+datatype fact_var = fact_var string
 
-(* Recursive knot - Isabelle doesn't support mutual recursion between datatypes and records *)
-record 'a fact_info =
-  fact_ctor :: ctor_name
-  fact_value :: 'a
-  fact_by :: auth
-  fact_obs :: auth
-  fact_rules :: "rule_name set"
-(* Declare fact_info as a bounded natural functor so we can use it recursively in values *)
-copy_bnf ('a,'b) fact_info_ext
-
-(* Literals - changed LRules to single rule name, list in value *)
+(* Literals and values - these are just uninterpreted stuff to put in a fact *)
 datatype lit =
     lnat nat
   | lbool bool
@@ -37,70 +27,67 @@ datatype val =
     vlit lit
   | vrecord "(label \<times> val) list"
   | vlist "val list"
-  | vfact "val fact_info"
-type_synonym fact = "val fact_info"
+
+record fact =
+  fact_ctor :: ctor_name
+  fact_value :: val
+  fact_by :: auth
+  fact_obs :: auth
+  fact_rules :: "rule_name set"
 
 (* HOAS for terms *)
-type_synonym term_heap = "term_var \<Rightarrow> val"
-type_synonym trm = "term_heap \<Rightarrow> val"
+type_synonym fact_env = "fact_var \<Rightarrow> fact"
+type_synonym 'a trm = "fact_env \<Rightarrow> 'a"
 
 (* Definitions of rules *)
 (* gather should have list of terms - ignore for now *)
-datatype gather = gather_when ctor_name trm
-datatype select = select_any | select_first trm
+datatype gather = gather_when ctor_name "bool trm"
+datatype select = select_any | select_first "nat trm"
 (* ignore consume/retain for now *)
-datatype consume = consume_weight trm
-datatype gain = gain_auth trm
+datatype consume = consume_weight "nat trm"
+datatype gain = gain_auth "auth trm"
 
-datatype match = match term_var gather select consume gain
+datatype match = match fact_var gather select consume gain
 
-(* ignore 'say' and factoids for now - just allow returning list of facts in term *)
-datatype rule = rule rule_name "match list" "trm"
-
-
-(* Store operations *)
-type_synonym factoid = "(fact \<times> nat)"
 type_synonym store = "fact multiset"
 
-definition store_of_factoid :: "factoid \<Rightarrow> store" where
-"store_of_factoid fw = replicate_mset (snd fw) (fst fw)"
-
-
-(* Sorting by term: only support comparison on nats for now *)
-fun nat_of_val :: "val \<Rightarrow> nat" where
-  "nat_of_val (vlit (lnat n)) = n"
-| "nat_of_val _               = undefined"
+(* ignore 'say' and factoids for now - just allow returning list of facts in term *)
+datatype rule = rule rule_name "match list" "store trm"
 
 (* Get all the facts with a minimum value, according to some function *)
-fun find_firsts :: "store \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> trm \<Rightarrow> store" where
-"find_firsts fs h v e = (
-       let score = (\<lambda>f. nat_of_val (e (h (v := vfact f))))
-    in let v' = Min_mset (image_mset score fs)
+definition find_firsts :: "store \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rightarrow> nat trm \<Rightarrow> store" where
+"find_firsts fs env v x = (
+       let score = (\<lambda>f. x (env (v := f)))
+    in let v' = Min (score ` set_mset fs)
     in filter_mset (\<lambda>f. score f = v') fs)"
 
 lemma find_firsts_in_store: "f \<in># find_firsts s h v e \<Longrightarrow> f \<in># s"
-  by auto
+  by (auto simp add: find_firsts_def)
 lemma find_firsts_subset: "find_firsts s h v e \<subseteq># s"
-  by auto
+  by (auto simp add: find_firsts_def)
 
-lemma min_subset_min: "f x = Min (f ` xs) \<Longrightarrow> xs' \<subseteq> xs \<Longrightarrow> x \<in> xs' \<Longrightarrow> f x = Min (f ` xs')"
-  apply simp
-  sorry
+lemma min_subset_min_finite: "finite xs \<Longrightarrow> f x = Min (f ` xs) \<Longrightarrow> xs' \<subseteq> xs \<Longrightarrow> x \<in> xs' \<Longrightarrow> f x = Min (f ` xs')"
+(* TODO smt *)
+  apply (rule_tac V="finite xs'" in revcut_rl)
+  using finite_subset apply blast
+  by (smt Min_eqI Min_le finite_imageI imageE image_eqI subsetCE)
+
+
 lemma find_firsts_min_in_subset: "f \<in># find_firsts s h v e \<Longrightarrow> s' \<subseteq># s \<Longrightarrow> f \<in># s' \<Longrightarrow> f \<in># find_firsts s' h v e"
-  apply clarsimp
-  using find_firsts_in_store find_firsts_subset min_subset_min
-  sorry
+  apply (clarsimp simp add: find_firsts_def)
+  using min_subset_min_finite
+  by (metis set_mset_mono finite_set_mset)
 
 
 (* Examples to make sure find_firsts works *)
-definition mk_vfact :: "string \<Rightarrow> val \<Rightarrow> val fact_info" where
+definition mk_vfact :: "string \<Rightarrow> val \<Rightarrow> fact" where
 "mk_vfact nm v = \<lparr>fact_ctor=ctor_name ''fact'', fact_value = v, fact_by = {party nm}, fact_obs = {}, fact_rules = {}\<rparr>"
 
 definition vnat :: "nat \<Rightarrow> val" where
 "vnat i = vlit (lnat i)"
 
 lemma "find_firsts {# mk_vfact ''alice'' (vnat 0), mk_vfact ''bob'' (vnat 1), mk_vfact ''charlie'' (vnat 0)#}
-   (\<lambda>_. undefined) (term_var ''x'') (\<lambda>s. case s (term_var ''x'') of vfact f \<Rightarrow> fact_value f)
+   (\<lambda>_. undefined) (fact_var ''x'') (\<lambda>s. case fact_value (s (fact_var ''x'')) of vlit (lnat i) \<Rightarrow> i)
 = {# \<lparr>fact_ctor = ctor_name ''fact'', fact_value = vlit (lnat 0), fact_by = {party ''alice''}, fact_obs = {}, fact_rules = {}\<rparr>,
   \<lparr>fact_ctor = ctor_name ''fact'', fact_value = vlit (lnat 0), fact_by = {party ''charlie''}, fact_obs = {},
      fact_rules = {}\<rparr>
@@ -109,34 +96,33 @@ lemma "find_firsts {# mk_vfact ''alice'' (vnat 0), mk_vfact ''bob'' (vnat 1), mk
 
 
 (* Dynamic semantics for select *)
-inductive EvSelect :: "store \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> select \<Rightarrow> fact \<Rightarrow> bool" where
+inductive EvSelect :: "store \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rightarrow> select \<Rightarrow> fact \<Rightarrow> bool" where
   EvAny: "f \<in># fs \<Longrightarrow> EvSelect fs _ _ select_any f"
  | EvFirst: "f \<in># find_firsts fs h v e \<Longrightarrow> EvSelect fs h v (select_first e) f"
-(* disable first for now *)
 
 definition can_see_fact :: "auth \<Rightarrow> fact \<Rightarrow> bool" where
 "can_see_fact a f \<equiv> {} \<noteq> (a \<inter> (fact_by f \<union> fact_obs f))"
 
-definition check_gather :: "auth \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> ctor_name \<Rightarrow> trm \<Rightarrow> fact \<Rightarrow> bool" where
+definition check_gather :: "auth \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rightarrow> ctor_name \<Rightarrow> bool trm \<Rightarrow> fact \<Rightarrow> bool" where
 "check_gather Asub h v ctor pred f =
   (fact_ctor f = ctor \<and>
   can_see_fact Asub f \<and>
-  pred (h(v := vfact f)) = vlit (lbool True))"
+  pred (h(v := f)) = True)"
 
-inductive EvGather :: "auth \<Rightarrow> store \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> gather \<Rightarrow> store \<Rightarrow> bool" where
+inductive EvGather :: "auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rightarrow> gather \<Rightarrow> store \<Rightarrow> bool" where
   EvGather: "fs = filter_mset (check_gather Asub h v ctor pred) s \<Longrightarrow> EvGather Asub s h v (gather_when ctor pred) fs"
 
-inductive EvConsume :: "fact \<Rightarrow> store \<Rightarrow> term_heap \<Rightarrow> consume \<Rightarrow> nat \<Rightarrow> store \<Rightarrow> bool" where
-  EvConsume: "w h = vlit (lnat w_need) \<Longrightarrow> count s f \<ge> w_need \<Longrightarrow> w_need > 0 \<Longrightarrow> s' = (s - replicate_mset w_need f) \<Longrightarrow> EvConsume f s h (consume_weight w) w_need s'"
+inductive EvConsume :: "fact \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> consume \<Rightarrow> nat \<Rightarrow> store \<Rightarrow> bool" where
+  EvConsume: "w h = w_need \<Longrightarrow> count s f \<ge> w_need \<Longrightarrow> w_need > 0 \<Longrightarrow> s' = (s - replicate_mset w_need f) \<Longrightarrow> EvConsume f s h (consume_weight w) w_need s'"
 
-inductive EvGain :: "fact \<Rightarrow> term_heap \<Rightarrow> gain \<Rightarrow> auth \<Rightarrow> bool" where
-  EvGain: "t h = vlit (lauth a) \<Longrightarrow> a \<subseteq> fact_by f \<Longrightarrow> EvGain f h (gain_auth t) a"
+inductive EvGain :: "fact \<Rightarrow> fact_env \<Rightarrow> gain \<Rightarrow> auth \<Rightarrow> bool" where
+  EvGain: "t h = a \<Longrightarrow> a \<subseteq> fact_by f \<Longrightarrow> EvGain f h (gain_auth t) a"
 
-inductive EvExec :: "term_heap \<Rightarrow> trm \<Rightarrow> store \<Rightarrow> bool" where
-  EvExec: "t h = vlist fvs \<Longrightarrow> fs = map (\<lambda>vf. case vf of vfact f \<Rightarrow> f) fvs \<Longrightarrow> EvExec h t (mset fs)"
+inductive EvExec :: "fact_env \<Rightarrow> store trm \<Rightarrow> store \<Rightarrow> bool" where
+  EvExec: "t h = s' \<Longrightarrow> EvExec h t s'"
 
 
-inductive EvMatch :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> term_heap \<Rightarrow> match \<Rightarrow> auth \<Rightarrow> factoid \<Rightarrow> store \<Rightarrow> term_heap \<Rightarrow> bool" where
+inductive EvMatch :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> match \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> bool" where
   EvMatch: "
     EvGather asub s h x gather fs \<Longrightarrow>
     EvSelect fs h x sel f \<Longrightarrow>
@@ -144,14 +130,15 @@ inductive EvMatch :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightar
     EvConsume f s h' con w s' \<Longrightarrow>
     EvGain f h' gain again \<Longrightarrow>
     rn \<in> fact_rules f \<Longrightarrow>
-    EvMatch rn asub s h (match x gather sel con gain) again (f,w) s' h'"
+    fw = replicate_mset w f \<Longrightarrow>
+    EvMatch rn asub s h (match x gather sel con gain) again fw s' h'"
 
 
-inductive EvMatches :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> term_heap \<Rightarrow> match list \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> term_heap \<Rightarrow> bool" where
+inductive EvMatches :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> match list \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> bool" where
   EvMatchNil: "EvMatches n a s h [] {} {#} h"
 | EvMatchCons: "EvMatch n a s h m ag fw s' h' \<Longrightarrow>
     EvMatches n a s' h' ms ag' ds' h'' \<Longrightarrow>
-    EvMatches n a s h (m # ms) (ag \<union> ag') (store_of_factoid fw + ds') h''"
+    EvMatches n a s h (m # ms) (ag \<union> ag') (fw + ds') h''"
 
 inductive EvFire :: "auth \<Rightarrow> store \<Rightarrow> rule \<Rightarrow> store \<Rightarrow> store \<Rightarrow> store \<Rightarrow> bool" where
   EvFire: "EvMatches rn asub s (\<lambda>_. undefined) matches ahas dspent h' \<Longrightarrow>
@@ -178,7 +165,6 @@ proof (induct rule: EvMatches.induct)
 next
   case (EvMatchCons n a s h m ag fw s' h' ms ag' ds' h'')
   then show ?case
-    apply (simp add: store_of_factoid_def)
     apply elim_Ev
     by (simp add: add.commute count_le_replicate_mset_subset_eq subset_mset.le_diff_conv2)+
 qed
@@ -200,22 +186,22 @@ proof (induct rule: EvMatches.induct)
     using EvMatches.intros by simp
 next
   case (EvMatchCons n a s h m ag fw s' h' ms ag' ds' h'')
-  then show ?case
-    apply -
-    apply (erule EvMatch.cases; clarsimp)
+  moreover have spent_smaller: "ds' \<subseteq># s'"
+    using EvMatchCons EvMatches_spent_is_subset by auto
+  ultimately show ?case
     apply elim_Ev
-    apply (intro_Ev; (rule refl)?; (simp add: store_of_factoid_def)?)
+    apply (intro_Ev; (rule refl)?; simp)
     using EvMatchCons.hyps
      apply blast
 
-    apply (intro_Ev; (rule refl)?; (simp add: store_of_factoid_def)?)
-    defer
+    apply (intro_Ev; (rule refl)?; simp)
+         apply (rule find_firsts_min_in_subset)
+       apply assumption
+      apply (metis add.commute count_le_replicate_mset_subset_eq filter_union_mset multiset_filter_mono subset_mset.le_diff_conv2)
+     apply (metis count_filter_mset count_greater_zero_iff count_replicate_mset find_firsts_in_store union_iff)
     using EvMatchCons.hyps
      apply blast
-    apply (simp add: HOL.Let_def)
-    using find_firsts_min_in_subset min_subset_min
-    (* SORRY: for select_first case *)
-    sorry
+    done
 qed
 
 lemma frame_constriction:
@@ -235,9 +221,11 @@ proof (induct rule: EvMatches.induct)
 next
   case (EvMatchCons n a s h m ag fw s' h' ms ag' ds' h'')
   then show ?case
-    apply (simp add: store_of_factoid_def)
     apply elim_Ev
-    using check_gather_def by blast+
+    using check_gather_def
+     apply blast
+    using check_gather_def find_firsts_in_store
+    by (metis count_greater_zero_iff filter_mset.rep_eq neq0_conv)
 qed
 
 lemma spend_only_accessible:
@@ -259,11 +247,9 @@ proof (induct rule: EvMatches.induct)
 next
   case (EvMatchCons n a s h m ag fw s' h' ms ag' ds' h'')
   then show ?case
-    apply -
     apply elim_Ev
-    apply (intro_Ev; (rule refl)?; (simp add: store_of_factoid_def)?)
+    apply (intro_Ev; (rule refl)?; simp?)
      apply (metis (no_types, lifting) EvMatchCons.hyps(3) add.commute add.left_commute add_diff_cancel_left' count_le_replicate_mset_subset_eq subset_mset.add_diff_inverse)
-    apply (simp add: store_of_factoid_def)
     (* SORRY: select_first case *)
     sorry
 (*    by (metis (no_types, lifting) EvMatchCons.hyps(3) add.commute add.left_commute add_diff_cancel_left' count_le_replicate_mset_subset_eq subset_mset.add_diff_inverse)*)
