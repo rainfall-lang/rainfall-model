@@ -74,10 +74,23 @@ fun nat_of_val :: "val \<Rightarrow> nat" where
 (* Get all the facts with a minimum value, according to some function *)
 fun find_firsts :: "store \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> trm \<Rightarrow> store" where
 "find_firsts fs h v e = (
-  if fs = {#} then {#}
-  else let d = image_mset (\<lambda>f. (nat_of_val (e (h (v := vfact f))), f)) fs
-    in let v' = Min_mset (image_mset fst d)
-    in image_mset snd (filter_mset (\<lambda>(v,f). v = v') d))"
+       let score = (\<lambda>f. nat_of_val (e (h (v := vfact f))))
+    in let v' = Min_mset (image_mset score fs)
+    in filter_mset (\<lambda>f. score f = v') fs)"
+
+lemma find_firsts_in_store: "f \<in># find_firsts s h v e \<Longrightarrow> f \<in># s"
+  by auto
+lemma find_firsts_subset: "find_firsts s h v e \<subseteq># s"
+  by auto
+
+lemma min_subset_min: "f x = Min (f ` xs) \<Longrightarrow> xs' \<subseteq> xs \<Longrightarrow> x \<in> xs' \<Longrightarrow> f x = Min (f ` xs')"
+  apply simp
+  sorry
+lemma find_firsts_min_in_subset: "f \<in># find_firsts s h v e \<Longrightarrow> s' \<subseteq># s \<Longrightarrow> f \<in># s' \<Longrightarrow> f \<in># find_firsts s' h v e"
+  apply clarsimp
+  using find_firsts_in_store find_firsts_subset min_subset_min
+  sorry
+
 
 (* Examples to make sure find_firsts works *)
 definition mk_vfact :: "string \<Rightarrow> val \<Rightarrow> val fact_info" where
@@ -98,7 +111,7 @@ lemma "find_firsts {# mk_vfact ''alice'' (vnat 0), mk_vfact ''bob'' (vnat 1), mk
 (* Dynamic semantics for select *)
 inductive EvSelect :: "store \<Rightarrow> term_heap \<Rightarrow> term_var \<Rightarrow> select \<Rightarrow> fact \<Rightarrow> bool" where
   EvAny: "f \<in># fs \<Longrightarrow> EvSelect fs _ _ select_any f"
-(* | EvFirst: "f \<in># find_firsts fs h v e \<Longrightarrow> EvSelect fs h v (select_first e) f" *)
+ | EvFirst: "f \<in># find_firsts fs h v e \<Longrightarrow> EvSelect fs h v (select_first e) f"
 (* disable first for now *)
 
 definition can_see_fact :: "auth \<Rightarrow> fact \<Rightarrow> bool" where
@@ -147,6 +160,7 @@ inductive EvFire :: "auth \<Rightarrow> store \<Rightarrow> rule \<Rightarrow> s
     EvFire asub s (rule rn matches say) dspent dnew s'"
 
 method elim_Ev = (elim EvFire.cases EvMatch.cases EvGather.cases EvSelect.cases EvConsume.cases EvGain.cases; clarsimp)
+method intro_Ev = (intro EvMatches.intros EvMatch.intros EvGain.intros EvGather.intros EvSelect.intros EvConsume.intros)
 
 (* trivial *)
 lemma EvFire_new_is_added:
@@ -166,7 +180,7 @@ next
   then show ?case
     apply (simp add: store_of_factoid_def)
     apply elim_Ev
-    by (simp add: add.commute count_le_replicate_mset_subset_eq subset_mset.le_diff_conv2)
+    by (simp add: add.commute count_le_replicate_mset_subset_eq subset_mset.le_diff_conv2)+
 qed
 
 lemma EvFire_spent_is_subset:
@@ -190,27 +204,18 @@ next
     apply -
     apply (erule EvMatch.cases; clarsimp)
     apply elim_Ev
-    apply (intro EvMatches.intros)
-    apply (intro EvMatch.intros)
-         apply (intro EvGather.intros)
-         apply (rule refl)
-         apply (intro EvSelect.intros)
-          apply (clarsimp simp add: store_of_factoid_def)
-         apply simp
-        apply (intro EvConsume.intros)
-          apply simp
-    using store_of_factoid_def
-         apply force
-        apply simp
-        apply simp
-        apply (intro EvGain.intros)
-         apply simp
-        apply simp
-       apply simp
-      apply (simp add: store_of_factoid_def)
-    using EvMatchCons.hyps(3)
-    apply blast
-    done
+    apply (intro_Ev; (rule refl)?; (simp add: store_of_factoid_def)?)
+    using EvMatchCons.hyps
+     apply blast
+
+    apply (intro_Ev; (rule refl)?; (simp add: store_of_factoid_def)?)
+    defer
+    using EvMatchCons.hyps
+     apply blast
+    apply (simp add: HOL.Let_def)
+    using find_firsts_min_in_subset min_subset_min
+    (* SORRY: for select_first case *)
+    sorry
 qed
 
 lemma frame_constriction:
@@ -232,7 +237,7 @@ next
   then show ?case
     apply (simp add: store_of_factoid_def)
     apply elim_Ev
-    using check_gather_def by blast
+    using check_gather_def by blast+
 qed
 
 lemma spend_only_accessible:
@@ -256,23 +261,12 @@ next
   then show ?case
     apply -
     apply elim_Ev
-    apply (intro EvMatches.intros)
-     apply (intro EvMatch.intros)
-          apply (intro EvGather.intros)
-          apply simp
-         apply (intro EvSelect.intros)
-         apply simp
-        apply simp
-       apply (intro EvConsume.intros)
-          apply simp
-         apply simp
-        apply simp
-       apply simp
-      apply (intro EvGain.intros)
-       apply simp
-      apply simp
-     apply simp
-    by (metis (no_types, lifting) EvMatchCons.hyps(3) add.commute add.left_commute add_diff_cancel_left' count_le_replicate_mset_subset_eq subset_mset.add_diff_inverse)
+    apply (intro_Ev; (rule refl)?; (simp add: store_of_factoid_def)?)
+     apply (metis (no_types, lifting) EvMatchCons.hyps(3) add.commute add.left_commute add_diff_cancel_left' count_le_replicate_mset_subset_eq subset_mset.add_diff_inverse)
+    apply (simp add: store_of_factoid_def)
+    (* SORRY: select_first case *)
+    sorry
+(*    by (metis (no_types, lifting) EvMatchCons.hyps(3) add.commute add.left_commute add_diff_cancel_left' count_le_replicate_mset_subset_eq subset_mset.add_diff_inverse)*)
 qed
 
 
@@ -286,7 +280,13 @@ lemma store_weaken_inaccessible:
   apply blast
   using EvMatches_spent_is_subset by fastforce
 
-(* TODO: auth of new facts is subset of auth of all spent facts *)
+(* auth of new facts is subset of auth of all spent facts *)
+lemma new_auth_gained_from_spent:
+  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
+   (\<forall>f \<in># dnew. fact_by f \<subseteq> {a. \<forall>d \<in># dspent. a \<in> fact_by d})"
+  oops
+
+(* Question: what do we know about observer sets (fact_obs)? *)
 
 fun rule_only_any :: "rule \<Rightarrow> bool" where
 "rule_only_any (rule _ matches _) = list_all (\<lambda>m. case m of match x gath sel con gain \<Rightarrow> sel = select_any) matches"
