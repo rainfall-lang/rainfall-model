@@ -42,13 +42,13 @@ method intro_Ev = (intro EvMatches.intros EvMatch.intros EvGain.intros EvGather.
 
 (* trivial *)
 lemma EvFire_new_is_added:
-  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
+  "asub | store \<turnstile> rul \<Down> dspent | dnew | store' FIRE \<Longrightarrow>
    dnew \<subseteq># store'"
   by elim_Ev
 
 (* We only spend what we have - trivial *)
 lemma EvMatches_spent_is_subset:
-  "EvMatches rn asub store h matches ahas dspent h' \<Longrightarrow>
+  "rn | asub | store | h \<turnstile> matches \<Down> ahas | dspent | h' MATCHES \<Longrightarrow>
   dspent \<subseteq># store"
 proof (induct rule: EvMatches.induct)
   case (EvMatchNil n a s h)
@@ -61,7 +61,7 @@ next
 qed
 
 lemma EvFire_spent_is_subset:
-  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
+  "asub | store \<turnstile> rul \<Down> dspent | dnew | store' FIRE \<Longrightarrow>
    dspent \<subseteq># store"
   apply (elim EvFire.cases; clarsimp)
   using EvMatches_spent_is_subset
@@ -69,8 +69,8 @@ lemma EvFire_spent_is_subset:
 
 (* We only use what we spend *)
 lemma frame_constriction_EvMatches:
-  "EvMatches rn asub store h matches ahas dspent h' \<Longrightarrow>
-   EvMatches rn asub dspent h matches ahas dspent h'"
+  "rn | asub | store  | h \<turnstile> matches \<Down> ahas | dspent | h' MATCHES \<Longrightarrow>
+   rn | asub | dspent | h \<turnstile> matches \<Down> ahas | dspent | h' MATCHES"
 proof (induct rule: EvMatches.induct)
   case (EvMatchNil n a s h)
   then show ?case
@@ -96,15 +96,15 @@ next
 qed
 
 lemma frame_constriction:
-  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
-   EvFire asub dspent rul dspent dnew dnew"
+  "asub | store  \<turnstile> rul \<Down> dspent | dnew | store' FIRE \<Longrightarrow>
+   asub | dspent \<turnstile> rul \<Down> dspent | dnew | dnew   FIRE"
   apply elim_Ev
   using frame_constriction_EvMatches EvFire.intros
   by fastforce
 
 (* We only spend visible facts *)
 lemma spend_only_accessible_EvMatches:
-  "EvMatches rn asub store h matches ahas dspent h' \<Longrightarrow>
+  "rn | asub | store  | h \<turnstile> matches \<Down> ahas | dspent | h' MATCHES  \<Longrightarrow>
    (\<forall>f \<in># dspent. can_see_fact asub f)"
 proof (induct rule: EvMatches.induct)
   case (EvMatchNil n a s h)
@@ -120,7 +120,7 @@ next
 qed
 
 lemma spend_only_accessible:
-  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
+  "asub | store \<turnstile> rul \<Down> dspent | dnew | store' FIRE \<Longrightarrow>
    (\<forall>f \<in># dspent. can_see_fact asub f)"
   apply elim_Ev
   using spend_only_accessible_EvMatches by blast
@@ -133,9 +133,9 @@ lemma check_gather_inaccessible_empty:
 
 (* We can always add new facts if they're not visible *)
 lemma store_weaken_inaccessible_EvMatches:
-  "EvMatches rn asub store h matches ahas dspent h' \<Longrightarrow>
+  "rn | asub | store            | h \<turnstile> matches \<Down> ahas | dspent | h' MATCHES  \<Longrightarrow>
    (\<forall>f \<in># others. \<not>(can_see_fact asub f)) \<Longrightarrow>
-   EvMatches rn asub (store + others) h matches ahas dspent h'"
+   rn | asub | (store + others) | h \<turnstile> matches \<Down> ahas | dspent | h' MATCHES"
 proof (induct rule: EvMatches.induct)
   case (EvMatchNil n a s h)
   then show ?case
@@ -152,9 +152,9 @@ next
 qed
 
 lemma store_weaken_inaccessible:
-  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
+  "asub |  store           \<turnstile> rul \<Down> dspent | dnew |  store'           FIRE \<Longrightarrow>
    (\<forall>f \<in># others. \<not>(can_see_fact asub f)) \<Longrightarrow>
-   EvFire asub (store + others) rul dspent dnew (store' + others)"
+   asub | (store + others) \<turnstile> rul \<Down> dspent | dnew | (store' + others) FIRE"
   apply elim_Ev
   apply (intro EvFire.intros)
   using store_weaken_inaccessible_EvMatches apply blast
@@ -164,7 +164,7 @@ lemma store_weaken_inaccessible:
 
 (* auth of new facts is subset of auth of all spent facts *)
 lemma new_auth_gained_from_spent_EvMatches:
-  "EvMatches rn asub store h matches ahas dspent h' \<Longrightarrow>
+  "rn | asub | store | h \<turnstile> matches \<Down> ahas | dspent | h' MATCHES  \<Longrightarrow>
   \<forall>a \<in> ahas. \<exists>d \<in># dspent. a \<in> fact_by d"
 (* ahas \<subseteq> \<Union>(fact_by ` set_mset dspent) *)
 proof (induct rule: EvMatches.induct)
@@ -178,7 +178,7 @@ qed
 
 
 lemma new_auth_gained_from_spent:
-  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
+  "asub | store \<turnstile> rul \<Down> dspent | dnew | store' FIRE \<Longrightarrow>
   \<forall>f \<in># dnew. \<forall>a \<in> fact_by f. \<exists>d \<in># dspent. a \<in> fact_by d"
   apply elim_Ev
   using new_auth_gained_from_spent_EvMatches
@@ -194,16 +194,16 @@ fun rule_only_any :: "rule \<Rightarrow> bool" where
 (* This probably isn't true for 'first' selectors, where adding more permissions could make a new minimum visible *)
 (* But if the program only contains any selectors, it is true *)
 lemma auth_weaken:
-  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
+  "asub           | store \<turnstile> rul \<Down> dspent | dnew | store' FIRE \<Longrightarrow>
     rule_only_any rul \<Longrightarrow>
-   EvFire (asub \<union> others) store rul dspent dnew store'"
+  (asub \<union> others) | store \<turnstile> rul \<Down> dspent | dnew | store' FIRE"
   oops
 
 (* We can always add new facts if the program only contains 'any' selectors *)
 lemma store_weaken_if_any:
-  "EvFire asub store rul dspent dnew store' \<Longrightarrow>
+  "asub |  store            \<turnstile> rul \<Down> dspent | dnew | store' FIRE \<Longrightarrow>
    rule_only_any rul \<Longrightarrow>
-   EvFire asub (store \<union># others) rul dspent dnew store'"
+   asub | (store \<union># others) \<turnstile> rul \<Down> dspent | dnew | store' FIRE"
   oops
 
 end
