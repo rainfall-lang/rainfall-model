@@ -19,9 +19,7 @@ datatype gather = gather_when fact_ctor "bool exp"
 datatype select = select_any | select_first "nat exp"
 
 (* Consume: how many instances of a certain fact do we need? *)
-(* ignore consume/retain for now *)
-(* TODO: implement retain *)
-datatype consume = consume_weight "nat exp"
+datatype consume = consume_weight "nat exp" | consume_retain "nat exp"
 
 (* Gain: extract authority from a fact *)
 datatype gain = gain_auth "auth exp"
