@@ -65,20 +65,23 @@ inductive EvMatch :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightar
     rn \<in> fact_rules f                              \<Longrightarrow>
     rn | asub | s | h \<turnstile> match x gather sel con gain \<Down> (f,w) | again | h' MATCH"
 
-
-inductive EvMatches :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> match list \<Rightarrow> fact set \<Rightarrow> store \<Rightarrow> auth \<Rightarrow> fact_env \<Rightarrow> bool"
+(* rn | asub | s | h \<turnstile> ms \<Down> fread | dspent | ahas | h' MATCHES
+  In the paper fread is a set, but we use a multiset here because reasoning about converting sets
+  to multisets requires lots of little conversion lemmas that aren't in the standard library.
+*)
+inductive EvMatches :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> match list \<Rightarrow> store \<Rightarrow> store \<Rightarrow> auth \<Rightarrow> fact_env \<Rightarrow> bool"
     ("_ | _ | _ | _ \<turnstile> _ \<Down> _ | _ | _ | _ MATCHES" [900,900,900,900,900,900,900,900,900] 1000) where
   EvMatchNil:
-    "n | a | s | h \<turnstile> [] \<Down> {} | {#} | {} | h MATCHES"
+    "n | a | s | h \<turnstile> [] \<Down> {#} | {#} | {} | h MATCHES"
   | EvMatchCons: "
     n | a | s | h  \<turnstile>      m   \<Down>   (f,w)  | ag  | h'  MATCH   \<Longrightarrow>
     n | a | s | h' \<turnstile>      ms  \<Down>  fs | ds | ag' | h'' MATCHES \<Longrightarrow>
-    fs'  = {f} \<union> fs                                          \<Longrightarrow>
-    ds'  = replicate_mset w f \<union># ds                          \<Longrightarrow>
+    fs'  = {#f#} \<union># fs                                       \<Longrightarrow>
+    ds'  = replicate_mset w f + ds                           \<Longrightarrow>
     ag'' = ag \<union> ag'                                          \<Longrightarrow>
     n | a | s | h  \<turnstile> (m # ms) \<Down> fs' | ds' | ag'' |  h'' MATCHES"
 
-inductive EvFire :: "auth \<Rightarrow> store \<Rightarrow> rule \<Rightarrow> fact set \<Rightarrow> store \<Rightarrow> store \<Rightarrow> store \<Rightarrow> bool"
+inductive EvFire :: "auth \<Rightarrow> store \<Rightarrow> rule \<Rightarrow> store \<Rightarrow> store \<Rightarrow> store \<Rightarrow> store \<Rightarrow> bool"
     ("_ | _ \<turnstile> _ \<Down> _ | _ | _ | _ FIRE" [900,900,900,900,900,900,900] 1000) where
   EvFire: "
     rn | asub | s | (\<lambda>_. undefined) \<turnstile> matches \<Down> fread | dspent | ahas | h' MATCHES \<Longrightarrow>

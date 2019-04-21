@@ -1,0 +1,10 @@
+session Rainfall = HOL +
+  sessions
+   "HOL-Library"
+   "HOL-Eisbach"
+  theories
+   Base
+   Exp
+   Dynamic
+   DynamicLemmas
+   Examples
