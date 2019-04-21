@@ -37,7 +37,7 @@ lemma find_firsts_min_in_subset: "f \<in># find_firsts s h v e \<Longrightarrow>
   by (metis set_mset_mono finite_set_mset)
 
 (* Invert single-constructor relations *)
-method elim_Ev = (elim EvFire.cases EvExec.cases EvMatch.cases EvGather.cases EvConsume.cases EvGain.cases; clarsimp)
+method elim_Ev = (elim EvFire.cases EvExec.cases EvMatch.cases EvGather.cases; clarsimp)
 method intro_Ev = (intro EvMatches.intros EvExec.intros EvMatch.intros EvGain.intros EvGather.intros EvSelect.intros EvConsume.intros)
 
 (* trivial *)
@@ -174,7 +174,7 @@ proof (induct rule: EvMatches.induct)
   case (EvMatchCons n a s h m ag fw s' h' ms ag' ds' h'')
   then show ?case
     by (elim_Ev;
-        elim EvSelect.cases;
+        elim EvGain.cases;
         clarsimp;
         blast)
 qed auto

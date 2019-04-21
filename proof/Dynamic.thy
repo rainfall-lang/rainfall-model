@@ -4,9 +4,11 @@ theory Dynamic
   Exp
 begin
 
+(* Check if authority has enough permissions to see the fact *)
 definition can_see_fact :: "auth \<Rightarrow> fact \<Rightarrow> bool" where
 "can_see_fact a f \<equiv> {} \<noteq> (a \<inter> (fact_by f \<union> fact_obs f))"
 
+(* Predicate for gathering facts, as in set comprehension in EvGather rule in paper *)
 definition check_gather :: "auth \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rightarrow> fact_ctor \<Rightarrow> bool exp \<Rightarrow> fact \<Rightarrow> bool" where
 "check_gather Asub h v ctor pred f =
   (fact_name f = ctor \<and>
@@ -21,7 +23,7 @@ inductive EvGather :: "auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightar
     Asub | s | h | v \<turnstile> gather_when ctor pred \<Down> fs GATHER"
 
 
-(* Get all the facts with a minimum value, according to some function *)
+(* Get all the facts with a minimum value according to some scoring function *)
 definition find_firsts :: "store \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rightarrow> nat exp \<Rightarrow> store" where
 "find_firsts fs env v x = (
        let score = (\<lambda>f. x (env (v := f)))
@@ -36,17 +38,28 @@ inductive EvSelect :: "store \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rig
 | EvFirst: "f \<in># find_firsts fs h v e \<Longrightarrow>
      fs | h | v \<turnstile> select_first e \<Down> f SELECT"
 
-inductive EvConsume :: "fact \<Rightarrow> fact_env \<Rightarrow> consume \<Rightarrow> nat \<Rightarrow> bool"
-    ("_ | _ \<turnstile> _ \<Down> _ CONSUME" [900,900,900,900] 1000) where
-  EvConsume: "w h = w_need \<Longrightarrow>
-    f | h \<turnstile> consume_weight w \<Down> w_need CONSUME"
+inductive EvConsume :: "rule_name \<Rightarrow> fact \<Rightarrow> fact_env \<Rightarrow> consume \<Rightarrow> nat \<Rightarrow> bool"
+    ("_ | _ | _ \<turnstile> _ \<Down> _ CONSUME" [900,900,900,900,900] 1000) where
+  EvConsumeNone:
+   "w h = 0 \<Longrightarrow>
+    n | f | h \<turnstile> consume_weight w \<Down> 0 CONSUME"
+| EvConsumeSome:
+   "w h = w_need \<Longrightarrow>
+    w_need > 0 \<Longrightarrow>
+    n \<in> fact_rules f \<Longrightarrow>
+    n | f | h \<turnstile> consume_weight w \<Down> w_need CONSUME"
 
 
-inductive EvGain :: "fact \<Rightarrow> fact_env \<Rightarrow> gain \<Rightarrow> auth \<Rightarrow> bool"
-    ("_ | _ \<turnstile> _ \<Down> _ GAIN" [900,900,900,900] 1000) where
-  EvGain: "t h = a \<Longrightarrow>
-           a \<subseteq> fact_by f \<Longrightarrow>
-   f | h \<turnstile> gain_auth t \<Down> a GAIN"
+inductive EvGain :: "rule_name \<Rightarrow> fact \<Rightarrow> fact_env \<Rightarrow> gain \<Rightarrow> auth \<Rightarrow> bool"
+    ("_ | _ | _ \<turnstile> _ \<Down> _ GAIN" [900,900,900,900,900] 1000) where
+  EvGainNone:
+  "t h = {} \<Longrightarrow>
+   n | f | h \<turnstile> gain_auth t \<Down> {} GAIN"
+| EvGainSome:
+  "t h = a \<Longrightarrow>
+   a \<subseteq> fact_by f \<Longrightarrow>
+   n \<in> fact_rules f \<Longrightarrow>
+   n | f | h \<turnstile> gain_auth t \<Down> a GAIN"
 
 inductive EvExec :: "fact_env \<Rightarrow> store exp \<Rightarrow> store \<Rightarrow> bool"
     ("_ \<turnstile> _ \<Down> _ EXEC" [900,900,900] 1000) where
@@ -59,10 +72,9 @@ inductive EvMatch :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightar
   EvMatch: "
        asub | s | h | x  \<turnstile> gather \<Down> fs     GATHER  \<Longrightarrow>
              fs | h | x  \<turnstile> sel    \<Down> f      SELECT  \<Longrightarrow>
-             f  |     h' \<turnstile> con    \<Down> w      CONSUME \<Longrightarrow>
-             f  |     h' \<turnstile> gain   \<Down> again  GAIN    \<Longrightarrow>
+         rn | f |     h' \<turnstile> con    \<Down> w      CONSUME \<Longrightarrow>
+         rn | f |     h' \<turnstile> gain   \<Down> again  GAIN    \<Longrightarrow>
     h' = h(x := f)                                 \<Longrightarrow>
-    rn \<in> fact_rules f                              \<Longrightarrow>
     rn | asub | s | h \<turnstile> match x gather sel con gain \<Down> (f,w) | again | h' MATCH"
 
 (* rn | asub | s | h \<turnstile> ms \<Down> fread | dspent | ahas | h' MATCHES
