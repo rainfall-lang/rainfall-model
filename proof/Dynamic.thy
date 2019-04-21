@@ -96,7 +96,9 @@ inductive EvMatches :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Right
   | EvMatchCons: "
     n | a | s | h  \<turnstile>      m   \<Down>  ag        | ds                    | h'  MATCH   \<Longrightarrow>
     n | a | s | h' \<turnstile>      ms  \<Down>  ag'       | ds'                   | h'' MATCHES \<Longrightarrow>
-    n | a | s | h  \<turnstile> (m # ms) \<Down> (ag \<union> ag') | used_facts_add ds ds' | h'' MATCHES"
+    ag'' = ag \<union> ag'                                                              \<Longrightarrow>
+    ds'' = used_facts_add ds ds'                                                 \<Longrightarrow>
+    n | a | s | h  \<turnstile> (m # ms) \<Down> ag'' | ds'' | h'' MATCHES"
 
 inductive EvFire :: "auth \<Rightarrow> store \<Rightarrow> rule \<Rightarrow> used_facts \<Rightarrow> store \<Rightarrow> store \<Rightarrow> bool"
     ("_ | _ \<turnstile> _ \<Down> _ | _ | _ FIRE" [900,900,900,900,900,900] 1000) where
