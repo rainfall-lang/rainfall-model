@@ -36,5 +36,6 @@ record fact =
   fact_rules :: "rule_name set"
 
 type_synonym store = "fact multiset"
+type_synonym factoid = "fact \<times> nat"
 
 end
