@@ -12,18 +12,18 @@ store1
  = Map.fromList
  [ Fact  "Coin" [ "holder"      := VParty "Alice"
                 , "issuer"      := VParty "Isabelle"]
-        ["Isabelle", "Alice"] psAll ["transfer"]
+        (auths ["Isabelle", "Alice"]) (auths psAll) ["transfer"]
    := 1
 
  , Fact "Offer" [ "id"          := VSym   "1234"
                 , "giver"       := VParty "Alice"
                 , "receiver"    := VParty "Bob" ]
-        ["Alice"] psAll ["transfer"]
+        (auths ["Alice"]) (auths psAll) ["transfer"]
    := 1
 
  , Fact "Accept" [ "id"          := VSym   "1234"
                  , "accepter"    := VParty "Bob" ]
-        ["Bob"]  psAll ["transfer"]
+        (auths ["Bob"])  (auths psAll)  ["transfer"]
    := 1
   ]
 
@@ -33,20 +33,20 @@ psAll   = ["Isabelle", "Alice", "Bob"]
 ---------------------------------------------------------------------------------------------------
 rule'transfer
  = rule "transfer"
- [ match (rake'facts "accept" "Accept"
-                anyof (consume 1))
-         (gain (auth'one ("accept" ! "accepter")))
+ [ match'any "accept" "Accept"
+        anyof (consume 1)
+        (gain (auth'one ("accept" ! "accepter")))
 
- , match (rake'when "offer" "Offer"
-                [ symbol'eq ("accept" ! "id") ("offer" ! "id")
-                , party'eq  ("accept" ! "accepter") ("offer" ! "receiver") ]
-                anyof (consume 1))
-         (gain (auth'one ("offer" ! "giver")))
+ , match'when "offer" "Offer"
+        [ symbol'eq ("accept" ! "id") ("offer" ! "id")
+        , party'eq  ("accept" ! "accepter") ("offer" ! "receiver") ]
+        anyof (consume 1)
+        (gain (auth'one ("offer" ! "giver")))
 
- , match (rake'when "coin" "Coin"
-                [ party'eq ("coin" ! "holder") ("offer" ! "giver") ]
-                anyof (consume 1))
-         (gain (auth'one ("coin" ! "issuer")))
+ , match'when "coin" "Coin"
+        [ party'eq ("coin" ! "holder") ("offer" ! "giver") ]
+        anyof (consume 1)
+        (gain (auth'one ("coin" ! "issuer")))
  ]
  $ say  "Coin"
         [ "issuer"      := ("coin"  ! "issuer")
@@ -57,7 +57,7 @@ rule'transfer
 
 ---------------------------------------------------------------------------------------------------
 test1   = putStrLn $ ppShow
-        $ applyRuleToStore rule'transfer [] store1
+        $ applyFire (auths ["Alice"]) store1 rule'transfer
 
 
 ---------------------------------------------------------------------------------------------------
