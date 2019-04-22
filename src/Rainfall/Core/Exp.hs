@@ -13,4 +13,3 @@ import Rainfall.Core.Exp.Rule
 import Rainfall.Core.Exp.Patterns
 import Rainfall.Core.Exp.Predicates
 import Rainfall.Core.Exp.Compounds
-

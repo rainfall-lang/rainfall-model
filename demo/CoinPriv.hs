@@ -58,5 +58,4 @@ rule'transfer
 
 
 ---------------------------------------------------------------------------------------------------
-test1   = putStrLn $ ppShow
-        $ applyFire (auths ["Alice"]) store1 rule'transfer
+test1   = runFire (auths ["Alice"]) store1 rule'transfer

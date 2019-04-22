@@ -86,7 +86,7 @@ applyMatch nRule aSub store env (Match bFact gather select consume gain)
         fSelect  <- applySelect fsGather env bFact select
 
         -- The fact must have the current rule in its whitelist.
-        guard $ elem nRule (factRules fSelect)
+        guard $ elem nRule (factUse fSelect)
 
         -- Consume the required quantify of the fact,
         -- computing the weight with the new fact in scope.

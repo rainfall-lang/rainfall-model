@@ -15,11 +15,16 @@ module Rainfall.EDSL
         , symbol'eq
         , party'eq
         , auth'one, auth'union
-        , nat'add, nat'le, nat'ge )
+        , nat'add, nat'le, nat'ge
+
+        , runFire)
 where
 import Rainfall.Core.Exp
+import Rainfall.Core.Eval
+import Rainfall.Core.Codec.Text.Pretty
 import Data.String
-import qualified Data.Set       as Set
+import qualified Text.PrettyPrint.Leijen        as P
+import qualified Data.Set                       as Set
 
 instance IsString (Term a) where
  fromString s = MVar s
@@ -82,3 +87,18 @@ nat'add nx ny           = MApp (MPrm "nat'add")         [nx, ny]
 nat'le  nx ny           = MApp (MPrm "nat'le")          [nx, ny]
 nat'ge  nx ny           = MApp (MPrm "nat'ge")          [nx, ny]
 
+
+-- Run --------------------------------------------------------------------------------------------
+-- | Try to fire a single rule, printing the first available firing.
+runFire :: Auth -> Store -> Rule () -> IO ()
+runFire auth store rule
+ = case applyFire auth store rule of
+        []      -> putStrLn "* Fizz"
+
+        [(dsSpent, dsNew, store')]
+         -> do  putStrLn $ (P.displayS $ renderMax $ ppFiring dsSpent dsNew store') ""
+
+        _       -> putStrLn "* Many"
+
+
+renderMax = P.renderPretty 1.0 100

@@ -73,7 +73,7 @@ data Fact a
         , factEnv       :: Env a
         , factBy        :: Auth
         , factObs       :: Auth
-        , factRules     :: [Name] }
+        , factUse       :: [Name] }
         deriving (Show, Eq, Ord)
 
 

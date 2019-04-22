@@ -2,6 +2,7 @@
 module Coin where
 import Rainfall.EDSL
 import Rainfall.Core.Eval
+import Rainfall.Core.Codec.Text.Pretty
 import qualified Data.Map       as Map
 import Text.Show.Pretty
 
@@ -56,8 +57,7 @@ rule'transfer
 
 
 ---------------------------------------------------------------------------------------------------
-test1   = putStrLn $ ppShow
-        $ applyFire (auths ["Alice"]) store1 rule'transfer
+test1   = runFire (auths ["Alice"]) store1 rule'transfer
 
 
 ---------------------------------------------------------------------------------------------------

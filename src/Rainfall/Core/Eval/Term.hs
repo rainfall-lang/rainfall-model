@@ -107,7 +107,7 @@ execTerm env (MSay nFact mData mMeta)
                 , factEnv       = envData
                 , factBy        = aBy
                 , factObs       = aObs
-                , factRules     = nsRule }
+                , factUse       = nsRule }
 
         factoid = (fact, nWeight)
 
