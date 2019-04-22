@@ -15,13 +15,13 @@ import Control.Monad
 
 ---------------------------------------------------------------------------------------------------
 -- | Try to fire a rule applied to a store.
-applyRuleToStore
-        :: Rule ()              -- ^ Rule to apply.
-        -> Auth                 -- ^ Authority of submitter.
-        -> Store                -- ^ Initial store.
-        -> [(Name, [Factoid ()], [Factoid ()], Store)]
+applyFire
+        :: Auth         -- ^ Authority of submitter.
+        -> Store        -- ^ Initial store.
+        -> Rule ()      -- ^ Rule to apply.
+        -> [([Factoid ()], [Factoid ()], Store)]
 
-applyRuleToStore rule aSub store
+applyFire aSub store rule
  = do
         (aHas, dsSpent, store', env')
          <- applyMatches (ruleName rule) aSub Set.empty [] store [] (ruleMatch rule)
@@ -30,7 +30,7 @@ applyRuleToStore rule aSub store
         guard $ all (authCoversFact aHas) $ map fst dsNew
 
         let store'' = storePrune $ Map.unionWith (+) (Map.fromList dsNew) store'
-        return  (ruleName rule, dsSpent, dsNew, store'')
+        return  (dsSpent, dsNew, store'')
 
 
 ---------------------------------------------------------------------------------------------------
