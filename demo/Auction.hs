@@ -73,7 +73,8 @@ rule'auction'bid
         [ "id"          := ("item"  ! "lot")
         , "broker"      := ("enter" ! "broker")
         , "price"       := ("enter" ! "offer") ]
-        [ "by"          := auth'one ("enter" ! "broker")
+        [ "by"          := auth'union (auth'one ("enter" ! "broker"))
+                                      (auth'one ("order" ! "buyer"))
         , "obs"         := auth'one (party "Mark") ]
 
 
