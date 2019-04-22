@@ -5,8 +5,8 @@ module Rainfall.EDSL
         , match'any, match'when
         , when
         , anyof, firstof, lastof
-        , retain, weight, consume
-        , none, gain
+        , none, weight, consume
+        , same, gain
         , unit, bool, sym, nat, text, party, auth, rules
         , (!), pattern (:=)
         , auths
@@ -36,17 +36,17 @@ rule n ms mBody         = Rule  n ms mBody
 match'any  x n g c i    = Match x (when n []) g c i
 match'when x n ms g c i = Match x (when n ms) g c i
 
-when  n ms              = GatherWhen n ms
+when  n ms              = GatherWhere n ms
 
 anyof                   = SelectAny
 firstof                 = SelectFirst
 lastof                  = SelectLast
 
-retain                  = ConsumeRetain
+none                    = ConsumeNone
 weight m                = ConsumeWeight m
 consume n               = ConsumeWeight (MNat n)
 
-none                    = GainNone
+same                    = GainNone
 gain m                  = GainTerm m
 
 

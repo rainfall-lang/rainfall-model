@@ -28,43 +28,32 @@ data Match a
 
 -- | Specifies which facts to consider during a rake.
 data Gather a
-        = GatherAnn    a (Gather a)
-
-        -- | Terms must all produce true.
-        | GatherWhen  Name [Term a]
+        = GatherAnn     a (Gather a)
+        | GatherWhere   Name [Term a]   -- ^ Gather facts where the predicates are all true.
         deriving Show
 
 
--- | Specifies how to select facts from the gathered set.
+-- | How to select a single fact from the gathered set.
 data Select a
         = SelectAnn     a (Select a)
-
-        -- | Select any fact which matches, pseudo non-determinstically.
-        | SelectAny
-
-        -- | Sort facts by the given term, and select the first that matches.
-        | SelectFirst   (Term a)
-
-        -- | Sort facts by the given term, and select the last that matches.
-        | SelectLast    (Term a)
+        | SelectAny                     -- ^ Select any fact that matches.
+        | SelectFirst   (Term a)        -- ^ Select the first fact, ordered by this term.
+        | SelectLast    (Term a)        -- ^ Select the last fact, ordered by this term
         deriving Show
 
 
--- | Specifies how to treat selected facts.
+-- | Whether to consume the selected fact.
 data Consume a
         = ConsumeAnn    a (Consume a)
-
-        -- | Return facts without consuming them.
-        | ConsumeRetain
-
-        -- | Consume the given weight of the fact.
-        | ConsumeWeight (Term a)
+        | ConsumeNone                   -- ^ Match on facts without consuming them.
+        | ConsumeWeight (Term a)        -- ^ Consume the given weight of fact.
         deriving Show
 
 
+-- | Whether to gain authority from the selected fact.
 data Gain a
-        = GainAnn    a (Gain a)
+        = GainAnn       a (Gain a)
         | GainNone                      -- ^ Retain the same authority.
-        | GainTerm   (Term a)           -- ^ Gain the given authority.
+        | GainTerm      (Term a)        -- ^ Gain the given authority.
         deriving Show
 

@@ -114,7 +114,7 @@ applyGather
 applyGather aSub store env bFact (GatherAnn _a gg)
  = applyGather aSub store env bFact gg
 
-applyGather aSub store env bFact (GatherWhen nFact msPred)
+applyGather aSub store env bFact (GatherWhere nFact msPred)
  = let fs = [ fact | fw@(fact, weight) <- Map.toList store
                    , weight >= 0
                    , factName fact == nFact
@@ -172,7 +172,7 @@ applyConsume
 applyConsume fact store env (ConsumeAnn _ consume)
  = applyConsume fact store env consume
 
-applyConsume _fact store _env ConsumeRetain
+applyConsume _fact store _env ConsumeNone
  = [(0, store)]
 
 applyConsume fact store env (ConsumeWeight mWeight)
