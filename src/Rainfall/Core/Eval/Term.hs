@@ -94,8 +94,8 @@ execTerm env (MSay nFact mData mMeta)
         aObs    = fromMaybe (error "execTerm: 'obs' value in say statement is not an auth set")
                 $ takeAuthOfValue vObs
 
-        vRules  = fromMaybe (VRules []) $ lookup "rules" envMeta
-        nsRule  = fromMaybe (error "execTerm: 'rules' value in say statement is not a rules set")
+        vRules  = fromMaybe (VRules []) $ lookup "use" envMeta
+        nsRule  = fromMaybe (error "execTerm: 'use' value in say statement is not a rules set")
                 $ takeRulesOfValue vRules
 
         vWeight = fromMaybe (VNat 1) $ lookup "weight" envMeta

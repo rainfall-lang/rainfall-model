@@ -56,7 +56,7 @@ rule'transfer
         [ "by"          := auth'union (auth'one ("coin"   ! "issuer"))
                                       (auth'one ("accept" ! "accepter"))
         , "obs"         := auth'one (party "Mona")
-        , "rules"       := rules ["transfer"] ]                 -- TODO: change to 'use'
+        , "use"         := rules ["transfer"] ]
 
 
 ---------------------------------------------------------------------------------------------------
