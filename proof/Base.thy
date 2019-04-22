@@ -25,6 +25,7 @@ datatype val =
     vlit lit
   | vrecord "(field_name \<times> val) list"
   | vlist "val list"
+  | vpair val val
 
 (* Facts *)
 datatype fact_ctor = fact_ctor string
