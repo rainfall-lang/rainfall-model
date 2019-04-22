@@ -75,9 +75,8 @@ ppFiring dsSpent dsNew store
  = vcat
  [ text "(spend)"
  , indent 2 $ vcat $ map (\d -> vcat [ppFactoid d, empty]) dsSpent
- , empty
  , text "(new)"
- , indent 2 $ vcat $ map ppFactoid dsNew
- , empty
+ , indent 2 $ vcat $ map (\d -> vcat [ppFactoid d, empty]) dsNew
  , text "(store)"
  , indent 2 $ ppStore store ]
+

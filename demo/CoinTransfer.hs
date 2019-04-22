@@ -1,5 +1,5 @@
 
-module CoinPriv where
+module CoinTransfer where
 import Rainfall.EDSL
 import Rainfall.Core.Eval
 import qualified Data.Map       as Map
@@ -7,27 +7,29 @@ import Text.Show.Pretty
 
 
 ---------------------------------------------------------------------------------------------------
+-- fact Coin   [issuer: Party, holder: Party]
+-- fact Offer  [id: Symbol, terms: Text, giver: Party, receiver: Party]
+-- fact Accept [id: Symbol, accepter: Party]
+
 store1 :: Store
 store1
  = Map.fromList
- [ Fact  "Coin" [ "holder"      := VParty "Alice"
-                , "issuer"      := VParty "Issuer"]
-        (auths ["Issuer", "Alice"]) (auths ["Monitor"]) ["transfer"]
+ [ Fact  "Coin" [ "issuer"      := VParty "Isabelle"
+                , "holder"      := VParty "Alice" ]
+        (auths ["Isabelle", "Alice"]) (auths ["Mona"]) ["transfer"]
    := 1
 
  , Fact "Offer" [ "id"          := VSym   "1234"
                 , "giver"       := VParty "Alice"
                 , "receiver"    := VParty "Bob" ]
-        (auths ["Alice"]) (auths ["Monitor", "Bob"])    ["transfer"]
+        (auths ["Alice"]) (auths ["Mona", "Bob"])    ["transfer"]
    := 1
 
  , Fact "Accept" [ "id"         := VSym   "1234"
                  , "accepter"   := VParty "Bob" ]
-        (auths ["Bob"])   (auths ["Monitor", "Alice"])  ["transfer"]
+        (auths ["Bob"])   (auths ["Mona", "Alice"])  ["transfer"]
    := 1
   ]
-
-psAll   = ["Issuer", "Monitor", "Alice", "Bob"]
 
 
 ---------------------------------------------------------------------------------------------------
@@ -49,12 +51,12 @@ rule'transfer
         (gain (auth'one ("coin" ! "issuer")))
  ]
  $ say  "Coin"
-        [ "issuer"      := ("coin"  ! "issuer")
-        , "holder"      := ("offer" ! "receiver") ]
-        [ "by"          := auth'union (auth'one ("coin" ! "issuer"))
-                                      (auth'one ("offer" ! "receiver"))
-        , "obs"         := auth'one (party "Monitor")
-        , "rules"       := rules ["transfer"] ]
+        [ "issuer"      := ("coin"   ! "issuer")
+        , "holder"      := ("accept" ! "accepter") ]
+        [ "by"          := auth'union (auth'one ("coin"   ! "issuer"))
+                                      (auth'one ("accept" ! "accepter"))
+        , "obs"         := auth'one (party "Mona")
+        , "rules"       := rules ["transfer"] ]                 -- TODO: change to 'use'
 
 
 ---------------------------------------------------------------------------------------------------
