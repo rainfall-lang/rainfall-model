@@ -15,7 +15,8 @@ module Rainfall.EDSL
         , symbol'eq
         , party'eq
         , auth'one, auth'union
-        , nat'add, nat'le, nat'ge
+        , nat'add, nat'eq, nat'le, nat'ge
+        , text'eq
 
         , runFire)
 where
@@ -80,12 +81,16 @@ symbol'eq mx my         = MApp (MPrm "symbol'eq")       [mx, my]
 
 party'eq  mx my         = MApp (MPrm "party'eq")        [mx, my]
 
+nat'add nx ny           = MApp (MPrm "nat'add")         [nx, ny]
+nat'eq  nx ny           = MApp (MPrm "nat'eq")          [nx, ny]
+nat'le  nx ny           = MApp (MPrm "nat'le")          [nx, ny]
+nat'ge  nx ny           = MApp (MPrm "nat'ge")          [nx, ny]
+
+text'eq tx ty           = MApp (MPrm "text'eq")         [tx, ty]
+
 auth'one mp             = MApp (MPrm "auth'one")        [mp]
 auth'union ma mb        = MApp (MPrm "auth'union")      [ma, mb]
 
-nat'add nx ny           = MApp (MPrm "nat'add")         [nx, ny]
-nat'le  nx ny           = MApp (MPrm "nat'le")          [nx, ny]
-nat'ge  nx ny           = MApp (MPrm "nat'ge")          [nx, ny]
 
 
 -- Run --------------------------------------------------------------------------------------------

@@ -118,9 +118,14 @@ execTerm env (MSay nFact mData mMeta)
 ---------------------------------------------------------------------------------------------------
 evalPrim :: Show a => Name -> [Value a] -> Value a
 
-evalPrim "nat'add"      [VNat n1, VNat n2]      = VNat (n1 + n2)
-
 evalPrim "symbol'eq"    [VSym s1, VSym s2]      = VBool (s1 == s2)
+
+evalPrim "nat'add"      [VNat n1, VNat n2]      = VNat  (n1 + n2)
+evalPrim "nat'eq"       [VNat n1, VNat n2]      = VBool (n1 == n2)
+evalPrim "nat'ge"       [VNat n1, VNat n2]      = VBool (n1 >= n2)
+evalPrim "nat'le"       [VNat n1, VNat n2]      = VBool (n1 <= n2)
+
+evalPrim "text'eq"      [VText t1, VText t2]    = VBool (t1 == t2)
 
 evalPrim "party'eq"     [VParty p1, VParty p2]  = VBool (p1 == p2)
 
