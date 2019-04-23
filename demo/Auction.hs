@@ -72,7 +72,9 @@ auction'accept
         [ nat'eq   ("offer" ! "lot")    ("accept" ! "lot")
         , party'eq ("offer" ! "broker") ("accept" ! "broker") ]
         anyof (consume 1)
-        (gain $ auth'one ("offer" ! "broker"))
+        (gain $ auth'union
+                        (auth'one ("offer" ! "broker"))
+                        (auth'one ("offer" ! "buyer")))
 
  , match'when "item" "Item"
         [ nat'eq   ("item"  ! "lot")   ("offer" ! "lot") ]
@@ -84,8 +86,10 @@ auction'accept
         , "buyer"       := ("offer" ! "buyer")
         , "desc"        := ("item"  ! "desc")
         , "amount"      := ("offer" ! "price") ]
-        [ "by"  := (auth'one $ party "Mark")
-        , "obs" := (auth'one $ party "Brendan") ]
+        [ "by"  := auth'union
+                                (auth'union (auth'one ("offer" ! "buyer"))
+                                            (auth'one ("offer" ! "broker")))
+                                (auth'one (party "Mark")) ]
 
 
 -- | A broker reserves a portion of the client's budget and
