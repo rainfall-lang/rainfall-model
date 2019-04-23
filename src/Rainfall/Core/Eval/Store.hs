@@ -13,6 +13,10 @@ type Factoid a  = (Fact a, Weight)
 
 pattern (:*) f w        = (f, w)
 
+-- | An empty store.
+storeEmpty :: Store
+storeEmpty
+ = Map.empty
 
 -- | Delete all factoids whose weight is one from the store.
 storePrune :: Store -> Store

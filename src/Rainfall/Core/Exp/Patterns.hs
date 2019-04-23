@@ -22,6 +22,7 @@ pattern MAuth  ns       = MLit (LAuth ns)
 pattern MRules ns       = MLit (LRules ns)
 
 pattern MSay n mD mM    = MKey MKSay [MSym n, mD, mM]
+pattern MSeq mA mB      = MKey MKSeq [mA, mB]
 
 ------------------------------------------------------------------------------------------ Value --
 pattern VUnit           = VLit LUnit

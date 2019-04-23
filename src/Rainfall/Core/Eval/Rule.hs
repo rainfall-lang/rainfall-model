@@ -12,6 +12,12 @@ import Data.Map                         (Map)
 import Data.Maybe
 import Control.Monad
 
+data Transaction
+        = Transaction
+        { transactionRule       :: Name
+        , transactionSpent      :: [Factoid ()]
+        , transactionNew        :: [Factoid ()] }
+        deriving Show
 
 ---------------------------------------------------------------------------------------------------
 -- | Try to fire a rule applied to a store.
@@ -19,7 +25,7 @@ applyFire
         :: Auth         -- ^ Authority of submitter.
         -> Store        -- ^ Initial store.
         -> Rule ()      -- ^ Rule to apply.
-        -> [([Factoid ()], [Factoid ()], Store)]
+        -> [(Transaction, Store)]
 
 applyFire aSub store rule
  = do
@@ -29,8 +35,9 @@ applyFire aSub store rule
         let (VUnit, dsNew) = execTerm env' (ruleBody rule)
         guard $ all (authCoversFact aHas) $ map fst dsNew
 
+        let trans   = Transaction (ruleName rule) dsSpent dsNew
         let store'' = storePrune $ Map.unionWith (+) (Map.fromList dsNew) store'
-        return  (dsSpent, dsNew, store'')
+        return  (trans, store'')
 
 
 ---------------------------------------------------------------------------------------------------

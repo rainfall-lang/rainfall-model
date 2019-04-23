@@ -114,6 +114,11 @@ execTerm env (MSay nFact mData mMeta)
    in   ( VUnit
         , [factoid] ++ fsData ++ fsMeta)
 
+execTerm env (MSeq m1 m2)
+ = let  (_,  fs1) = execTerm env m1
+        (v2, fs2) = execTerm env m2
+   in   (v2, fs1 ++ fs2)
+
 
 ---------------------------------------------------------------------------------------------------
 evalPrim :: Show a => Name -> [Value a] -> Value a
@@ -121,6 +126,7 @@ evalPrim :: Show a => Name -> [Value a] -> Value a
 evalPrim "symbol'eq"    [VSym s1, VSym s2]      = VBool (s1 == s2)
 
 evalPrim "nat'add"      [VNat n1, VNat n2]      = VNat  (n1 + n2)
+evalPrim "nat'sub"      [VNat n1, VNat n2]      = VNat  (n1 - n2)
 evalPrim "nat'eq"       [VNat n1, VNat n2]      = VBool (n1 == n2)
 evalPrim "nat'ge"       [VNat n1, VNat n2]      = VBool (n1 >= n2)
 evalPrim "nat'le"       [VNat n1, VNat n2]      = VBool (n1 <= n2)

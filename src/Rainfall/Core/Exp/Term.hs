@@ -39,6 +39,7 @@ data TermRef a
 
 data TermKey a
         = MKSay
+        | MKSeq
         deriving (Show, Eq, Ord)
 
 

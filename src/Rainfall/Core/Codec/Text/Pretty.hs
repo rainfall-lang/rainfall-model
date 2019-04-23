@@ -67,7 +67,10 @@ ppFactoid (Fact n env aBy aObs rsUse, nWeight)
 ------------------------------------------------------------------------------------------ Store --
 ppStore :: Store -> Doc
 ppStore store
- = vcat $ map ppFactoid $ Map.toList store
+ = vcat
+ [ text "(store)"
+ , indent 2 $ vcat $ map (\d -> vcat [ppFactoid d, empty]) $ Map.toList store ]
+
 
 ----------------------------------------------------------------------------------------- Firing --
 ppFiring :: [Factoid a] -> [Factoid a] -> Store -> Doc
@@ -78,5 +81,5 @@ ppFiring dsSpent dsNew store
  , text "(new)"
  , indent 2 $ vcat $ map (\d -> vcat [ppFactoid d, empty]) dsNew
  , text "(store)"
- , indent 2 $ ppStore store ]
+ , indent 2 $ vcat $ map (\d -> vcat [ppFactoid d, empty]) $ Map.toList store ]
 
