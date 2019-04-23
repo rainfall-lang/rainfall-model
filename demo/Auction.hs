@@ -9,8 +9,8 @@ import qualified Data.Map       as Map
 
 ---------------------------------------------------------------------------------------------------
 -- fact Item    [lot: Symbol, desc: Text, ask: Nat]
--- fact Enter   [lot: Symbol, broker: Party, offer: Nat]
--- fact Bid     [lot: Symbol, broker: Party, offer: Nat]
+-- fact Offer   [lot: Symbol, broker: Party, offer: Nat]
+-- fact Bid     [lot: Symbol, broker: Party, buyer: Party, offer: Nat]
 
 -- fact Order   [broker: Party, buyer: Party, desc: Text, limit: Nat]
 -- fact Reserve [broker: Party, buyer: Party, lot: Nat, offer: Nat]
@@ -21,35 +21,44 @@ import qualified Data.Map       as Map
 -- to track outsanding bids entered for alice.
 
 ---------------------------------------------------------------------------------------------------
+-- TODO: split rule lists to market side vs broker side.
 auction'rules
- =      [ "auction'bid'enter"
+ =      [ "auction'bid'offer"
         , "auction'bid'reserve" ]
 
 
--- | A broker enters an order for a client.
-auction'bid'enter
- = rule "auction'bid'enter"
- [ match'any "enter" "Enter"
+-- | The market accepts offers from a broker,
+--     checking that there is a matching item for sale,
+--     and that the offer price is not more than the asking price.
+--   On success the offer is converted to a Bid.
+auction'bid'offer
+ = rule "auction'bid'offer"
+ [ match'any "offer" "Offer"
         anyof (consume 1)
-        (gain (auth'one ("enter" ! "broker")))
+        (gain $ auth'union (auth'one ("offer" ! "buyer"))
+                           (auth'one ("offer" ! "broker")))
 
   , match'when "item" "Item"
-        [ nat'eq  ("item" ! "lot")    ("enter" ! "lot")
-        , nat'le  ("enter" ! "offer") ("item" ! "ask")  ]
+        [ nat'eq  ("item" ! "lot")    ("offer" ! "lot")
+        , nat'le  ("offer" ! "price") ("item" ! "ask")  ]
         anyof none
         (gain (auth'one (party "Mark")))
  ]
  $ say  "Bid"
-        [ "id"          := ("item"  ! "lot")
-        , "broker"      := ("enter" ! "broker")
-        , "price"       := ("enter" ! "offer") ]
-        [ "by"          := auth'one ("enter" ! "broker")
+        [ "lot"         := ("item"  ! "lot")
+        , "broker"      := ("offer" ! "broker")
+        , "buyer"       := ("offer" ! "buyer")
+        , "price"       := ("offer" ! "price") ]
+        [ "by"          := auth'union
+                                (auth'union (auth'one ("offer" ! "buyer"))
+                                            (auth'one ("offer" ! "broker")))
+                                (auth'one (party "Mark"))
         , "obs"         := auth'one (party "Mark")
         , "use"         := rules auction'rules ]
 
 
--- | A broker reserves a portion of the client's budget
---   and forwards an order to the market.
+-- | A broker reserves a portion of the client's budget and
+--   sends an offer to the market for one of the items the client has ordered.
 auction'bid'reserve
  = rule "auction'bid'reserve"
  [ match'any "order" "Order"
@@ -84,17 +93,15 @@ auction'bid'reserve
         [ "by"          := auth'one ("budget" ! "broker")
         , "use"         := rules auction'rules ])
   `sqq`
-   (say "Enter"
+   (say "Offer"
         [ "lot"         := ("item"    ! "lot")
         , "broker"      := ("reserve" ! "broker")
-        , "offer"       := ("reserve" ! "amount") ]
+        , "buyer"       := ("order"   ! "buyer")
+        , "price"       := ("reserve" ! "amount") ]
         [ "by"          := auth'union   (auth'one ("reserve" ! "broker"))
                                         (auth'one ("order"   ! "buyer"))
         , "obs"         := auth'one (party "Mark")
         , "use"         := rules auction'rules ])
-
-
-
 
 -- auction'bid'clear
 
@@ -107,7 +114,7 @@ aSay1   nSub nsObs nFact nmsField
 
 test1
  = runScenario ["Bob"]
-        [ auction'bid'enter
+        [ auction'bid'offer
         , auction'bid'reserve ]
  $ do
         -- Alice tells Brendan that she wants Rock Lobsters,
@@ -138,7 +145,7 @@ test1
                 , "ask" := nat 26 ]
 
         aSay1   "Mark"  ["Brendan", "Brett"] "Item"
-                [ "lot" := nat 1002, "desc" := text "Bikini Whale"
+                [ "lot" := nat 1003, "desc" := text "Bikini Whale"
                 , "ask" := nat 645 ]
 
         -- Print state at the start of the auction.
@@ -162,6 +169,6 @@ test1
 
         printStoreS
 
-        fireS ["Brendan"] "auction'bid'enter"
+        fireS ["Mark"] "auction'bid'offer"
 
 
