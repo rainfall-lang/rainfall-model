@@ -23,44 +23,75 @@ import qualified Data.Map       as Map
 ---------------------------------------------------------------------------------------------------
 -- TODO: split rule lists to market side vs broker side.
 auction'rules
- =      [ "auction'bid'offer"
-        , "auction'bid'reserve" ]
+ = [auction'reserve, auction'bid, auction'accept]
+
+use'auction
+ = rules $ map ruleName auction'rules
 
 
--- | The market accepts offers from a broker,
---     checking that there is a matching item for sale,
---     and that the offer price is not more than the asking price.
---   On success the offer is converted to a Bid.
-auction'bid'offer
- = rule "auction'bid'offer"
- [ match'any "offer" "Offer"
+-- | The market receives a bid from a broker,
+--     checks that there is a matching item for sale,
+--     and that the bid price is not more than the asking price.
+--   On success the bid is converted to a valid offer.
+auction'bid
+ = rule "auction'bid"
+ [ match'any "bid" "Bid"
         anyof (consume 1)
-        (gain $ auth'union (auth'one ("offer" ! "buyer"))
-                           (auth'one ("offer" ! "broker")))
+        (gain $ auth'union (auth'one ("bid" ! "buyer"))
+                           (auth'one ("bid" ! "broker")))
 
   , match'when "item" "Item"
-        [ nat'eq  ("item" ! "lot")    ("offer" ! "lot")
-        , nat'le  ("offer" ! "price") ("item" ! "ask")  ]
+        [ nat'eq  ("item" ! "lot")    ("bid" ! "lot")
+        , nat'le  ("bid" ! "price") ("item" ! "ask")  ]
         anyof none
         (gain (auth'one (party "Mark")))
  ]
- $ say  "Bid"
+ $ say  "Offer"
         [ "lot"         := ("item"  ! "lot")
-        , "broker"      := ("offer" ! "broker")
-        , "buyer"       := ("offer" ! "buyer")
-        , "price"       := ("offer" ! "price") ]
+        , "broker"      := ("bid" ! "broker")
+        , "buyer"       := ("bid" ! "buyer")
+        , "price"       := ("bid" ! "price") ]
         [ "by"          := auth'union
-                                (auth'union (auth'one ("offer" ! "buyer"))
-                                            (auth'one ("offer" ! "broker")))
+                                (auth'union (auth'one ("bid" ! "buyer"))
+                                            (auth'one ("bid" ! "broker")))
                                 (auth'one (party "Mark"))
         , "obs"         := auth'one (party "Mark")
-        , "use"         := rules auction'rules ]
+        , "use"         := use'auction ]
+
+
+-- | The market accepts an offer, completing the sale.
+--   The both the offer and item are removed from the listing,
+--   and an Invoice is created for the order.
+auction'accept
+ = rule "auction'accept"
+ [ match'any "accept" "Accept"
+        anyof (consume 1)
+        (gain $ auth'one (party "Mark"))
+
+ , match'when "offer" "Offer"
+        [ nat'eq   ("offer" ! "lot")    ("accept" ! "lot")
+        , party'eq ("offer" ! "broker") ("accept" ! "broker") ]
+        anyof (consume 1)
+        (gain $ auth'one ("offer" ! "broker"))
+
+ , match'when "item" "Item"
+        [ nat'eq   ("item"  ! "lot")   ("offer" ! "lot") ]
+        anyof (consume 1)
+        (gain $ auth'one (party "Mark"))
+ ]
+ $ say  "Invoice"
+        [ "broker"      := ("offer" ! "broker")
+        , "buyer"       := ("offer" ! "buyer")
+        , "desc"        := ("item"  ! "desc")
+        , "amount"      := ("offer" ! "price") ]
+        [ "by"  := (auth'one $ party "Mark")
+        , "obs" := (auth'one $ party "Brendan") ]
 
 
 -- | A broker reserves a portion of the client's budget and
---   sends an offer to the market for one of the items the client has ordered.
-auction'bid'reserve
- = rule "auction'bid'reserve"
+--   sends a bid to the market for one of the items the client has ordered.
+auction'reserve
+ = rule "auction'reserve"
  [ match'any "order" "Order"
         anyof none
         (gain (auth'one ("order" ! "buyer")))
@@ -91,9 +122,9 @@ auction'bid'reserve
         , "budget"      := ("budget" ! "budget")
         , "remain"      := nat'sub ("budget" ! "remain") ("reserve" ! "amount") ]
         [ "by"          := auth'one ("budget" ! "broker")
-        , "use"         := rules auction'rules ])
+        , "use"         := use'auction ])
   `sqq`
-   (say "Offer"
+   (say "Bid"
         [ "lot"         := ("item"    ! "lot")
         , "broker"      := ("reserve" ! "broker")
         , "buyer"       := ("order"   ! "buyer")
@@ -101,21 +132,17 @@ auction'bid'reserve
         [ "by"          := auth'union   (auth'one ("reserve" ! "broker"))
                                         (auth'one ("order"   ! "buyer"))
         , "obs"         := auth'one (party "Mark")
-        , "use"         := rules auction'rules ])
-
--- auction'bid'clear
+        , "use"         := use'auction ])
 
 
 ---------------------------------------------------------------------------------------------------
-
 aSay1   nSub nsObs nFact nmsField
- = sayS' nSub nsObs nFact nmsField auction'rules 1
-
+ = sayS' nSub nsObs nFact nmsField
+        (map ruleName auction'rules)
+        1
 
 test1
- = runScenario ["Bob"]
-        [ auction'bid'offer
-        , auction'bid'reserve ]
+ = runScenario ["Bob"] auction'rules
  $ do
         -- Alice tells Brendan that she wants Rock Lobsters,
         --   for less than 28 each,
@@ -161,14 +188,17 @@ test1
                 , "lot"    := nat 1001
                 , "amount" := nat 22 ]
 
-        fireS ["Brendan"] "auction'bid'reserve"
+        fireS ["Brendan"] "auction'reserve"
 
-        -- The first lobster goes to Bob, for a higher price.
---        aSay1   "Mark"   [ "Bob", "Brendan", "Alice"]
---                "Accept" [ "lot" := nat 1001, "broker" := party "Bob", "price" := nat 23 ]
 
-        printStoreS
+        -- Mark cycles Brendan's bid into a valid offer.
+        fireS ["Mark"] "auction'bid"
 
-        fireS ["Mark"] "auction'bid'offer"
+        -- Mark accepts Brendan's bid.
+        --  Item listing is removed and invoice to Brendan generated.
+        --  Rock Lobster is sold.
+        aSay1   "Mark"   ["Brendan"] "Accept"
+                [ "lot" := nat 1001, "broker" := party "Brendan", "price" := nat 22 ]
 
+        fireS ["Mark"] "auction'accept"
 
