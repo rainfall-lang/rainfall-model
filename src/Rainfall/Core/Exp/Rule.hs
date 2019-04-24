@@ -54,6 +54,7 @@ data Consume a
 data Gain a
         = GainAnn       a (Gain a)
         | GainNone                      -- ^ Retain the same authority.
+        | GainCheck     (Term a)        -- ^ Check for the given auth, but don't gain it.
         | GainTerm      (Term a)        -- ^ Gain the given authority.
         deriving Show
 

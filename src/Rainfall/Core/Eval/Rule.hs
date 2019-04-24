@@ -93,16 +93,15 @@ applyMatch nRule aSub store env (Match bFact gather select consume gain)
         fSelect  <- applySelect fsGather env bFact select
 
         -- The fact must have the current rule in its whitelist.
-        guard $ elem nRule (factUse fSelect)
 
         -- Consume the required quantify of the fact,
         -- computing the weight with the new fact in scope.
         let env' = envBind bFact (VFact fSelect) env
-        (weight', store') <- applyConsume fSelect store env' consume
+        (weight', store') <- applyConsume nRule fSelect store env' consume
         let dSpent      = (fSelect, weight')
 
         -- Gain authority from the matched fact.
-        aGain    <- applyGain fSelect env' gain
+        aGain    <- applyGain nRule fSelect env' gain
 
         return  (aGain, dSpent, store', env')
 
@@ -170,40 +169,53 @@ applySelect fs env bFact (SelectLast mKey)
 -- | Try to consume the given weight of a fact from the store,
 --   returning a new store if possible.
 applyConsume
-        :: Fact ()      -- ^ Fact to consume.
+        :: Name         -- ^ Name of enclosing rule.
+        -> Fact ()      -- ^ Fact to consume.
         -> Store        -- ^ Initial store.
         -> Env ()       -- ^ Current environment.
         -> Consume ()   -- ^ Consume specifier.
         -> [(Weight, Store)]
 
-applyConsume fact store env (ConsumeAnn _ consume)
- = applyConsume fact store env consume
+applyConsume nRule fact store env (ConsumeAnn _ consume)
+ = applyConsume nRule fact store env consume
 
-applyConsume _fact store _env ConsumeNone
+applyConsume _nRule _fact store env ConsumeNone
  = [(0, store)]
 
-applyConsume fact store env (ConsumeWeight mWeight)
+applyConsume nRule fact store env (ConsumeWeight mWeight)
  = do   let VNat nWeightWant = evalTerm env mWeight
         let nWeightAvail     = fromMaybe 0 $ Map.lookup fact store
+
         guard  $ nWeightAvail >= nWeightWant
+        -- TODO: check fact weight in top level rule.
+
+        guard   $ elem nRule (factUse fact)
+
         return $ (nWeightWant, Map.insert fact (nWeightAvail - nWeightWant) store)
 
 
 ---------------------------------------------------------------------------------------------------
 -- | Gain delegated authority from a given fact.
 applyGain
-        :: Fact ()      -- ^ Fact to acquire authority from.
+        :: Name         -- ^ Name of enclosing rule.
+        -> Fact ()      -- ^ Fact to acquire authority from.
         -> Env ()       -- ^ Current environment.
         -> Gain ()      -- ^ Gain specification.
         -> [Auth]       -- ^ Resulting authority, including what we started with.
 
-applyGain fact env (GainAnn a acquire)
- = applyGain fact env acquire
+applyGain nRule fact env (GainAnn a acquire)
+ = applyGain nRule fact env acquire
 
-applyGain fact env GainNone
+applyGain nRule fact env GainNone
  = [Set.empty]
 
-applyGain fact env (GainTerm mAuth)
+applyGain nRule fact env (GainCheck mAuth)
  = do   let VAuth aGain = evalTerm env mAuth
+        guard $ Set.isSubsetOf aGain (factBy fact)
+        return Set.empty
+
+applyGain nRule fact env (GainTerm mAuth)
+ = do   let VAuth aGain = evalTerm env mAuth
+        guard $ elem nRule (factUse fact)
         guard $ Set.isSubsetOf aGain (factBy fact)
         return aGain

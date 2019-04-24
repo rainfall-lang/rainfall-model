@@ -6,7 +6,7 @@ module Rainfall.EDSL
         , when
         , anyof, firstof, lastof
         , none, weight, consume
-        , same, gain
+        , same, check, gain
         , unit, bool, sym, nat, text, party, auth, rules
         , (!), pattern (:=)
         , auths
@@ -14,7 +14,7 @@ module Rainfall.EDSL
         , say, sqq
         , symbol'eq
         , party'eq
-        , auth'one, auth'union
+        , auth'one, auth'union, auth'unions, auth'parties
         , nat'add, nat'sub, nat'eq, nat'le, nat'ge
         , text'eq
 
@@ -62,7 +62,8 @@ weight m                = ConsumeWeight m
 consume n               = ConsumeWeight (MNat n)
 
 same                    = GainNone
-gain m                  = GainTerm m
+check m                 = GainCheck m
+gain  m                 = GainTerm m
 
 
 -- Term -------------------------------------------------------------------------------------------
@@ -77,6 +78,7 @@ rules ns                = MRules ns
 
 (!) m n                 = MPrj m n
 pattern (:=) a b        = (a, b)
+infixl 0 :=
 
 auths ns                = Set.fromList ns
 
@@ -101,8 +103,11 @@ nat'ge  nx ny           = MApp (MPrm "nat'ge")          [nx, ny]
 
 text'eq tx ty           = MApp (MPrm "text'eq")         [tx, ty]
 
-auth'one mp             = MApp (MPrm "auth'one")        [mp]
+auth'one   mp           = MApp (MPrm "auth'one")        [mp]
 auth'union ma mb        = MApp (MPrm "auth'union")      [ma, mb]
+auth'unions ms          = foldr auth'union auth'none ms
+auth'none               = MAuth Set.empty
+auth'parties ms         = foldr auth'union auth'none $ map auth'one ms
 
 
 -- Scenario ---------------------------------------------------------------------------------------

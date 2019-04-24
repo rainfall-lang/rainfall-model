@@ -8,25 +8,22 @@ import qualified Data.Map       as Map
 
 
 ---------------------------------------------------------------------------------------------------
+-- auction side.
 -- fact Item    [lot: Symbol, desc: Text, ask: Nat]
--- fact Offer   [lot: Symbol, broker: Party, offer: Nat]
--- fact Bid     [lot: Symbol, broker: Party, buyer: Party, offer: Nat]
+-- fact Bid     [lot: Symbol, broker: Party, buyer: Party, price: Nat]
+-- fact Offer   [lot: Symbol, broker: Party, buyer: Party, price: Nat]
 
+-- broker side.
 -- fact Order   [broker: Party, buyer: Party, desc: Text, limit: Nat]
 -- fact Reserve [broker: Party, buyer: Party, lot: Nat, offer: Nat]
 -- fact Budget  [broker: Party, buyer: Party, budget: Nat]
 
--- TODO
--- add private Budget workflow on Brendan's side,
--- to track outsanding bids entered for alice.
-
 ---------------------------------------------------------------------------------------------------
--- TODO: split rule lists to market side vs broker side.
-auction'rules
- = [auction'reserve, auction'bid, auction'accept]
+auction'rules   = [auction'bid, auction'accept]
+broker'rules    = [broker'reserve]
 
-use'auction
- = rules $ map ruleName auction'rules
+use'auction     = rules $ map ruleName auction'rules
+use'broker      = rules $ map ruleName broker'rules
 
 
 -- | The market receives a bid from a broker,
@@ -37,24 +34,20 @@ auction'bid
  = rule "auction'bid"
  [ match'any "bid" "Bid"
         anyof (consume 1)
-        (gain $ auth'union (auth'one ("bid" ! "buyer"))
-                           (auth'one ("bid" ! "broker")))
+        (gain $ auth'parties [ "bid" ! "buyer", "bid" ! "broker" ])
 
   , match'when "item" "Item"
-        [ nat'eq  ("item" ! "lot")    ("bid" ! "lot")
-        , nat'le  ("bid" ! "price") ("item" ! "ask")  ]
+        [ nat'eq  ("item" ! "lot")   ("bid"  ! "lot")
+        , nat'le  ("bid"  ! "price") ("item" ! "ask")  ]
         anyof none
-        (gain (auth'one (party "Mark")))
+        (gain $ auth'one (party "Mark"))
  ]
  $ say  "Offer"
-        [ "lot"         := ("item"  ! "lot")
-        , "broker"      := ("bid" ! "broker")
-        , "buyer"       := ("bid" ! "buyer")
-        , "price"       := ("bid" ! "price") ]
-        [ "by"          := auth'union
-                                (auth'union (auth'one ("bid" ! "buyer"))
-                                            (auth'one ("bid" ! "broker")))
-                                (auth'one (party "Mark"))
+        [ "lot"         := "item" ! "lot"
+        , "broker"      := "bid"  ! "broker"
+        , "buyer"       := "bid"  ! "buyer"
+        , "price"       := "bid"  ! "price" ]
+        [ "by"          := auth'parties [ "bid" ! "buyer", "bid" ! "broker", party "Mark" ]
         , "obs"         := auth'one (party "Mark")
         , "use"         := use'auction ]
 
@@ -72,9 +65,7 @@ auction'accept
         [ nat'eq   ("offer" ! "lot")    ("accept" ! "lot")
         , party'eq ("offer" ! "broker") ("accept" ! "broker") ]
         anyof (consume 1)
-        (gain $ auth'union
-                        (auth'one ("offer" ! "broker"))
-                        (auth'one ("offer" ! "buyer")))
+        (gain $ auth'parties ["offer" ! "broker", "offer" ! "buyer" ])
 
  , match'when "item" "Item"
         [ nat'eq   ("item"  ! "lot")   ("offer" ! "lot") ]
@@ -82,28 +73,25 @@ auction'accept
         (gain $ auth'one (party "Mark"))
  ]
  $ say  "Invoice"
-        [ "broker"      := ("offer" ! "broker")
-        , "buyer"       := ("offer" ! "buyer")
-        , "desc"        := ("item"  ! "desc")
-        , "amount"      := ("offer" ! "price") ]
-        [ "by"  := auth'union
-                                (auth'union (auth'one ("offer" ! "buyer"))
-                                            (auth'one ("offer" ! "broker")))
-                                (auth'one (party "Mark")) ]
+        [ "broker"      := "offer" ! "broker"
+        , "buyer"       := "offer" ! "buyer"
+        , "desc"        := "item"  ! "desc"
+        , "amount"      := "offer" ! "price" ]
+        [ "by"          := auth'parties [ "offer" ! "buyer", "offer" ! "broker", party "Mark" ] ]
 
 
 -- | A broker reserves a portion of the client's budget and
 --   sends a bid to the market for one of the items the client has ordered.
-auction'reserve
- = rule "auction'reserve"
+broker'reserve
+ = rule "broker'reserve"
  [ match'any "order" "Order"
         anyof none
-        (gain (auth'one ("order" ! "buyer")))
+        (gain $ auth'one ("order" ! "buyer"))
 
  , match'when "item" "Item"
-        [ text'eq ("item" ! "desc") ("order" ! "desc")]
-        (firstof  ("item" ! "ask")) none
-        same -- TODO: check auth without gain.
+        [ text'eq  ("item" ! "desc") ("order" ! "desc")]
+        (firstof   ("item" ! "ask")) none
+        (check $ auth'one (party "Mark"))
 
  , match'when "reserve" "Reserve"
         [ party'eq ("reserve" ! "broker") ("order" ! "broker")
@@ -111,47 +99,47 @@ auction'reserve
         , nat'eq   ("reserve" ! "lot")    ("item"  ! "lot")
         , nat'le   ("reserve" ! "amount") ("order" ! "limit") ]
         anyof (consume 1)
-        (gain (auth'one ("reserve" ! "broker")))
+        (gain $ auth'one ("reserve" ! "broker"))
 
  , match'when "budget"  "Budget"
         [ party'eq ("budget" ! "broker") ("reserve" ! "broker")
         , party'eq ("budget" ! "buyer")  ("reserve" ! "buyer")
         , nat'ge   ("budget" ! "remain") ("reserve" ! "amount") ]
         anyof (consume 1)
-        (gain (auth'one ("budget" ! "broker")))
+        (gain $ auth'one ("budget" ! "broker"))
  ]
  $ (say "Budget"
-        [ "broker"      := ("budget" ! "broker")
-        , "buyer"       := ("budget" ! "buyer")
-        , "budget"      := ("budget" ! "budget")
+        [ "broker"      := "budget" ! "broker"
+        , "buyer"       := "budget" ! "buyer"
+        , "budget"      := "budget" ! "budget"
         , "remain"      := nat'sub ("budget" ! "remain") ("reserve" ! "amount") ]
         [ "by"          := auth'one ("budget" ! "broker")
-        , "use"         := use'auction ])
+        , "use"         := use'broker ])
   `sqq`
    (say "Bid"
-        [ "lot"         := ("item"    ! "lot")
-        , "broker"      := ("reserve" ! "broker")
-        , "buyer"       := ("order"   ! "buyer")
-        , "price"       := ("reserve" ! "amount") ]
-        [ "by"          := auth'union   (auth'one ("reserve" ! "broker"))
-                                        (auth'one ("order"   ! "buyer"))
+        [ "lot"         := "item"    ! "lot"
+        , "broker"      := "reserve" ! "broker"
+        , "buyer"       := "order"   ! "buyer"
+        , "price"       := "reserve" ! "amount" ]
+        [ "by"          := auth'parties [ "reserve" ! "broker", "order" ! "buyer" ]
         , "obs"         := auth'one (party "Mark")
         , "use"         := use'auction ])
 
 
 ---------------------------------------------------------------------------------------------------
 aSay1   nSub nsObs nFact nmsField
- = sayS' nSub nsObs nFact nmsField
-        (map ruleName auction'rules)
-        1
+ = sayS' nSub nsObs nFact nmsField (map ruleName auction'rules) 1
+
+bSay1   nSub nsObs nFact nmsField
+ = sayS' nSub nsObs nFact nmsField (map ruleName broker'rules) 1
 
 test1
- = runScenario ["Bob"] auction'rules
+ = runScenario ["Bob"] (auction'rules ++ broker'rules)
  $ do
         -- Alice tells Brendan that she wants Rock Lobsters,
         --   for less than 28 each,
         --   with a total budget of 100.
-        aSay1   "Alice" ["Brendan"] "Order"
+        bSay1   "Alice" ["Brendan"] "Order"
                 [ "broker" := party "Brendan"
                 , "buyer"  := party "Alice"
                 , "desc"   := text "Rock Lobster"
@@ -159,7 +147,7 @@ test1
 
         -- Brendan initializes a budget to track outstanding bids for Alice.
         --  The budget only needs to be observable to Brendan.
-        aSay1   "Brendan" [] "Budget"
+        bSay1   "Brendan" [] "Budget"
                 [ "broker" := party "Brendan"
                 , "buyer"  := party "Alice"
                 , "desc"   := text "Rock Lobster"
@@ -186,14 +174,13 @@ test1
         --  checking the current budget along the way.
         --  The reservation fires one of his internal business rules,
         --  so it only needs to be visible to him.
-        aSay1   "Brendan" [] "Reserve"
+        bSay1   "Brendan" [] "Reserve"
                 [ "broker" := party "Brendan"
                 , "buyer"  := party "Alice"
                 , "lot"    := nat 1001
                 , "amount" := nat 22 ]
 
-        fireS ["Brendan"] "auction'reserve"
-
+        fireS ["Brendan"] "broker'reserve"
 
         -- Mark cycles Brendan's bid into a valid offer.
         fireS ["Mark"] "auction'bid"
