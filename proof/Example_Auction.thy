@@ -60,8 +60,8 @@ fun tk_InvoicePayload where
   "tk_InvoicePayload (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol desc)) (vlit (lnat amount))))) = (broker, buyer, desc, amount)"
 | "tk_InvoicePayload _ = undefined" 
 
-definition "Invoice_buyer  =             fst o tk_InvoicePayload o fact_value"
-definition "Invoice_broker =       fst o snd o tk_InvoicePayload o fact_value"
+definition "Invoice_broker =             fst o tk_InvoicePayload o fact_value"
+definition "Invoice_buyer  =       fst o snd o tk_InvoicePayload o fact_value"
 definition "Invoice_desc   = fst o snd o snd o tk_InvoicePayload o fact_value"
 definition "Invoice_amount = snd o snd o snd o tk_InvoicePayload o fact_value"
 
@@ -438,3 +438,135 @@ lemma store_ok__auction_bid__ok:
   apply (unfold check_gather_def)
   apply clarsimp
   using store_ok__bid_to_offer__mk_Offer_rm by fastforce
+
+lemma store_ok__accept_offer_ok:
+      "store_ok ({#fe, fd, fc#} + s) \<Longrightarrow>
+       fact_name fc = Accept \<Longrightarrow>
+       fact_name fd = Offer \<Longrightarrow>
+       fact_name fe = Item \<Longrightarrow>
+       Accept_lot fc = Item_lot fe \<Longrightarrow>
+       Offer_lot fd = Item_lot fe \<Longrightarrow>
+       Offer_broker fd = Accept_broker fc \<Longrightarrow>
+       store_ok
+        (add_mset
+          (mk_Invoice (Accept_broker fc) (Offer_buyer fd) (Item_desc fe) (Offer_price fd) by obs)
+          s)"
+  unfolding store_ok_def order_ok_def budget_ok_def
+    facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def 
+    Invoice_def Bid_def Budget_def
+    store_ok_def order_ok_def
+    budget_matches_order_def
+    budgets_for_order_def facts_of_type_def
+    Budget_def Order_def Offer_def Item_def Accept_def
+    mk_Invoice_def
+  apply (simp only: Multiset.set_mset_filter
+                    Multiset.sup_union_left1
+                    Multiset.filter_mset_add_mset
+                    Multiset.set_mset_sup
+                    Set.mem_Collect_eq
+                    Multiset.filter_sup_mset
+                    HOL.conj_assoc
+                    fact.simps
+                    fact_ctor.inject list.inject char.inject HOL.simp_thms if_False if_True)
+  apply simp
+  apply (simp add: Invoice_amount_def Invoice_buyer_def Invoice_broker_def mk_InvoicePayload_def)
+  apply (intro allI conjI impI)
+   apply clarsimp
+   apply (elim allE conjE impE)
+     apply blast
+    apply blast
+   apply (simp add: add.assoc add.left_commute)
+  apply clarsimp
+  apply (erule allE)
+  apply (case_tac "Offer_buyer fd = Budget_buyer b"; clarsimp)
+  apply (elim allE conjE impE)
+       apply blast
+      apply blast
+   apply simp
+  apply (elim allE conjE impE)
+    apply blast
+   apply blast
+  apply simp
+  done
+
+lemma store_ok__auction_accept__ok:
+    "store_ok s
+ \<Longrightarrow> asub | s \<turnstile> auction_accept \<Down> fread | dspent | dnew | s' FIRE
+ \<Longrightarrow> store_ok s'"
+  unfolding auction_accept_def
+    item_v_def accept_v_def bid_v_def offer_v_def
+    match_any_def match_any_when_def match_first_when_def
+  apply (elim EvFire.cases EvExec.cases; clarsimp)
+  apply (erule EvMatches.cases; clarsimp)+
+  apply (elim EvMatch.cases)
+  apply (elim EvGather.cases)
+  apply clarsimp
+  apply (elim EvGain.cases; clarsimp)
+  apply (elim EvSelect.cases; clarsimp)
+  apply (elim EvConsume.cases; clarsimp)
+  apply (unfold check_gather_def)
+  apply clarsimp
+  using store_ok__accept_offer_ok
+  by (smt Accept_def Invoice_def Item_def Offer_def char.inject diff_add_mset_swap fact_ctor.inject insert_iff list.inject mk_Invoice_def select_convs(1) set_mset_add_mset_insert set_mset_empty singletonD subset_mset.add_diff_inverse)
+
+lemma store_ok__broker_reserve__ok:
+    "store_ok s
+ \<Longrightarrow> asub | s \<turnstile> broker_reserve \<Down> fread | dspent | dnew | s' FIRE
+ \<Longrightarrow> store_ok s'"
+  unfolding broker_reserve_def
+    item_v_def accept_v_def bid_v_def offer_v_def budget_v_def reserve_v_def order_v_def
+    match_any_def match_any_when_def match_first_when_def
+  apply (elim EvFire.cases EvExec.cases; clarsimp)
+  apply (erule EvMatches.cases; clarsimp)+
+  apply (elim EvMatch.cases)
+  apply (elim EvGather.cases)
+  apply clarsimp
+  apply (elim EvGain.cases; clarsimp)
+  apply (elim EvSelect.cases; clarsimp)
+  apply (elim EvConsume.cases; clarsimp)
+  apply (unfold check_gather_def)
+  apply clarsimp
+  oops
+
+
+(*
+  unfolding store_ok_def order_ok_def budget_ok_def
+    facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def 
+    Invoice_def Bid_def Budget_def
+    store_ok_def order_ok_def
+    budget_matches_order_def
+    budgets_for_order_def facts_of_type_def
+    Budget_def Order_def Offer_def Item_def Accept_def
+    mk_Invoice_def
+  apply (simp only: Multiset.set_mset_filter
+                    Multiset.sup_union_left1
+                    Multiset.filter_mset_add_mset
+                    Multiset.set_mset_sup
+                    Set.mem_Collect_eq
+                    Multiset.filter_sup_mset
+                    HOL.conj_assoc
+                    fact.simps
+                    fact_ctor.inject list.inject char.inject HOL.simp_thms if_False if_True)
+  apply simp
+  apply (simp add: Invoice_amount_def Invoice_buyer_def Invoice_broker_def mk_InvoicePayload_def)
+  apply (intro allI conjI impI)
+   apply clarsimp
+   apply (elim allE conjE impE)
+     apply blast
+    apply blast
+   apply (simp add: add.assoc add.left_commute)
+  apply clarsimp
+  apply (erule allE)
+  apply (case_tac "Offer_buyer fd = Budget_buyer b"; clarsimp)
+  apply (elim allE conjE impE)
+       apply blast
+      apply blast
+   apply simp
+  apply (elim allE conjE impE)
+    apply blast
+   apply blast
+  apply simp
+  done
+
+*)
+end
