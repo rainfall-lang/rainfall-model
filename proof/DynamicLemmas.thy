@@ -115,7 +115,8 @@ proof (induct rule: EvMatches.induct)
   case (EvMatchCons n a s h m f w ag h' ms fs ds ag' h'' fs' ds' ag'')
   then show ?case
     apply (elim_Ev; elim EvSelect.cases)
-    using check_gather_def find_firsts_def by auto
+    apply (metis check_gather_def count_filter_mset not_in_iff)
+    by (metis (no_types, lifting) check_gather_def find_firsts_in_store mem_Collect_eq set_mset_filter)
 qed auto
 
 lemma spend_only_accessible:
@@ -187,10 +188,10 @@ lemma new_auth_gained_from_spent:
 
 
 
-fun matches_only_any :: "match list \<Rightarrow> bool" where
+fun matches_only_any :: "'f match list \<Rightarrow> bool" where
 "matches_only_any matches = list_all (\<lambda>m. case m of match x gath sel con gain \<Rightarrow> sel = select_any) matches"
 
-fun rule_only_any :: "rule \<Rightarrow> bool" where
+fun rule_only_any :: "'f rule \<Rightarrow> bool" where
 "rule_only_any (rule _ matches _) = matches_only_any matches"
 
 (* More permissions never stops a program from running *)

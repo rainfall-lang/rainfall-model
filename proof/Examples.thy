@@ -9,50 +9,47 @@ section \<open>Coin transfer rule\<close>
 
 definition "transfer_rn = rule_name ''transfer''"
 
-(* Accept facts: constructor and accessor functions *)
-(* Put everything in the simpset using [simp], because we don't want to have to manually unfold it later *)
-definition mk_AcceptPayload where [simp]:
-  "mk_AcceptPayload oid accepter = vpair (vlit (lnat oid)) (vlit (lparty accepter))"
+(* Fact type payloads *)
+record AcceptPayload =
+  Accept_oid      :: nat
+  Accept_accepter :: party
 
-fun tk_AcceptPayload where
-  "tk_AcceptPayload (vpair (vlit (lnat oid)) (vlit (lparty accepter))) = (oid, accepter)"
-| "tk_AcceptPayload _ = undefined"
+record OfferPayload =
+  Offer_oid       :: nat
+  Offer_terms     :: symbol
+  Offer_giver     :: party
+  Offer_receiver  :: party
 
-definition [simp]: "Accept_oid      = fst o tk_AcceptPayload o fact_value"
-definition [simp]: "Accept_accepter = snd o tk_AcceptPayload o fact_value"
+record CoinPayload =
+  Coin_issuer     :: party
+  Coin_holder     :: party
+
+declare AcceptPayload.make_def[simp]
+declare OfferPayload.make_def[simp]
+declare CoinPayload.make_def[simp]
+
+datatype FactValue =
+  AcceptV AcceptPayload | OfferV OfferPayload | CoinV CoinPayload
+
+fun tk_AcceptV where
+  "tk_AcceptV (AcceptV a) = a"
+| "tk_AcceptV _           = undefined"
+fun tk_OfferV where
+  "tk_OfferV (OfferV a) = a"
+| "tk_OfferV _          = undefined"
+fun tk_CoinV where
+  "tk_CoinV (CoinV a) = a"
+| "tk_CoinV _         = undefined"
+
 
 definition [simp]: "Accept = fact_ctor ''Accept''"
-definition [simp]: "mk_Accept oid accepter by obs = \<lparr>fact_name = Accept, fact_value = mk_AcceptPayload oid accepter, fact_by = by, fact_obs = obs, fact_rules = {transfer_rn}\<rparr>"
-
-(* Offer facts *)
-definition mk_OfferPayload where [simp]:
-  "mk_OfferPayload oid terms giver receiver = vpair (vlit (lnat oid)) (vpair (vlit (lsymbol terms)) (vpair (vlit (lparty giver)) (vlit (lparty receiver))))"
-
-fun tk_OfferPayload where
-  "tk_OfferPayload (vpair (vlit (lnat oid)) (vpair (vlit (lsymbol terms)) (vpair (vlit (lparty giver)) (vlit (lparty receiver))))) = (oid, terms, giver, receiver)"
-| "tk_OfferPayload _ = undefined"
-
-definition [simp]: "Offer_oid      =             fst o tk_OfferPayload o fact_value"
-definition [simp]: "Offer_terms    =       fst o snd o tk_OfferPayload o fact_value"
-definition [simp]: "Offer_giver    = fst o snd o snd o tk_OfferPayload o fact_value"
-definition [simp]: "Offer_receiver = snd o snd o snd o tk_OfferPayload o fact_value"
-
+definition [simp]: "mk_Accept oid accepter by obs = \<lparr>fact_name = Accept, fact_value = AcceptV (AcceptPayload.make oid accepter), fact_by = by, fact_obs = obs, fact_rules = {transfer_rn}\<rparr>"
 definition [simp]: "Offer  = fact_ctor ''Offer''"
-definition [simp]: "mk_Offer oid terms giver receiver by obs = \<lparr>fact_name = Offer, fact_value = mk_OfferPayload oid terms giver receiver, fact_by = by, fact_obs = obs, fact_rules = {transfer_rn}\<rparr>"
-
-(* Coin facts *)
-definition mk_CoinPayload where [simp]:
-  "mk_CoinPayload issuer holder = vpair (vlit (lparty issuer)) (vlit (lparty holder))"
-
-fun tk_CoinPayload where
-  "tk_CoinPayload (vpair (vlit (lparty issuer)) (vlit (lparty holder))) = (issuer, holder)"
-| "tk_CoinPayload _ = undefined"
-
-definition [simp]: "Coin_issuer = fst o tk_CoinPayload o fact_value"
-definition [simp]: "Coin_holder = snd o tk_CoinPayload o fact_value"
+definition [simp]: "mk_Offer oid terms giver receiver by obs = \<lparr>fact_name = Offer, fact_value = OfferV (OfferPayload.make oid terms giver receiver), fact_by = by, fact_obs = obs, fact_rules = {transfer_rn}\<rparr>"
 
 definition [simp]: "Coin = fact_ctor ''Coin''"
-definition [simp]: "mk_Coin issuer holder by obs = \<lparr>fact_name = Coin, fact_value = mk_CoinPayload issuer holder, fact_by = by, fact_obs = obs, fact_rules = {transfer_rn}\<rparr>"
+definition [simp]: "mk_Coin issuer holder by obs = \<lparr>fact_name = Coin, fact_value = CoinV (CoinPayload.make issuer holder), fact_by = by, fact_obs = obs, fact_rules = {transfer_rn}\<rparr>"
+
 
 (* Transfer rule *)
 definition [simp]: "accept_v = fact_var ''accept''"
@@ -65,32 +62,32 @@ definition [simp]:
     (gather_when Accept (\<lambda>h. True))
     select_any
     (consume_weight (\<lambda>h. 1))
-    (gain_auth (\<lambda>h. {Accept_accepter (h accept_v)}))"
+    (gain_auth (\<lambda>h. {Accept_accepter (tk_AcceptV (fact_value (h accept_v)))}))"
 
 definition [simp]:
   "match_Offer = match
     offer_v
     (gather_when Offer
-      (\<lambda>h. Accept_oid     (h accept_v) = Offer_oid      (h offer_v)
-        \<and> Accept_accepter (h accept_v) = Offer_receiver (h offer_v)))
+      (\<lambda>h. Accept_oid     (tk_AcceptV (fact_value (h accept_v))) = Offer_oid      (tk_OfferV (fact_value (h offer_v)))
+        \<and> Accept_accepter (tk_AcceptV (fact_value (h accept_v))) = Offer_receiver (tk_OfferV (fact_value (h offer_v)))))
     select_any
     (consume_weight (\<lambda>h. 1))
-    (gain_auth (\<lambda>h. {Offer_giver (h offer_v)}))"
+    (gain_auth (\<lambda>h. {Offer_giver (tk_OfferV (fact_value (h offer_v)))}))"
 
 definition [simp]:
   "match_Coin = match
     coin_v
-    (gather_when Coin (\<lambda>h. Coin_holder (h coin_v) = Offer_giver (h offer_v)))
+    (gather_when Coin (\<lambda>h. Coin_holder (tk_CoinV (fact_value (h coin_v))) = Offer_giver (tk_OfferV (fact_value (h offer_v)))))
     select_any
     (consume_weight (\<lambda>h. 1))
-    (gain_auth (\<lambda>h. {Coin_issuer (h coin_v)}))"
+    (gain_auth (\<lambda>h. {Coin_issuer (tk_CoinV (fact_value (h coin_v)))}))"
 
 definition [simp]:
   "transfer_Say =
     (\<lambda>h. {# mk_Coin
-              (Coin_issuer    (h coin_v))
-              (Offer_receiver (h offer_v))
-              {Coin_issuer    (h coin_v), Offer_receiver (h offer_v)}
+              (Coin_issuer    (tk_CoinV (fact_value (h coin_v))))
+              (Offer_receiver (tk_OfferV (fact_value (h offer_v))))
+              {Coin_issuer    (tk_CoinV (fact_value (h coin_v))), Offer_receiver (tk_OfferV (fact_value (h offer_v)))}
               (fact_obs (h coin_v))
          #})"
 
@@ -141,20 +138,17 @@ lemma "{Alice} | store0 \<turnstile> transfer \<Down> store0 | store0 | store1 |
 section \<open>Test find_firsts\<close>
 (* A small test to make sure the 'minimum' in find_firsts works as expected *)
 
-definition mk_vfact :: "string \<Rightarrow> val \<Rightarrow> fact" where
+definition mk_vfact :: "string \<Rightarrow> nat \<Rightarrow> nat fact" where
   "mk_vfact nm v = \<lparr>fact_name=fact_ctor ''fact'', fact_value = v, fact_by = {party nm}, fact_obs = {}, fact_rules = {}\<rparr>"
 
-definition vnat :: "nat \<Rightarrow> val" where
-  "vnat i = vlit (lnat i)"
-
 definition facts where
-  "facts = {# mk_vfact ''alice'' (vnat 0), mk_vfact ''bob'' (vnat 1), mk_vfact ''charlie'' (vnat 0)#}"
+  "facts = {# mk_vfact ''alice'' 0, mk_vfact ''bob'' 1, mk_vfact ''charlie'' 0#}"
 
 definition get_fact_score where
-  "get_fact_score = (\<lambda>s. case fact_value (s (fact_var ''x'')) of vlit (lnat i) \<Rightarrow> i)"
+  "get_fact_score = (\<lambda>s. fact_value (s (fact_var ''x'')))"
 
 lemma "find_firsts facts (\<lambda>_. undefined) (fact_var ''x'') get_fact_score
-    = {# mk_vfact ''alice'' (vnat 0), mk_vfact ''charlie'' (vnat 0) #}"
+    = {# mk_vfact ''alice'' 0, mk_vfact ''charlie'' 0 #}"
   by eval
 
 end

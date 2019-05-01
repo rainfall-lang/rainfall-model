@@ -5,17 +5,17 @@ theory Dynamic
 begin
 
 (* Check if authority has enough permissions to see the fact *)
-definition can_see_fact :: "auth \<Rightarrow> fact \<Rightarrow> bool" where
+definition can_see_fact :: "auth \<Rightarrow> 'f fact \<Rightarrow> bool" where
 "can_see_fact a f \<equiv> {} \<noteq> (a \<inter> (fact_by f \<union> fact_obs f))"
 
 (* Predicate for gathering facts, as in set comprehension in EvGather rule in paper *)
-definition check_gather :: "auth \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rightarrow> fact_ctor \<Rightarrow> bool exp \<Rightarrow> fact \<Rightarrow> bool" where
+definition check_gather :: "auth \<Rightarrow> 'f fact_env \<Rightarrow> fact_var \<Rightarrow> fact_ctor \<Rightarrow> ('f,bool) exp \<Rightarrow> 'f fact \<Rightarrow> bool" where
 "check_gather Asub h v ctor pred f =
   (fact_name f = ctor \<and>
   can_see_fact Asub f \<and>
   pred (h(v := f)))"
 
-inductive EvGather :: "auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rightarrow> gather \<Rightarrow> store \<Rightarrow> bool"
+inductive EvGather :: "auth \<Rightarrow> 'f store \<Rightarrow> 'f fact_env \<Rightarrow> fact_var \<Rightarrow> 'f gather \<Rightarrow> 'f store \<Rightarrow> bool"
     ("_ | _ | _ | _ \<turnstile> _ \<Down> _ GATHER" [900,900,900,900,900,900] 1000) where
 (* For the notation, require parentheses for almost anything other than function application.
    This should hopefully keep the grammar unambiguous. *)
@@ -24,21 +24,21 @@ inductive EvGather :: "auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightar
 
 
 (* Get all the facts with a minimum value according to some scoring function *)
-definition find_firsts :: "store \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rightarrow> nat exp \<Rightarrow> store" where
+definition find_firsts :: "'f store \<Rightarrow> 'f fact_env \<Rightarrow> fact_var \<Rightarrow> ('f,nat) exp \<Rightarrow> 'f store" where
 "find_firsts fs env v x = (
        let score = (\<lambda>f. x (env (v := f)))
     in let v' = Min (score ` set_mset fs)
     in filter_mset (\<lambda>f. score f = v') fs)"
 
 (* Dynamic semantics for select *)
-inductive EvSelect :: "store \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rightarrow> select \<Rightarrow> fact \<Rightarrow> bool"
+inductive EvSelect :: "'f store \<Rightarrow> 'f fact_env \<Rightarrow> fact_var \<Rightarrow> 'f select \<Rightarrow> 'f fact \<Rightarrow> bool"
     ("_ | _ | _ \<turnstile> _ \<Down> _ SELECT" [900,900,900,900,900] 1000) where
   EvAny: "f \<in># fs \<Longrightarrow>
      fs | _ | _ \<turnstile> select_any \<Down> f SELECT"
 | EvFirst: "f \<in># find_firsts fs h v e \<Longrightarrow>
      fs | h | v \<turnstile> select_first e \<Down> f SELECT"
 
-inductive EvConsume :: "rule_name \<Rightarrow> fact \<Rightarrow> fact_env \<Rightarrow> consume \<Rightarrow> nat \<Rightarrow> bool"
+inductive EvConsume :: "rule_name \<Rightarrow> 'f fact \<Rightarrow> 'f fact_env \<Rightarrow> 'f consume \<Rightarrow> nat \<Rightarrow> bool"
     ("_ | _ | _ \<turnstile> _ \<Down> _ CONSUME" [900,900,900,900,900] 1000) where
   EvConsumeNone:
    "w h = 0 \<Longrightarrow>
@@ -50,7 +50,7 @@ inductive EvConsume :: "rule_name \<Rightarrow> fact \<Rightarrow> fact_env \<Ri
     n | f | h \<turnstile> consume_weight w \<Down> w_need CONSUME"
 
 
-inductive EvGain :: "rule_name \<Rightarrow> fact \<Rightarrow> fact_env \<Rightarrow> gain \<Rightarrow> auth \<Rightarrow> bool"
+inductive EvGain :: "rule_name \<Rightarrow> 'f fact \<Rightarrow> 'f fact_env \<Rightarrow> 'f gain \<Rightarrow> auth \<Rightarrow> bool"
     ("_ | _ | _ \<turnstile> _ \<Down> _ GAIN" [900,900,900,900,900] 1000) where
   EvGainNone:
   "t h = {} \<Longrightarrow>
@@ -61,13 +61,13 @@ inductive EvGain :: "rule_name \<Rightarrow> fact \<Rightarrow> fact_env \<Right
    n \<in> fact_rules f \<Longrightarrow>
    n | f | h \<turnstile> gain_auth t \<Down> a GAIN"
 
-inductive EvExec :: "fact_env \<Rightarrow> store exp \<Rightarrow> store \<Rightarrow> bool"
+inductive EvExec :: "'f fact_env \<Rightarrow> ('f, 'f store) exp \<Rightarrow> 'f store \<Rightarrow> bool"
     ("_ \<turnstile> _ \<Down> _ EXEC" [900,900,900] 1000) where
   EvExec: "t h = s' \<Longrightarrow>
    h \<turnstile> t \<Down> s' EXEC"
 
 
-inductive EvMatch :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> match \<Rightarrow> factoid \<Rightarrow> auth \<Rightarrow> fact_env \<Rightarrow> bool"
+inductive EvMatch :: "rule_name \<Rightarrow> auth \<Rightarrow> 'f store \<Rightarrow> 'f fact_env \<Rightarrow> 'f match \<Rightarrow> 'f factoid \<Rightarrow> auth \<Rightarrow> 'f fact_env \<Rightarrow> bool"
     ("_ | _ | _ | _ \<turnstile> _ \<Down> _ | _ | _ MATCH" [900,900,900,900,900,900,900,900] 1000) where
   EvMatch: "
        asub | s | h | x  \<turnstile> gather \<Down> fs     GATHER  \<Longrightarrow>
@@ -81,7 +81,7 @@ inductive EvMatch :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightar
   In the paper fread is a set, but we use a multiset here because reasoning about converting sets
   to multisets requires lots of little conversion lemmas that aren't in the standard library.
 *)
-inductive EvMatches :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Rightarrow> fact_env \<Rightarrow> match list \<Rightarrow> store \<Rightarrow> store \<Rightarrow> auth \<Rightarrow> fact_env \<Rightarrow> bool"
+inductive EvMatches :: "rule_name \<Rightarrow> auth \<Rightarrow> 'f store \<Rightarrow> 'f fact_env \<Rightarrow> 'f match list \<Rightarrow> 'f store \<Rightarrow> 'f store \<Rightarrow> auth \<Rightarrow> 'f fact_env \<Rightarrow> bool"
     ("_ | _ | _ | _ \<turnstile> _ \<Down> _ | _ | _ | _ MATCHES" [900,900,900,900,900,900,900,900,900] 1000) where
   EvMatchNil:
     "n | a | s | h \<turnstile> [] \<Down> {#} | {#} | {} | h MATCHES"
@@ -93,7 +93,7 @@ inductive EvMatches :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Right
     ag'' = ag \<union> ag'                                          \<Longrightarrow>
     n | a | s | h  \<turnstile> (m # ms) \<Down> fs' | ds' | ag'' |  h'' MATCHES"
 
-inductive EvFire :: "auth \<Rightarrow> store \<Rightarrow> rule \<Rightarrow> store \<Rightarrow> store \<Rightarrow> store \<Rightarrow> store \<Rightarrow> bool"
+inductive EvFire :: "auth \<Rightarrow> 'f store \<Rightarrow> 'f rule \<Rightarrow> 'f store \<Rightarrow> 'f store \<Rightarrow> 'f store \<Rightarrow> 'f store \<Rightarrow> bool"
     ("_ | _ \<turnstile> _ \<Down> _ | _ | _ | _ FIRE" [900,900,900,900,900,900,900] 1000) where
   EvFire: "
     rn | asub | s | (\<lambda>_. undefined) \<turnstile> matches \<Down> fread | dspent | ahas | h' MATCHES \<Longrightarrow>

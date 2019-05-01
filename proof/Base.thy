@@ -10,33 +10,19 @@ type_synonym auth   = "party set"
 datatype symbol     = symbol string
 datatype rule_name  = rule_name string
 
-(* Literals and values that can be stored in a fact *)
-datatype lit =
-    lnat nat
-  | lbool bool
-  | lunit
-  | lparty party
-  | lauth auth
-  | lsymbol symbol
-  | lrule rule_name
-
-datatype field_name = field_name string
-datatype val =
-    vlit lit
-  | vrecord "(field_name \<times> val) list"
-  | vlist "val list"
-  | vpair val val
-
-(* Facts *)
+(* Facts are parameterised by the value type *)
 datatype fact_ctor = fact_ctor string
-record fact =
+record 'a fact =
   fact_name  :: fact_ctor
-  fact_value :: val
+  fact_value :: 'a
   fact_by    :: auth
   fact_obs   :: auth
   fact_rules :: "rule_name set"
 
-type_synonym store = "fact multiset"
-type_synonym factoid = "fact \<times> nat"
+(* All facts in the same store have the same value type.
+   For a fully shallow embedding, it might be convenient to have a separate store for each different fact type.
+   Then each different fact ctor could have a different type of values *)
+type_synonym 'a store = "'a fact multiset"
+type_synonym 'a factoid = "'a fact \<times> nat"
 
 end
