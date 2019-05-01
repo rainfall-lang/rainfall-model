@@ -136,6 +136,19 @@ definition "Budget_remain = snd o snd o snd o tk_BudgetPayload o fact_value"
 definition "Budget = fact_ctor ''Budget''"
 definition "mk_Budget broker buyer budget remain by obs = \<lparr>fact_name = Budget, fact_value = mk_BudgetPayload broker buyer budget remain, fact_by = by, fact_obs = obs, fact_rules = broker_rules\<rparr>"
 
+lemmas payload_defs =
+  mk_AcceptPayload_def Accept_lot_def Accept_broker_def Accept_ask_def mk_Accept_def
+  mk_ItemPayload_def Item_lot_def Item_desc_def Item_ask_def mk_Item_def
+  mk_InvoicePayload_def Invoice_broker_def Invoice_buyer_def Invoice_desc_def Invoice_amount_def mk_Invoice_def
+  mk_BidPayload_def Bid_lot_def Bid_broker_def Bid_buyer_def Bid_price_def mk_Bid_def
+  mk_OfferPayload_def tk_OfferPayload_def Offer_lot_def Offer_broker_def Offer_buyer_def Offer_price_def mk_Offer_def
+  mk_OrderPayload_def Order_broker_def Order_buyer_def Order_desc_def Order_limit_def Order_budget_def mk_Order_def
+  mk_ReservePayload_def Reserve_broker_def Reserve_buyer_def Reserve_lot_def Reserve_amount_def mk_Reserve_def
+  mk_BudgetPayload_def Budget_broker_def Budget_buyer_def Budget_budget_def Budget_remain_def mk_Budget_def
+
+lemmas fact_ctor_defs =
+  Accept_def Item_def Invoice_def Bid_def Offer_def Order_def Reserve_def Budget_def
+
 (* Fact variables *)
 definition "accept_v  = fact_var ''accept''"
 definition "item_v    = fact_var ''item''"
@@ -144,6 +157,9 @@ definition "offer_v   = fact_var ''offer''"
 definition "order_v   = fact_var ''order''"
 definition "reserve_v = fact_var ''reserve''"
 definition "budget_v  = fact_var ''budget''"
+
+lemmas fact_var_defs =
+  accept_v_def item_v_def bid_v_def offer_v_def order_v_def reserve_v_def budget_v_def
 
 
 section \<open>Auction bid rule\<close>
@@ -219,6 +235,9 @@ definition
           {party ''Mark''}
   #})"
 
+lemmas rule_defs =
+  match_any_when_def match_any_def match_first_when_def
+  auction_bid_def auction_accept_def broker_reserve_def
 
 section \<open>Invariants\<close>
 
@@ -263,10 +282,16 @@ definition store_ok :: "store \<Rightarrow> bool" where
 "store_ok s = 
   (\<forall> order \<in># facts_of_type Order s. order_ok s order)"
 
+lemmas invariant_helper_defs =
+  facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def
+  budget_matches_order_def budgets_for_order_def
+
+lemmas invariant_defs =
+  invariant_helper_defs budget_ok_def order_ok_def store_ok_def
 
 (* Empty store is ok *)
 lemma empty_store_ok: "store_ok {#}"
-  by (simp add: facts_of_type_def store_ok_def)
+  by (simp add: invariant_defs)
 
 (* Adding a new fact doesn't affect budgets *)
 lemma budget_ok__add_irrelevant_fact:
@@ -275,10 +300,7 @@ lemma budget_ok__add_irrelevant_fact:
  \<Longrightarrow> fact_name f \<noteq> Bid
  \<Longrightarrow> fact_name f \<noteq> Offer
  \<Longrightarrow> budget_ok ({#f#} \<union># s) b"
-  unfolding
-    store_ok_def order_ok_def budget_ok_def
-    facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def budgets_for_order_def
-    Invoice_def Bid_def Budget_def Order_def Offer_def
+  unfolding invariant_defs
   by simp
 
 lemma order_ok__add_irrelevant_fact:
@@ -288,10 +310,7 @@ lemma order_ok__add_irrelevant_fact:
  \<Longrightarrow> fact_name f \<noteq> Budget
  \<Longrightarrow> fact_name f \<noteq> Offer
  \<Longrightarrow> order_ok ({#f#} \<union># s) or"
-  unfolding
-    store_ok_def order_ok_def budget_ok_def
-    facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def budgets_for_order_def
-    Invoice_def Bid_def Budget_def Order_def Offer_def
+  unfolding invariant_defs
   by auto
 
 lemma store_ok__add_irrelevant_fact:
@@ -302,10 +321,7 @@ lemma store_ok__add_irrelevant_fact:
  \<Longrightarrow> fact_name f \<noteq> Order
  \<Longrightarrow> fact_name f \<noteq> Offer
  \<Longrightarrow> store_ok ({#f#} \<union># s)"
-  unfolding
-    store_ok_def order_ok_def budget_ok_def
-    facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def budgets_for_order_def
-    Invoice_def Bid_def Budget_def Order_def Offer_def
+  unfolding invariant_defs
   by force
 
 (* The customer can add a new order that doesn't conflict with existing order *)
@@ -314,14 +330,10 @@ lemma store_ok__add_order:
  \<Longrightarrow> fact_name or = Order
  \<Longrightarrow> budgets_for_order s or = {#}
  \<Longrightarrow> store_ok ({#or#} \<union># s)"
-  unfolding
-    store_ok_def order_ok_def
-    budgets_for_order_def facts_of_type_def
-    Budget_def Order_def
-  apply simp
-  apply (intro conjI)
-  using multi_member_split apply force
-  by (simp add: Bid_def Invoice_def Offer_def budget_ok__add_irrelevant_fact)
+  using multi_member_split
+  by (force simp add: store_ok_def order_ok_def
+      budgets_for_order_def facts_of_type_def
+      fact_ctor_defs budget_ok__add_irrelevant_fact)
 
 (* The broker can add a new budget for which there are no pre-existing bids or invoices *)
 lemma store_ok__add_budget:
@@ -333,112 +345,74 @@ lemma store_ok__add_budget:
  \<Longrightarrow> offers_for_budget s b = {#}
  \<Longrightarrow> (\<forall>or \<in># facts_of_type Order s. budget_matches_order b or \<longrightarrow> budgets_for_order s or = {#} \<and> Order_budget or = Budget_budget b)
  \<Longrightarrow> store_ok ({#b#} \<union># s)"
-  unfolding store_ok_def order_ok_def budget_ok_def
-    facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def 
-    Invoice_def Bid_def Budget_def
-    store_ok_def order_ok_def
-    budget_matches_order_def
-    budgets_for_order_def facts_of_type_def
-    Budget_def Order_def Offer_def
-  apply simp
-  apply (intro allI conjI impI)
-  by (metis (no_types, lifting))+
+  apply (simp add: invariant_defs fact_ctor_defs)
+  by (intro allI conjI; force)
 
 
 lemma budget_ok__bid_to_offer:
-"budget_ok (add_mset fb s) b \<Longrightarrow>
-       fact_name fb = Bid \<Longrightarrow>
-       fact_name fo = Offer \<Longrightarrow>
-       Offer_lot fo = Bid_lot fb \<Longrightarrow>
-       Offer_broker fo = Bid_broker fb \<Longrightarrow>
-       Offer_buyer fo = Bid_buyer fb \<Longrightarrow>
-       Offer_price fo = Bid_price fb \<Longrightarrow>
-       budget_ok
-        (add_mset
-          fo
-          s) b"
-  unfolding store_ok_def order_ok_def budget_ok_def
-    facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def 
-    Invoice_def Bid_def Budget_def
-    store_ok_def order_ok_def
-    budget_matches_order_def
-    budgets_for_order_def facts_of_type_def
-    Budget_def Order_def Offer_def
-  apply simp
+  "budget_ok (add_mset fb s) b \<Longrightarrow>
+   fact_name fb = Bid \<Longrightarrow>
+   fact_name fo = Offer \<Longrightarrow>
+   Offer_lot fo = Bid_lot fb \<Longrightarrow>
+   Offer_broker fo = Bid_broker fb \<Longrightarrow>
+   Offer_buyer fo = Bid_buyer fb \<Longrightarrow>
+   Offer_price fo = Bid_price fb \<Longrightarrow>
+   budget_ok (add_mset fo s) b"
+  apply (simp add: invariant_defs fact_ctor_defs)
   apply (intro allI conjI impI)
-   apply (elim conjE)
-   apply (smt ab_semigroup_add_class.add_ac(1) add.commute sum_mset.insert)
+   apply (simp add: ab_semigroup_add_class.add_ac(1) add.commute add.left_commute)
   by auto
 
 lemma store_ok__bid_to_offer:
-"store_ok (add_mset fb s) \<Longrightarrow>
-       fact_name fb = Bid \<Longrightarrow>
-       fact_name fo = Offer \<Longrightarrow>
-       Offer_lot fo = Bid_lot fb \<Longrightarrow>
-       Offer_broker fo = Bid_broker fb \<Longrightarrow>
-       Offer_buyer fo = Bid_buyer fb \<Longrightarrow>
-       Offer_price fo = Bid_price fb \<Longrightarrow>
-       store_ok
-        (add_mset
-          fo
-          s)"
-  unfolding store_ok_def order_ok_def
-    facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def 
-    Invoice_def Bid_def Budget_def
-    store_ok_def order_ok_def
-    budget_matches_order_def
-    budgets_for_order_def facts_of_type_def
-    Budget_def Order_def Offer_def
-  apply simp
+  "store_ok (add_mset fb s) \<Longrightarrow>
+   fact_name fb = Bid \<Longrightarrow>
+   fact_name fo = Offer \<Longrightarrow>
+   Offer_lot fo = Bid_lot fb \<Longrightarrow>
+   Offer_broker fo = Bid_broker fb \<Longrightarrow>
+   Offer_buyer fo = Bid_buyer fb \<Longrightarrow>
+   Offer_price fo = Bid_price fb \<Longrightarrow>
+   store_ok (add_mset fo s)"
+  apply (simp add: store_ok_def order_ok_def invariant_helper_defs fact_ctor_defs)
   apply (intro allI conjI impI)
   apply (elim conjE)
-  using Bid_def Offer_def budget_ok__bid_to_offer by fastforce
+  using fact_ctor_defs budget_ok__bid_to_offer by fastforce
 
 lemma store_ok__bid_to_offer__mk_Offer:
-"store_ok (add_mset fb s) \<Longrightarrow>
-       fact_name fb = Bid \<Longrightarrow>
-       store_ok
-        (add_mset
-          (mk_Offer (Bid_lot fb) (Bid_broker fb) (Bid_buyer fb) (Bid_price fb) by obs)
-          s)"
-  unfolding  
-    mk_Offer_def mk_OfferPayload_def mk_BidPayload_def
-    Offer_price_def Bid_price_def
-    Offer_buyer_def Bid_buyer_def
-    Offer_broker_def Bid_broker_def
-  apply simp
-  apply (rule store_ok__bid_to_offer; assumption?; simp?)
-  apply (simp add: Offer_lot_def Bid_lot_def)
-    apply (simp add: Offer_broker_def Bid_broker_def)
-    apply (simp add: Offer_buyer_def Bid_buyer_def)
-    apply (simp add: Offer_price_def Bid_price_def)
-  done
-
-lemma store_ok__bid_to_offer__mk_Offer_rm:
-"store_ok s \<Longrightarrow>
-       fb \<in># s \<Longrightarrow>
-       fact_name fb = Bid \<Longrightarrow>
-       store_ok
-        (add_mset
-          (mk_Offer (Bid_lot fb) (Bid_broker fb) (Bid_buyer fb) (Bid_price fb) by obs)
-          (s - {#fb#}))"
-  using store_ok__bid_to_offer__mk_Offer by fastforce
+  "store_ok (add_mset fb s) \<Longrightarrow>
+   fact_name fb = Bid \<Longrightarrow>
+   store_ok
+    (add_mset
+      (mk_Offer (Bid_lot fb) (Bid_broker fb) (Bid_buyer fb) (Bid_price fb) by obs)
+      s)"
+  by (force simp add: payload_defs intro: store_ok__bid_to_offer)
 
 lemma store_ok__auction_bid__ok:
     "store_ok s
  \<Longrightarrow> asub | s \<turnstile> auction_bid \<Down> fread | dspent | dnew | s' FIRE
  \<Longrightarrow> store_ok s'"
-  unfolding auction_bid_def
-    item_v_def accept_v_def bid_v_def
-    match_any_def match_any_when_def match_first_when_def
+  unfolding rule_defs fact_var_defs
   apply (elim EvFire.cases EvExec.cases; clarsimp)
   apply (erule EvMatches.cases; clarsimp; erule EvMatches.cases; clarsimp; erule EvMatches.cases; clarsimp)
   apply (elim EvMatch.cases)
   apply (elim EvGather.cases)
   apply (elim EvGain.cases; clarsimp; elim EvSelect.cases; clarsimp; elim EvConsume.cases; clarsimp)
-  apply (unfold check_gather_def)
-  apply clarsimp
-  using store_ok__bid_to_offer__mk_Offer_rm by fastforce
+  by (fastforce simp add: check_gather_def intro: store_ok__bid_to_offer__mk_Offer)
+
+(* TODO unused *)
+lemma budget_ok__accept_offer_ok:
+      "budget_ok ({#fe, fd, fc#} + s) b \<Longrightarrow>
+       fact_name fc = Accept \<Longrightarrow>
+       fact_name fd = Offer \<Longrightarrow>
+       fact_name fe = Item \<Longrightarrow>
+       Accept_lot fc = Item_lot fe \<Longrightarrow>
+       Offer_lot fd = Item_lot fe \<Longrightarrow>
+       Offer_broker fd = Accept_broker fc \<Longrightarrow>
+       budget_ok
+        (add_mset
+          (mk_Invoice (Accept_broker fc) (Offer_buyer fd) (Item_desc fe) (Offer_price fd) by obs)
+          s) b"
+  apply (simp add: invariant_defs fact_ctor_defs payload_defs)
+  by (intro allI conjI impI; force simp add: add.assoc add.left_commute)
 
 lemma store_ok__accept_offer_ok:
       "store_ok ({#fe, fd, fc#} + s) \<Longrightarrow>
@@ -452,25 +426,8 @@ lemma store_ok__accept_offer_ok:
         (add_mset
           (mk_Invoice (Accept_broker fc) (Offer_buyer fd) (Item_desc fe) (Offer_price fd) by obs)
           s)"
-  unfolding store_ok_def order_ok_def budget_ok_def
-    facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def 
-    Invoice_def Bid_def Budget_def
-    store_ok_def order_ok_def
-    budget_matches_order_def
-    budgets_for_order_def facts_of_type_def
-    Budget_def Order_def Offer_def Item_def Accept_def
-    mk_Invoice_def
-  apply (simp only: Multiset.set_mset_filter
-                    Multiset.sup_union_left1
-                    Multiset.filter_mset_add_mset
-                    Multiset.set_mset_sup
-                    Set.mem_Collect_eq
-                    Multiset.filter_sup_mset
-                    HOL.conj_assoc
-                    fact.simps
-                    fact_ctor.inject list.inject char.inject HOL.simp_thms if_False if_True)
-  apply simp
-  apply (simp add: Invoice_amount_def Invoice_buyer_def Invoice_broker_def mk_InvoicePayload_def)
+  (* TODO clean *)
+  apply (simp add: invariant_defs fact_ctor_defs payload_defs)
   apply (intro allI conjI impI)
    apply clarsimp
    apply (elim allE conjE impE)
@@ -479,7 +436,7 @@ lemma store_ok__accept_offer_ok:
    apply (simp add: add.assoc add.left_commute)
   apply clarsimp
   apply (erule allE)
-  apply (case_tac "Offer_buyer fd = Budget_buyer b"; clarsimp)
+  apply (case_tac "Offer_buyer fd = Budget_buyer b"; clarsimp simp add: payload_defs)
   apply (elim allE conjE impE)
        apply blast
       apply blast
