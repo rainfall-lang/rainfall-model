@@ -289,7 +289,16 @@ lemmas invariant_helper_defs =
 lemmas invariant_defs =
   invariant_helper_defs budget_ok_def order_ok_def store_ok_def
 
-(* Empty store is ok *)
+(* Method to fully eliminate evaluation of a rule *)
+method elim_EvRule =
+  elim EvFire.cases EvExec.cases; clarsimp;
+  elim EvMatches_inverts;
+  elim EvMatch.cases EvGather.cases; clarsimp;
+  elim EvGain_inverts EvSelect_inverts EvConsume_inverts; clarsimp
+
+
+section \<open>Invariant is established\<close>
+
 lemma empty_store_ok: "store_ok {#}"
   by (simp add: invariant_defs)
 
@@ -331,9 +340,8 @@ lemma store_ok__add_order:
  \<Longrightarrow> budgets_for_order s or = {#}
  \<Longrightarrow> store_ok ({#or#} \<union># s)"
   using multi_member_split
-  by (force simp add: store_ok_def order_ok_def
-      budgets_for_order_def facts_of_type_def
-      fact_ctor_defs budget_ok__add_irrelevant_fact)
+  by (force simp add: budget_ok__add_irrelevant_fact 
+        store_ok_def order_ok_def invariant_helper_defs fact_ctor_defs)
 
 (* The broker can add a new budget for which there are no pre-existing bids or invoices *)
 lemma store_ok__add_budget:
@@ -348,6 +356,7 @@ lemma store_ok__add_budget:
   apply (simp add: invariant_defs fact_ctor_defs)
   by (intro allI conjI; force)
 
+section \<open>Rule auction_bid preserves invariant\<close>
 
 lemma budget_ok__bid_to_offer:
   "budget_ok (add_mset fb s) b \<Longrightarrow>
@@ -373,8 +382,6 @@ lemma store_ok__bid_to_offer:
    Offer_price fo = Bid_price fb \<Longrightarrow>
    store_ok (add_mset fo s)"
   apply (simp add: store_ok_def order_ok_def invariant_helper_defs fact_ctor_defs)
-  apply (intro allI conjI impI)
-  apply (elim conjE)
   using fact_ctor_defs budget_ok__bid_to_offer by fastforce
 
 lemma store_ok__bid_to_offer__mk_Offer:
@@ -391,14 +398,12 @@ lemma store_ok__auction_bid__ok:
  \<Longrightarrow> asub | s \<turnstile> auction_bid \<Down> fread | dspent | dnew | s' FIRE
  \<Longrightarrow> store_ok s'"
   unfolding rule_defs fact_var_defs
-  apply (elim EvFire.cases EvExec.cases; clarsimp)
-  apply (erule EvMatches.cases; clarsimp; erule EvMatches.cases; clarsimp; erule EvMatches.cases; clarsimp)
-  apply (elim EvMatch.cases)
-  apply (elim EvGather.cases)
-  apply (elim EvGain.cases; clarsimp; elim EvSelect.cases; clarsimp; elim EvConsume.cases; clarsimp)
+  apply (elim_EvRule)
   by (fastforce simp add: check_gather_def intro: store_ok__bid_to_offer__mk_Offer)
 
-(* TODO unused *)
+
+section \<open>Rule auction_accept preserves invariant\<close>
+
 lemma budget_ok__accept_offer_ok:
       "budget_ok ({#fe, fd, fc#} + s) b \<Longrightarrow>
        fact_name fc = Accept \<Longrightarrow>
@@ -424,159 +429,131 @@ lemma store_ok__accept_offer_ok:
        Offer_broker fd = Accept_broker fc \<Longrightarrow>
        store_ok
         (add_mset
-          (mk_Invoice (Accept_broker fc) (Offer_buyer fd) (Item_desc fe) (Offer_price fd) by obs)
+          (mk_Invoice (Offer_broker fd) (Offer_buyer fd) (Item_desc fe) (Offer_price fd) by obs)
           s)"
-  (* TODO clean *)
-  apply (simp add: invariant_defs fact_ctor_defs payload_defs)
-  apply (intro allI conjI impI)
-   apply clarsimp
-   apply (elim allE conjE impE)
-     apply blast
-    apply blast
-   apply (simp add: add.assoc add.left_commute)
-  apply clarsimp
-  apply (erule allE)
-  apply (case_tac "Offer_buyer fd = Budget_buyer b"; clarsimp simp add: payload_defs)
-  apply (elim allE conjE impE)
-       apply blast
-      apply blast
-   apply simp
-  apply (elim allE conjE impE)
-    apply blast
-   apply blast
-  apply simp
-  done
+  apply (simp add: invariant_helper_defs store_ok_def order_ok_def fact_ctor_defs payload_defs)
+  using budget_ok__accept_offer_ok unfolding payload_defs fact_ctor_defs
+  by force
 
 lemma store_ok__auction_accept__ok:
     "store_ok s
  \<Longrightarrow> asub | s \<turnstile> auction_accept \<Down> fread | dspent | dnew | s' FIRE
  \<Longrightarrow> store_ok s'"
-  unfolding auction_accept_def
-    item_v_def accept_v_def bid_v_def offer_v_def
-    match_any_def match_any_when_def match_first_when_def
-  apply (elim EvFire.cases EvExec.cases; clarsimp)
-  apply (erule EvMatches.cases; clarsimp)+
-  apply (elim EvMatch.cases)
-  apply (elim EvGather.cases)
-  apply clarsimp
-  apply (elim EvGain.cases; clarsimp)
-  apply (elim EvSelect.cases; clarsimp)
-  apply (elim EvConsume.cases; clarsimp)
-  apply (unfold check_gather_def)
-  apply clarsimp
-  using store_ok__accept_offer_ok
-  by (smt Accept_def Invoice_def Item_def Offer_def char.inject diff_add_mset_swap fact_ctor.inject insert_iff list.inject mk_Invoice_def select_convs(1) set_mset_add_mset_insert set_mset_empty singletonD subset_mset.add_diff_inverse)
+  unfolding rule_defs fact_var_defs
+  apply elim_EvRule (* This elimination step is quite slow (30s) *)
+  apply (simp add: check_gather_def)
+  apply (rule_tac
+        t="add_mset (mk_Invoice (Accept_broker fc) (Offer_buyer fd) (Item_desc fe) (Offer_price fd)
+            {Offer_buyer fd, Accept_broker fc, party ''Mark''} {}) s - {#fe, fd, fc#}"
+    and s="add_mset (mk_Invoice (Accept_broker fc) (Offer_buyer fd) (Item_desc fe) (Offer_price fd)
+            {Offer_buyer fd, Accept_broker fc, party ''Mark''} {}) (s - {#fe, fd, fc#})" in subst)
+   apply (metis add_mset_add_single subset_mset.add_diff_assoc2)
+  by (metis store_ok__accept_offer_ok subset_mset.add_diff_inverse)
 
 
+section \<open>Rule broker_reserve preserves invariant\<close>
+
+lemma order_ok__add_bid_budget_ok:
+  "order_ok ({#fc, fb#} + s) order \<Longrightarrow>
+   fa \<in># s \<Longrightarrow>
+   f \<in># s \<Longrightarrow>
+   fact_name fa = Item \<Longrightarrow>
+   Item_desc fa = Order_desc f \<Longrightarrow>
+   fact_name f = Order \<Longrightarrow>
+   fact_name fb = Reserve \<Longrightarrow>
+   fact_name fc = Budget \<Longrightarrow>
+   Reserve_broker fb = Budget_broker fc \<Longrightarrow>
+   Order_broker f = Budget_broker fc \<Longrightarrow>
+   Reserve_buyer fb = Budget_buyer fc \<Longrightarrow>
+   Order_buyer f = Budget_buyer fc \<Longrightarrow>
+   Reserve_amount fb \<le> Budget_remain fc \<Longrightarrow>
+   Reserve_lot fb = Item_lot fa \<Longrightarrow>
+   Reserve_amount fb \<le> Order_limit f \<Longrightarrow>
+   order_ok
+    (add_mset
+      (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
+        buby buobs)
+      (add_mset
+        (mk_Bid (Item_lot fa) (Budget_broker fc) (Budget_buyer fc) (Reserve_amount fb)
+          biby biobs)
+        s)) order"
+  apply (case_tac "Order_buyer order = Budget_buyer fc")
+   apply (simp add: invariant_defs fact_ctor_defs payload_defs Set.Ball_def)
+   apply (intro impI conjI allI; simp)
+     apply (simp add: HOL.Let_def)
+     apply (intro conjI; auto)
+    (* TODO: rewrite without smt *)
+    apply (smt Budget_def empty_not_add_mset filter_diff_mset filter_empty_mset filter_mset_add_mset multi_member_split)
+   apply force
+  by (force simp add: invariant_defs fact_ctor_defs payload_defs)
 
 lemma store_ok__add_bid_budget_ok:
-"store_ok ({#fc, fb#} + s) \<Longrightarrow>
-       fa \<in># s \<Longrightarrow>
-       f \<in># s \<Longrightarrow>
-       fact_name fa = Item \<Longrightarrow>
-       Item_desc fa = Order_desc f \<Longrightarrow>
-       fact_name f = Order \<Longrightarrow>
-       fact_name fb = Reserve \<Longrightarrow>
-       fact_name fc = Budget \<Longrightarrow>
-       Reserve_broker fb = Budget_broker fc \<Longrightarrow>
-       Order_broker f = Budget_broker fc \<Longrightarrow>
-       Reserve_buyer fb = Budget_buyer fc \<Longrightarrow>
-       Order_buyer f = Budget_buyer fc \<Longrightarrow>
-       Reserve_amount fb \<le> Budget_remain fc \<Longrightarrow>
-       Reserve_lot fb = Item_lot fa \<Longrightarrow>
-       Reserve_amount fb \<le> Order_limit f \<Longrightarrow>
-       store_ok
-        (add_mset
-          (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
-            buby buobs)
-          (add_mset
-            (mk_Bid (Item_lot fa) (Budget_broker fc) (Budget_buyer fc) (Reserve_amount fb)
-              biby biobs)
-            s))"
-  unfolding store_ok_def order_ok_def budget_ok_def
-    facts_of_type_def bids_for_budget_def invoices_for_budget_def offers_for_budget_def 
-    Invoice_def Bid_def Budget_def
-    store_ok_def order_ok_def
-    budget_matches_order_def
-    budgets_for_order_def facts_of_type_def
-    Budget_def Order_def Offer_def Item_def Accept_def Reserve_def
-    mk_Bid_def mk_BidPayload_def mk_Budget_def mk_BudgetPayload_def
-  apply (simp only: Multiset.set_mset_filter
-                    Multiset.sup_union_left1
-                    Multiset.filter_mset_add_mset
-                    Multiset.set_mset_sup
-                    Set.mem_Collect_eq
-                    Multiset.filter_sup_mset
-                    HOL.conj_assoc
-                    fact.simps
-                    fact_ctor.inject list.inject char.inject HOL.simp_thms if_False if_True
-                    Set.ball_simps)
-  apply simp
-  apply (simp add: Bid_buyer_def Budget_buyer_def Bid_broker_def Budget_broker_def
-      Bid_price_def Budget_budget_def Budget_remain_def
-      Invoice_amount_def Invoice_buyer_def Invoice_broker_def mk_InvoicePayload_def)
-  apply (intro allI impI)
-  apply (intro allI conjI impI)
-   apply (elim allE conjE impE)
-     apply blast
-        apply blast
-  apply (simp add: Bid_buyer_def Budget_buyer_def Bid_broker_def Budget_broker_def
-      Bid_price_def Budget_budget_def Budget_remain_def
-      Invoice_amount_def Invoice_buyer_def Invoice_broker_def mk_InvoicePayload_def)
-
-
-   apply (elim allE conjE impE; blast?)
-  apply (smt Nat.le_diff_conv2 ab_semigroup_add_class.add_ac(1) diff_cancel2 le_add_diff_inverse2)
-
-     apply (elim allE conjE impE; blast?)
-  apply (simp add: Bid_buyer_def Budget_buyer_def Bid_broker_def Budget_broker_def
-      Bid_price_def Budget_budget_def Budget_remain_def
-      Invoice_amount_def Invoice_buyer_def Invoice_broker_def mk_InvoicePayload_def)
-  using multi_member_split apply force
-
-     apply (erule_tac x="order" in allE)
-    apply (case_tac "Order_buyer order = fst (snd (tk_BudgetPayload (fact_value fc)))"; clarsimp)
-     apply (simp add: Bid_buyer_def Budget_buyer_def Bid_broker_def Budget_broker_def Bid_price_def Budget_budget_def Budget_remain_def)
-     apply (simp add: Bid_buyer_def Budget_buyer_def Bid_broker_def Budget_broker_def Bid_price_def Budget_budget_def Budget_remain_def)
-
-   apply (elim allE conjE impE; blast?; simp)
-    apply simp
-  by blast
-
+  "store_ok ({#fc, fb#} + s) \<Longrightarrow>
+   fa \<in># s \<Longrightarrow>
+   f \<in># s \<Longrightarrow>
+   fact_name fa = Item \<Longrightarrow>
+   Item_desc fa = Order_desc f \<Longrightarrow>
+   fact_name f = Order \<Longrightarrow>
+   fact_name fb = Reserve \<Longrightarrow>
+   fact_name fc = Budget \<Longrightarrow>
+   Reserve_broker fb = Budget_broker fc \<Longrightarrow>
+   Order_broker f = Budget_broker fc \<Longrightarrow>
+   Reserve_buyer fb = Budget_buyer fc \<Longrightarrow>
+   Order_buyer f = Budget_buyer fc \<Longrightarrow>
+   Reserve_amount fb \<le> Budget_remain fc \<Longrightarrow>
+   Reserve_lot fb = Item_lot fa \<Longrightarrow>
+   Reserve_amount fb \<le> Order_limit f \<Longrightarrow>
+   store_ok
+    (add_mset
+      (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
+        buby buobs)
+      (add_mset
+        (mk_Bid (Item_lot fa) (Budget_broker fc) (Budget_buyer fc) (Reserve_amount fb)
+          biby biobs)
+        s))"
+  apply (simp add: store_ok_def invariant_helper_defs fact_ctor_defs payload_defs)
+  using order_ok__add_bid_budget_ok unfolding fact_ctor_defs payload_defs
+  by auto
 
 lemma store_ok__broker_reserve__ok:
     "store_ok s
  \<Longrightarrow> asub | s \<turnstile> broker_reserve \<Down> fread | dspent | dnew | s' FIRE
  \<Longrightarrow> store_ok s'"
-  unfolding broker_reserve_def
-    item_v_def accept_v_def bid_v_def offer_v_def budget_v_def reserve_v_def order_v_def
-    match_any_def match_any_when_def match_first_when_def
+  unfolding rule_defs fact_var_defs
   apply (elim EvFire.cases EvExec.cases; clarsimp)
-  apply (erule EvMatches.cases; clarsimp)+
+  apply (elim EvMatches_inverts)
   apply (elim EvMatch.cases)
   apply (elim EvGather.cases)
   apply clarsimp
   apply (elim EvGain.cases; clarsimp)
-  apply (elim EvSelect.cases; clarsimp)
-  apply (elim EvConsume.cases; clarsimp)
-  apply (unfold check_gather_def)
-
-  apply (rule_tac V="store_ok
-        (add_mset
+  apply (elim EvSelect_inverts; clarsimp)
+  apply (elim EvConsume_inverts; clarsimp)
+  apply (simp add: check_gather_def find_firsts_def)
+  apply (rule_tac
+        t="(add_mset
           (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
             {Budget_broker fc} {})
           (add_mset
-            (mk_Bid (Item_lot fa) (Reserve_broker fb) (Order_buyer f) (Reserve_amount fb) {Reserve_broker fb, Order_buyer f}
-              {party ''Mark''})
-            (s -
-         {#fc, fb#})))" in revcut_rl)
-
-   apply clarsimp
-   apply (rule store_ok__add_bid_budget_ok; blast?; simp add: find_firsts_def)
-  apply (metis (no_types, lifting) add_mset_remove_trivial mset_subset_eq_single subset_mset.add_diff_assoc2 subset_mset.add_diff_inverse union_single_eq_member)
-    apply (smt Budget_def Item_def Reserve_def char.inject fact_ctor.inject insert_iff list.inject set_mset_add_mset_insert set_mset_empty singletonD subset_mset.add_diff_inverse union_iff)
-  defer
-  apply (smt add_mset_commute add_mset_diff_bothsides add_mset_remove_trivial add_mset_remove_trivial_If diff_union_swap insert_subset_eq_iff)
-  by (smt Budget_def Multiset.diff_cancel Order_def Reserve_def add_mset_remove_trivial char.inject fact_ctor.inject insert_DiffM insert_noteq_member list.inject mset_subset_eq_add_mset_cancel subset_mset.add_diff_assoc2 subset_mset.add_diff_inverse subset_mset.sup.orderI subset_mset.sup_bot.right_neutral)
+            (mk_Bid (Item_lot fa) (Budget_broker fc) (Budget_buyer fc) (Reserve_amount fb)
+              {Budget_broker fc, Budget_buyer fc} {party ''Mark''})
+            s) -
+         {#fc, fb#})"
+    and s="(add_mset
+      (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
+            {Budget_broker fc} {})
+      (add_mset
+        (mk_Bid (Item_lot fa) (Budget_broker fc) (Budget_buyer fc) (Reserve_amount fb)
+              {Reserve_broker fb, Order_buyer f} {party ''Mark''})
+        (s - {#fc,fb#})))" in subst)
+  apply (smt add.commute add_mset_add_single add_mset_commute payload_defs(48) singleton_conv subset_mset.add_diff_assoc2 union_mset_add_mset_right)
+  apply (rule store_ok__add_bid_budget_ok; blast?)
+    apply simp
+    apply (metis ab_semigroup_add_class.add_ac(1) add_mset_add_single subset_mset.diff_add)
+   apply (simp add: fact_ctor_defs)
+  apply (rule_tac V="fa \<noteq> fb \<and> fa \<noteq> fc" in revcut_rl, force)
+  apply (metis (no_types, lifting) insert_iff set_mset_add_mset_insert set_mset_empty singletonD subset_mset.diff_add union_iff)
+   apply (simp add: fact_ctor_defs)
+  apply (rule_tac V="f \<noteq> fb \<and> f \<noteq> fc" in revcut_rl, force)
+  by (metis (no_types, hide_lams) add_mset_commute insertE set_mset_add_mset_insert set_mset_single singletonD subset_mset.add_diff_inverse union_iff)
 
 end
