@@ -38,6 +38,10 @@ inductive EvSelect :: "store \<Rightarrow> fact_env \<Rightarrow> fact_var \<Rig
 | EvFirst: "f \<in># find_firsts fs h v e \<Longrightarrow>
      fs | h | v \<turnstile> select_first e \<Down> f SELECT"
 
+inductive_cases EvSelect_inverts:
+  "fs | h | v \<turnstile> select_any \<Down> f SELECT"
+  "fs | h | v \<turnstile> select_first e \<Down> f SELECT"
+
 inductive EvConsume :: "rule_name \<Rightarrow> fact \<Rightarrow> fact_env \<Rightarrow> consume \<Rightarrow> nat \<Rightarrow> bool"
     ("_ | _ | _ \<turnstile> _ \<Down> _ CONSUME" [900,900,900,900,900] 1000) where
   EvConsumeNone:
@@ -48,6 +52,10 @@ inductive EvConsume :: "rule_name \<Rightarrow> fact \<Rightarrow> fact_env \<Ri
     w_need > 0 \<Longrightarrow>
     n \<in> fact_rules f \<Longrightarrow>
     n | f | h \<turnstile> consume_weight w \<Down> w_need CONSUME"
+
+inductive_cases EvConsume_inverts:
+  "n | f | h \<turnstile> consume_weight w \<Down> 0 CONSUME"
+  "n | f | h \<turnstile> consume_weight w \<Down> w_need CONSUME"
 
 
 inductive EvGain :: "rule_name \<Rightarrow> fact \<Rightarrow> fact_env \<Rightarrow> gain \<Rightarrow> auth \<Rightarrow> bool"
@@ -60,6 +68,11 @@ inductive EvGain :: "rule_name \<Rightarrow> fact \<Rightarrow> fact_env \<Right
    a \<subseteq> fact_by f \<Longrightarrow>
    n \<in> fact_rules f \<Longrightarrow>
    n | f | h \<turnstile> gain_auth t \<Down> a GAIN"
+
+inductive_cases EvGain_inverts:
+  "n | f | h \<turnstile> gain_auth t \<Down> {} GAIN"
+  "n | f | h \<turnstile> gain_auth t \<Down> a GAIN"
+
 
 inductive EvExec :: "fact_env \<Rightarrow> store exp \<Rightarrow> store \<Rightarrow> bool"
     ("_ \<turnstile> _ \<Down> _ EXEC" [900,900,900] 1000) where
@@ -92,6 +105,10 @@ inductive EvMatches :: "rule_name \<Rightarrow> auth \<Rightarrow> store \<Right
     ds'  = replicate_mset w f + ds                           \<Longrightarrow>
     ag'' = ag \<union> ag'                                          \<Longrightarrow>
     n | a | s | h  \<turnstile> (m # ms) \<Down> fs' | ds' | ag'' |  h'' MATCHES"
+
+inductive_cases EvMatches_inverts:
+  "n | a | s | h \<turnstile> [] \<Down> fs' | ds' | ag'' | h' MATCHES"
+  "n | a | s | h  \<turnstile> (m # ms) \<Down> fs' | ds' | ag'' |  h'' MATCHES"
 
 inductive EvFire :: "auth \<Rightarrow> store \<Rightarrow> rule \<Rightarrow> store \<Rightarrow> store \<Rightarrow> store \<Rightarrow> store \<Rightarrow> bool"
     ("_ | _ \<turnstile> _ \<Down> _ | _ | _ | _ FIRE" [900,900,900,900,900,900,900] 1000) where
