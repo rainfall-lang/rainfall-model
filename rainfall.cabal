@@ -51,11 +51,13 @@ executable rainfall
         Rainfall.Core.Exp.Term
         Rainfall.Core.Exp
 
-
         Rainfall.Source.Codec.Text.Token
         Rainfall.Source.Codec.Text.Lexer
 
         Rainfall.EDSL
+
+        Rainfall.Main.Config
+        Rainfall.Main.Args
 
 
 

@@ -34,7 +34,6 @@ import qualified Data.Set                               as Set
 import qualified Data.Map                               as Map
 
 
-
 -- Rule -------------------------------------------------------------------------------------------
 rule n ms mBody         = Rule  n ms mBody
 match'any  x n g c i    = Match x (when n []) g c i
@@ -99,9 +98,7 @@ auth'none               = MAuth Set.empty
 auth'parties ms         = foldr auth'union auth'none $ map auth'one ms
 
 
--- Scenario ---------------------------------------------------------------------------------------
-type Scenario a = S.StateT World IO a
-
+------------------------------------------------------------------------------------------ World --
 data World
         = World
         { worldParties  :: [Name]
@@ -112,6 +109,9 @@ data World
 
 
 --------------------------------------------------------------------------------------- Scenario --
+type Scenario a = S.StateT World IO a
+
+
 runScenario :: [Name] -> [Rule ()] -> Scenario a -> IO a
 runScenario nsParty rules scenario
  = do   S.evalStateT scenario
