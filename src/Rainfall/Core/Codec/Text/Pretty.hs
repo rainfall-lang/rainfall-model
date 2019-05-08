@@ -5,7 +5,7 @@ import Rainfall.Core.Eval.Store
 import Text.PrettyPrint.Leijen
 import qualified Data.Set       as Set
 import qualified Data.Map       as Map
-import Data.Set                 (Set)
+
 
 ------------------------------------------------------------------------------------------ Value --
 ppValue :: Value a -> Doc
@@ -21,12 +21,13 @@ ppValue val
 ppLit :: Lit -> Doc
 ppLit lit
  = case lit of
-        LUnit           -> text "Unit"
-        LSym n          -> text "'" <> text n
+        LUnit           -> text "#unit"
+        LBool b         -> if b then text "#true" else text "#false"
         LNat i          -> integer i
         LText s         -> text (show s)
         LParty n        -> text "!" <> text n
         LAuth  a        -> text (show a)
+        LSym n          -> text "'" <> text n
         LRules rs       -> text (show rs)
 
 

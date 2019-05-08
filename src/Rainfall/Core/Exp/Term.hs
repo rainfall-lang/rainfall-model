@@ -1,7 +1,8 @@
 
 module Rainfall.Core.Exp.Term where
 import Rainfall.Core.Exp.Base
-import Data.List
+import Data.String
+
 
 ---------------------------------------------------------------------------------------------------
 data Type a
@@ -42,6 +43,9 @@ data TermKey a
         | MKSeq
         deriving (Show, Eq, Ord)
 
+instance IsString (Term a) where
+ fromString s = MVar s
+
 
 ---------------------------------------------------------------------------------------------------
 data Value a
@@ -65,6 +69,9 @@ data Lit
 
 data Clo a = Clo  (Env a) [(Bind, Type a)] (Term a)
 type Env a = [(Name, Value a)]
+
+instance IsString (Value a) where
+ fromString s = VLit (LText s)
 
 
 ---------------------------------------------------------------------------------------------------

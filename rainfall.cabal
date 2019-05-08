@@ -1,0 +1,62 @@
+
+name:           rainfall
+version:        1.0.0.0
+license:        MIT
+author:         Ben Lippmeier <benl@ouroborus.net>
+maintainer:     Ben Lippmeier <benl@ouroborus.net>
+cabal-version:  >= 1.6
+synopsis:       Smart Contracts as Authorized Production Rules
+build-type:     Simple
+
+executable rainfall
+ hs-source-dirs:
+        src
+
+ build-depends:
+        base,
+        containers,
+        transformers,
+        extra,
+        inchworm,
+        wl-pprint
+
+ ghc-options:
+        -Wall
+        -Werror
+        -Wno-missing-signatures
+        -Wno-missing-pattern-synonym-signatures
+        -Wno-name-shadowing
+
+ extensions:
+        PatternGuards
+        PatternSynonyms
+        ParallelListComp
+
+ main-is:
+        Main.hs
+
+ other-modules:
+        Rainfall.Core.Codec.Text.Pretty
+
+        Rainfall.Core.Eval.Rule
+        Rainfall.Core.Eval.Store
+        Rainfall.Core.Eval.Term
+        Rainfall.Core.Eval
+
+        Rainfall.Core.Exp.Base
+        Rainfall.Core.Exp.Compounds
+        Rainfall.Core.Exp.Patterns
+        Rainfall.Core.Exp.Predicates
+        Rainfall.Core.Exp.Rule
+        Rainfall.Core.Exp.Term
+        Rainfall.Core.Exp
+
+
+        Rainfall.Source.Codec.Text.Token
+        Rainfall.Source.Codec.Text.Lexer
+
+        Rainfall.EDSL
+
+
+
+

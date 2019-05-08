@@ -3,8 +3,6 @@ module Rainfall.Core.Exp.Predicates where
 import Rainfall.Core.Exp.Base
 import Rainfall.Core.Exp.Patterns
 import Rainfall.Core.Exp.Term
-import Rainfall.Core.Exp.Rule
-import qualified Data.List      as List
 import qualified Data.Set       as Set
 
 isVTrue :: Value a -> Bool
@@ -15,7 +13,7 @@ isVTrue _               = False
 
 -- | Check if we can see a fact with the given authority.
 canSeeFact  :: Auth -> Fact a -> Bool
-canSeeFact aSub (Fact n _env aBy aObs _nsRules)
+canSeeFact aSub (Fact _n _env aBy aObs _nsRules)
  = not $ null $ Set.intersection aSub (Set.union aBy aObs)
 
 

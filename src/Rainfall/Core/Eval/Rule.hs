@@ -5,10 +5,8 @@ import Rainfall.Core.Eval.Term
 import Rainfall.Core.Exp
 
 import qualified Data.List              as List
-import qualified Data.List.Extra        as List
 import qualified Data.Map               as Map
 import qualified Data.Set               as Set
-import Data.Map                         (Map)
 import Data.Maybe
 import Control.Monad
 
@@ -81,7 +79,7 @@ applyMatch
         -> Match ()
         -> [(Auth, Factoid (), Store, Env ())]
 
-applyMatch nRule aSub store env (MatchAnn a match)
+applyMatch nRule aSub store env (MatchAnn _a match)
  = applyMatch nRule aSub store env match
 
 applyMatch nRule aSub store env (Match bFact gather select consume gain)
@@ -121,7 +119,7 @@ applyGather aSub store env bFact (GatherAnn _a gg)
  = applyGather aSub store env bFact gg
 
 applyGather aSub store env bFact (GatherWhere nFact msPred)
- = let fs = [ fact | fw@(fact, weight) <- Map.toList store
+ = let fs = [ fact | (fact, weight) <- Map.toList store
                    , weight >= 0
                    , factName fact == nFact
                    , canSeeFact aSub fact
@@ -142,7 +140,7 @@ applySelect
         -> Select ()    -- ^ Selection specifier.
         -> [Fact ()]
 
-applySelect fs env bFact (SelectAnn a select)
+applySelect fs env bFact (SelectAnn _a select)
  = applySelect fs env bFact select
 
 applySelect fs _env _bFact SelectAny
@@ -153,7 +151,7 @@ applySelect fs env bFact (SelectFirst mKey)
                 | fact <- fs ]
 
    in   case List.sortOn fst kfs of
-         (k, f) : _     -> [f]
+         (_k, f) : _    -> [f]
          _              -> []
 
 applySelect fs env bFact (SelectLast mKey)
@@ -161,7 +159,7 @@ applySelect fs env bFact (SelectLast mKey)
                 | fact <- fs ]
 
    in   case reverse $ List.sortOn fst kfs of
-         (k, f) : _     -> [f]
+         (_k, f) : _    -> [f]
          _              -> []
 
 
@@ -179,7 +177,7 @@ applyConsume
 applyConsume nRule fact store env (ConsumeAnn _ consume)
  = applyConsume nRule fact store env consume
 
-applyConsume _nRule _fact store env ConsumeNone
+applyConsume _nRule _fact store _env ConsumeNone
  = [(0, store)]
 
 applyConsume nRule fact store env (ConsumeWeight mWeight)
@@ -203,13 +201,13 @@ applyGain
         -> Gain ()      -- ^ Gain specification.
         -> [Auth]       -- ^ Resulting authority, including what we started with.
 
-applyGain nRule fact env (GainAnn a acquire)
+applyGain nRule fact env (GainAnn _a acquire)
  = applyGain nRule fact env acquire
 
-applyGain nRule fact env GainNone
+applyGain _nRule _fact _env GainNone
  = [Set.empty]
 
-applyGain nRule fact env (GainCheck mAuth)
+applyGain _nRule fact env (GainCheck mAuth)
  = do   let VAuth aGain = evalTerm env mAuth
         guard $ Set.isSubsetOf aGain (factBy fact)
         return Set.empty

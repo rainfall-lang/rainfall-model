@@ -4,7 +4,6 @@ import Rainfall.Core.Eval.Store
 import Rainfall.Core.Exp
 
 import Data.Maybe
-import qualified Data.List.Extra        as List
 import qualified Data.Set               as Set
 
 
@@ -37,10 +36,10 @@ execTerm env (MAbs bs ts mBody)
 
 execTerm env (MApp mFun msArg)
  = case execTerm env mFun of
-        (VClo env bs ts mBody, fsFun)
-         -> let (vsArg, fsArg)  = unzip $ map (execTerm env) msArg
-                env'            = [ (n, v) | BindName n <- bs | v <- vsArg]
-                (vBody, fsBody) = execTerm env' mBody
+        (VClo env' bs _ts mBody, fsFun)
+         -> let (vsArg, fsArg)  = unzip $ map (execTerm env') msArg
+                env''           = [ (n, v) | BindName n <- bs | v <- vsArg]
+                (vBody, fsBody) = execTerm env'' mBody
             in  (vBody, fsBody ++ concat fsArg ++ fsFun)
 
         (VPrm name, fsPrm)
@@ -53,7 +52,7 @@ execTerm env (MApp mFun msArg)
                 , "  vFun       = " ++ show vFun
                 , "  msArg      = " ++ show msArg ]
 
-execTerm env (MRef mr)
+execTerm _env (MRef mr)
  = case mr of
         MRVal v -> (v, [])
 
@@ -114,10 +113,16 @@ execTerm env (MSay nFact mData mMeta)
    in   ( VUnit
         , [factoid] ++ fsData ++ fsMeta)
 
+ | otherwise
+ = error $ "evalTerm: runtime type error in 'say'"
+
 execTerm env (MSeq m1 m2)
  = let  (_,  fs1) = execTerm env m1
         (v2, fs2) = execTerm env m2
    in   (v2, fs1 ++ fs2)
+
+execTerm _ (MKey{})
+ = error $ "evalTerm: malformed term"
 
 
 ---------------------------------------------------------------------------------------------------

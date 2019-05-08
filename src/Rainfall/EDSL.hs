@@ -26,23 +26,12 @@ where
 import Rainfall.Core.Exp
 import Rainfall.Core.Eval
 import Rainfall.Core.Codec.Text.Pretty
-import Data.String
 import Data.Map                                         (Map)
 import qualified Control.Monad.Trans.State.Strict       as S
 import qualified Control.Monad.IO.Class                 as S
 import qualified Text.PrettyPrint.Leijen                as P
 import qualified Data.Set                               as Set
 import qualified Data.Map                               as Map
-
-
-instance IsString (Term a) where
- fromString s = MVar s
-
-instance IsString (Value a) where
- fromString s = VText s
-
-instance IsString Bind where
- fromString s = BindName s
 
 
 
@@ -134,7 +123,7 @@ runScenario nsParty rules scenario
 
 -- | Add a fact to the store with authority of a single party.
 sayS :: Name -> Name -> [(Name, Term ())] -> [(Name, Term ())] -> Scenario ()
-sayS nParty nFact nmsFields nmsMeta
+sayS _nParty nFact nmsFields nmsMeta
  = do
         let (_, [(fact, num)])
                 = execTerm []
@@ -174,7 +163,7 @@ fireS nsSub nRule
           -> do mResult <- S.liftIO $ fireIO (auths nsSub) rule store
                 case mResult of
                  Nothing        -> return ()
-                 Just (trans, store')
+                 Just (_trans, store')
                   -> do S.modify' $ \s -> s { worldStore = store'}
                         return ()
 
