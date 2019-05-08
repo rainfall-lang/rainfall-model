@@ -6,9 +6,11 @@ import qualified Rainfall.Main.Config                   as Main
 
 import qualified Rainfall.Source.Codec.Text.Token       as Token
 import qualified Rainfall.Source.Codec.Text.Lexer       as Lexer
+import qualified Rainfall.Source.Codec.Text.Parser      ()
 
 import qualified System.Environment                     as System
 import qualified System.Exit                            as System
+
 
 
 ------------------------------------------------------------------------------------------- Main --

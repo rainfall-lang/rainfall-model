@@ -44,7 +44,7 @@ data TermKey a
         deriving (Show, Eq, Ord)
 
 instance IsString (Term a) where
- fromString s = MVar s
+ fromString s = MVar (Name s)
 
 
 ---------------------------------------------------------------------------------------------------

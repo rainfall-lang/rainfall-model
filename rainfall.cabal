@@ -18,7 +18,8 @@ executable rainfall
         transformers,
         extra,
         inchworm,
-        wl-pprint
+        wl-pprint,
+        parsec
 
  ghc-options:
         -Wall
@@ -28,9 +29,11 @@ executable rainfall
         -Wno-name-shadowing
 
  extensions:
+        LambdaCase
         PatternGuards
         PatternSynonyms
         ParallelListComp
+        OverloadedStrings
 
  main-is:
         Main.hs
@@ -51,8 +54,20 @@ executable rainfall
         Rainfall.Core.Exp.Term
         Rainfall.Core.Exp
 
+        Rainfall.Source.Exp.Name
+        Rainfall.Source.Exp.Term.Base
+        Rainfall.Source.Exp.Term.Patterns
+        Rainfall.Source.Exp.Term
+        Rainfall.Source.Exp.Type.Base
+        Rainfall.Source.Exp.Type
+        Rainfall.Source.Exp
+
         Rainfall.Source.Codec.Text.Token
         Rainfall.Source.Codec.Text.Lexer
+
+        Rainfall.Source.Codec.Text.Parser.Base
+        Rainfall.Source.Codec.Text.Parser.Term
+        Rainfall.Source.Codec.Text.Parser
 
         Rainfall.EDSL
 

@@ -10,8 +10,8 @@ import qualified Data.Char      as Char
 
 -- | Scanner for Rainfall source.
 scanner :: FilePath
-        -> Scanner IO Location [Char] (Located Token)
-scanner fileName
+        -> Scanner IO Location [Char] (At Token)
+scanner _fileName
  = skip Char.isSpace
  $ alts [ fmap (stamp KPunc)
            $ munchWord (\ix c -> ix == 0 && elem c puncs)
@@ -41,9 +41,9 @@ scanner fileName
                 1       -> Char.isLower c
                 _       -> Char.isAlphaNum c
 
-        , fmap (stamp KInteger) $ scanInteger
+        , fmap (stamp KInt)     $ scanInteger
         , fmap (stamp KChar)    $ scanHaskellChar
-        , fmap (stamp KString)  $ scanHaskellString
+        , fmap (stamp KText)    $ scanHaskellString
 
         , fmap (stamp KParty)
           $ munchWord $ \ix c
@@ -55,7 +55,7 @@ scanner fileName
         ]
  where  -- Stamp a token with source location information.
         stamp k (l, t)
-          = Located fileName l (k t)
+          = At l (k t)
 
         puncs
          = [ '(', ')', '[', ']', '{', '}'
@@ -67,9 +67,10 @@ scanner fileName
            , "select", "consume", "gain", "none"
            , "say",  "by", "obs", "use", "num" ]
 
+
 -- | Scan a Rainfall source file, producing tokens,
 --   final location, and leftover chars.
-scanSource :: FilePath -> String -> ([Located Token], Location, String)
+scanSource :: FilePath -> String -> ([At Token], Location, String)
 scanSource filePath str
  = scanString str (scanner filePath)
 

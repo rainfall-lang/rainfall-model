@@ -177,7 +177,8 @@ printStoreS
 -- | Try to fire the given rule, succeding only if there is a single available firing.
 fireIO :: Auth -> Rule () -> Store -> IO (Maybe (Transaction, Store))
 fireIO auth rule store
- = do   putStrLn $ "* Rule " ++ ruleName rule
+ = do   let Name sName = ruleName rule
+        putStrLn $ "* Rule " ++ sName
         case applyFire auth store rule of
          []
           -> do putStrLn "* Fizz"

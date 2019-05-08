@@ -6,15 +6,19 @@ import Text.PrettyPrint.Leijen
 import qualified Data.Set       as Set
 import qualified Data.Map       as Map
 
+------------------------------------------------------------------------------------------- Name --
+ppName :: Name -> Doc
+ppName (Name s) = text s
+
 
 ------------------------------------------------------------------------------------------ Value --
 ppValue :: Value a -> Doc
 ppValue val
  = case val of
         VLit lit        -> ppLit lit
-        VPrm n          -> text "#" <> text n
+        VPrm n          -> text "#" <> ppName n
         VClo{}          -> text "#CLO"
-        VRcd ns vs      -> list [tupled [text n, ppValue v] | (n, v) <- zip ns vs ]
+        VRcd ns vs      -> list [tupled [ppName n, ppValue v] | (n, v) <- zip ns vs ]
         VFact{}         -> text "#FACT"
 
 
@@ -25,16 +29,16 @@ ppLit lit
         LBool b         -> if b then text "#true" else text "#false"
         LNat i          -> integer i
         LText s         -> text (show s)
-        LParty n        -> text "!" <> text n
+        LParty n        -> text "!" <> ppName n
         LAuth  a        -> text (show a)
-        LSym n          -> text "'" <> text n
+        LSym n          -> text "'" <> ppName n
         LRules rs       -> text (show rs)
 
 
 ppEnv :: Env a -> Doc
 ppEnv env
  = encloseSep (char '[') (char ']') (text ", ")
- $ [text n <+> text "=" <+> ppValue v | (n, v) <- env ]
+ $ [ppName n <+> text "=" <+> ppValue v | (n, v) <- env ]
 
 
 ppAuth :: Auth -> Doc
@@ -53,14 +57,14 @@ ppRules rs
 ppFact :: Fact a -> Doc
 ppFact (Fact n env aBy aObs rsUse)
  = nest 10
- $ vcat [ fill 10 (text n) <+> ppEnv env
+ $ vcat [ fill 10 (ppName n) <+> ppEnv env
         , ppAuth aBy <+> ppAuth aObs <+> ppRules rsUse ]
 
 
 ppFactoid :: Factoid a -> Doc
 ppFactoid (Fact n env aBy aObs rsUse, nWeight)
  = nest 10
- $ vcat [ fill 10 (text n) <> ppEnv env
+ $ vcat [ fill 10 (ppName n) <> ppEnv env
         , text "by " <+> ppAuth aBy    <+> text "obs" <+> ppAuth aObs
         , text "use" <+> ppRules rsUse <+> text "num" <+> integer nWeight ]
 

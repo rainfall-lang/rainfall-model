@@ -2,7 +2,7 @@
 module Rainfall.Source.Codec.Text.Token
         ( Location (..)
         , Token    (..)
-        , Located  (..))
+        , At       (..))
 where
 import Text.Lexer.Inchworm.Char
 
@@ -12,15 +12,16 @@ data Token
         | KVar          String          -- ^ Variable,          starts with lower case.
         | KCon          String          -- ^ Constructor,       starts with upper case.
         | KSym          String          -- ^ Symbol,            starts with apostrophe.
+        | KPrm          String          -- ^ Primitive,         starts with '#'.
         | KMatch        String          -- ^ Match variable,    starts with question mark.
-        | KInteger      Integer         -- ^ Literal integer.
+        | KInt          Integer         -- ^ Literal integer.
         | KChar         Char            -- ^ Literal character, Haskell style.
-        | KString       String          -- ^ Literal string, Haskell style.
+        | KText         String          -- ^ Literal string, Haskell style.
         | KParty        String          -- ^ Literal party identifier.
         | KKey          String          -- ^ Keyword.
-        deriving Show
+        deriving (Show, Eq)
 
-data Located a
-        = Located FilePath (Range Location) a
+data At a
+        = At (Range Location) a
         deriving Show
 
