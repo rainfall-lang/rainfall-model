@@ -9,6 +9,10 @@ parseArgs ("-lex" : filePath : rest) config
  = parseArgs rest
  $ config { configMode = ModeLex filePath }
 
+parseArgs ("-parse" : filePath : rest) config
+ = parseArgs rest
+ $ config { configMode = ModeParse filePath }
+
 parseArgs [] config
  = return config
 
@@ -18,4 +22,5 @@ parseArgs _args _
 
 usage
  = unlines
- [ "rainfall -lex FILE.rain        lex a file and print tokens"]
+ [ "rainfall -lex   FILE.rain        lex a file and print tokens"
+ , "rainfall -parse FILE.rain        parse a file and print tokens"]

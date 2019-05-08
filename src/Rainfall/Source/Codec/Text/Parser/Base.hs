@@ -13,6 +13,14 @@ type RL         = IW.Range IW.Location
 
 
 ------------------------------------------------------------------------------ Location Handling --
+-- | Get the current position in the source stream.
+locHere :: Parser IW.Location
+locHere
+ = do   sp      <- P.getPosition
+        let loc =  IW.Location (P.sourceLine sp) (P.sourceColumn sp)
+        return  $ loc
+
+
 -- | Get the location of a token.
 locOfTok :: At Token -> P.SourcePos
 locOfTok (At (IW.Range (Location l c) _) _)

@@ -4,7 +4,8 @@ module Rainfall.Main.Config where
 
 data Mode
         = ModeNone
-        | ModeLex FilePath
+        | ModeLex       FilePath
+        | ModeParse     FilePath
         deriving Show
 
 
