@@ -8,7 +8,8 @@ import Text.Lexer.Inchworm.Char
 
 -- | A source token.
 data Token
-        = KPunc         String          -- ^ Punctuation.
+        = KEND                          -- ^ Indicate end of input.
+        | KPunc         String          -- ^ Punctuation.
         | KVar          String          -- ^ Variable,          starts with lower case.
         | KCon          String          -- ^ Constructor,       starts with upper case.
         | KSym          String          -- ^ Symbol,            starts with apostrophe.

@@ -7,6 +7,7 @@ import qualified Rainfall.Main.Config                   as Main
 import qualified Rainfall.Source.Codec.Text.Token       as Token
 import qualified Rainfall.Source.Codec.Text.Lexer       as Lexer
 import qualified Rainfall.Source.Codec.Text.Parser      as Parser
+import qualified Rainfall.Source.Exp                    as S
 
 import qualified System.Environment                     as System
 import qualified System.Exit                            as System
@@ -24,7 +25,6 @@ main
          Main.ModeNone
           -> do putStrLn $ Main.usage
                 System.exitSuccess
-
 
 
 -------------------------------------------------------------------------------------------- Lex --
@@ -47,15 +47,17 @@ mainLex config filePath
 
 
 ------------------------------------------------------------------------------------------ Parse --
+runParse :: Main.Config -> FilePath -> IO [S.Decl Parser.RL]
 runParse config filePath
  = do   toks    <- runLex config filePath
-        let e    = Parser.parseDecl toks
-        return e
-
-
+        case Parser.parseDecls toks of
+         Right ds -> return ds
+         Left err
+          -> do putStrLn $ show err
+                System.exitFailure
 
 mainParse config filePath
- = do   e       <- runParse config filePath
-        print e
+ = do   ds       <- runParse config filePath
+        print ds
 
 

@@ -43,6 +43,7 @@ data TermParam a
 data TermArg a
         = MGAnn  a  (TermArg a)
         | MGTerm    (Term a)                    -- ^ Term argument for a term.
+        | MGTerms   [Term a]                    -- ^ Multiple term arguments for a term.
         | MGType    (Type a)                    -- ^ Type argument for a term.
         deriving (Show, Eq, Ord)
 
@@ -63,6 +64,7 @@ data TermKey
         | MKList                                -- ^ List constructor.
         | MKSet                                 -- ^ Set constructor.
         | MKMap                                 -- ^ Map constructor.
+        | MKSay     Name                        -- ^ Say constructor.
         deriving (Show, Eq, Ord)
 
 
@@ -81,6 +83,7 @@ data Value a
         | VInt      Integer                     -- ^ Integer value.
         | VText     String                      -- ^ Text value.
         | VSym      Name                        -- ^ Symbol value.
+        | VParty    Name                        -- ^ Party literal.
 
         -- Values that are only used at runtime.
         --   At runtime they are introduced by evaluating constructions,

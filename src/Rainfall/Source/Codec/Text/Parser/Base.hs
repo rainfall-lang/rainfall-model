@@ -53,6 +53,14 @@ pTokOfInput fMatch
 
 
 ----------------------------------------------------------------------------------- Name Parsers --
+-- | Parser for a keyword.
+pKey :: String -> Parser ()
+pKey s = pTok (KKey s)
+
+-- | Parser for punctuation.
+pPunc :: String -> Parser ()
+pPunc s = pTok (KPunc s)
+
 -- | Parser for a variable name.
 pVar :: Parser Name
 pVar    = pTokOf $ \case { KVar s -> Just (Name s); _ -> Nothing }
@@ -64,6 +72,10 @@ pCon    = pTokOf $ \case { KCon s -> Just (Name s); _ -> Nothing }
 -- | Parser for a symbol name.
 pSym :: Parser Name
 pSym    = pTokOf $ \case { KSym s -> Just (Name s); _ -> Nothing }
+
+-- | Parser for a match variable.
+pBind :: Parser Name
+pBind   = pTokOf $ \case { KMatch s -> Just (Name s); _ -> Nothing }
 
 -- | Parser for a primitive name.
 pPrm :: Parser Name
@@ -84,3 +96,7 @@ pInt    = pTokOf $ \case { KInt i -> Just i; _ -> Nothing }
 -- | Parser for a Haskell-style string.
 pText :: Parser String
 pText   = pTokOf $ \case { KText t -> Just t; _ -> Nothing }
+
+-- | Parser for a party literal.
+pParty :: Parser Name
+pParty  = pTokOf $ \case { KParty s -> Just (Name s); _ -> Nothing }
