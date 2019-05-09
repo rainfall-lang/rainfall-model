@@ -16,9 +16,16 @@ ppValue :: Value a -> Doc
 ppValue val
  = case val of
         VLit lit        -> ppLit lit
-        VPrm n          -> text "#" <> ppName n
         VClo{}          -> text "#CLO"
         VRcd ns vs      -> list [tupled [ppName n, ppValue v] | (n, v) <- zip ns vs ]
+
+        VSet vs         -> encloseSep (char '{') (char '}') (char ',')
+                        $  map ppValue $ Set.toList vs
+
+        VMap mp         -> encloseSep (text "{|") (text "|}") (char ',')
+                        $  [ ppValue k <+> text ":=" <+> ppValue v
+                           | (k, v) <- Map.toList mp ]
+
         VFact{}         -> text "#FACT"
 
 
@@ -31,15 +38,13 @@ ppLit lit
         LInt i          -> integer i
         LText s         -> text (show s)
         LParty n        -> text "!" <> ppName n
-        LAuth  a        -> text (show a)
         LSym n          -> text "'" <> ppName n
-        LRules rs       -> text (show rs)
 
 
 ppEnv :: Env a -> Doc
-ppEnv env
+ppEnv (Env nvs)
  = encloseSep (char '[') (char ']') (text ", ")
- $ [ppName n <+> text "=" <+> ppValue v | (n, v) <- env ]
+ $ [ppName n <+> text "=" <+> ppValue v | (n, v) <- nvs ]
 
 
 ppAuth :: Auth -> Doc
@@ -48,10 +53,10 @@ ppAuth aa
  $ [ppLit (LParty n) | n <- Set.toList aa ]
 
 
-ppRules :: [Name] -> Doc
+ppRules :: Rules -> Doc
 ppRules rs
  = encloseSep (char '{') (char '}') (char ',')
- $ [ppLit (LSym n) | n <- rs ]
+ $ [ppLit (LSym n) | n <- Set.toList rs ]
 
 
 ------------------------------------------------------------------------------------------- Fact --
@@ -62,7 +67,7 @@ ppFact (Fact n env aBy aObs rsUse)
         , ppAuth aBy <+> ppAuth aObs <+> ppRules rsUse ]
 
 
-ppFactoid :: Factoid a -> Doc
+ppFactoid :: Factoid -> Doc
 ppFactoid (Fact n env aBy aObs rsUse, nWeight)
  = nest 10
  $ vcat [ fill 10 (ppName n) <> ppEnv env
@@ -79,7 +84,7 @@ ppStore store
 
 
 ----------------------------------------------------------------------------------------- Firing --
-ppFiring :: [Factoid a] -> [Factoid a] -> Store -> Doc
+ppFiring :: [Factoid] -> [Factoid] -> Store -> Doc
 ppFiring dsSpent dsNew store
  = vcat
  [ text "(spend)"

@@ -53,6 +53,7 @@ executable rainfall
         Rainfall.Core.Exp.Predicates
         Rainfall.Core.Exp.Rule
         Rainfall.Core.Exp.Term
+        Rainfall.Core.Transform.MapAnnot
         Rainfall.Core.Exp
 
         Rainfall.Source.Exp.Decl.Base

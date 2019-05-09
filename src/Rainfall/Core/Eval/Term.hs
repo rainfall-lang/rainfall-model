@@ -1,76 +1,59 @@
 
 module Rainfall.Core.Eval.Term where
-import Rainfall.Core.Eval.Store
+import Rainfall.Core.Transform.MapAnnot
 import Rainfall.Core.Exp
 
 import Data.Maybe
 import qualified Data.Set               as Set
-
+import qualified Data.Map.Strict        as Map
 
 ---------------------------------------------------------------------------------------------------
 -- | Evaluate a term.
---
---   This is like `execTerm` except that we require the list of produced
---   factoids to be empty.
 evalTerm :: Show a => Env a -> Term a -> Value a
-evalTerm env mm
- = case execTerm env mm of
-        (v, []) -> v
-        _       -> error $ "evalTerm: term produced factoids."
 
+evalTerm env (MAnn _ m')
+ = evalTerm env m'
 
----------------------------------------------------------------------------------------------------
--- | Execute a term, producing a value and set of created factoids.
-execTerm :: Show a => Env a -> Term a -> (Value a, [Factoid a])
-
-execTerm env (MAnn _ m')
- = execTerm env m'
-
-execTerm env (MVar n)
- = case lookup n env of
-        Just v  -> (v, [])
+evalTerm env (MVar n)
+ | Env nvsEnv <- env
+ = case lookup n nvsEnv of
+        Just v  -> v
         Nothing -> error $ "execTerm: unbound variable " ++ show n
 
-execTerm env (MAbs bs ts mBody)
- = (VClo env bs ts mBody, [])
+evalTerm env (MAbs bs ts mBody)
+ = VClo env bs ts mBody
 
-execTerm env (MApp mFun msArg)
- = case execTerm env mFun of
-        (VClo env' bs _ts mBody, fsFun)
-         -> let (vsArg, fsArg)  = unzip $ map (execTerm env') msArg
-                env''           = [ (n, v) | BindName n <- bs | v <- vsArg]
-                (vBody, fsBody) = execTerm env'' mBody
-            in  (vBody, fsBody ++ concat fsArg ++ fsFun)
-
-        (VPrm name, fsPrm)
-         -> let (vsArg, fsArg)  = unzip $ map (execTerm env) msArg
-            in  ( evalPrim name vsArg
-                , concat fsArg ++ fsPrm)
+evalTerm env (MApp mFun msArg)
+ = case evalTerm env mFun of
+        VClo env' bs _ts mBody
+         -> let vsArg   = map (evalTerm env') msArg
+                env''   = Env [ (n, v) | BindName n <- bs | v <- vsArg]
+            in  evalTerm env'' mBody
 
         vFun -> error $ unlines
                 [ "evalTerm: invalid application"
                 , "  vFun       = " ++ show vFun
                 , "  msArg      = " ++ show msArg ]
 
-execTerm _env (MRef mr)
+evalTerm _env (MRef mr)
  = case mr of
-        MRVal v -> (v, [])
+        MRVal v -> v
 
-execTerm env (MRcd ns ms)
- = let  (vs, fss)       = unzip $ map (execTerm env) ms
-   in   ( VRcd ns vs
-        , concat fss)
+evalTerm env (MRcd ns ms)
+ = let  vs      = map (evalTerm env) ms
+   in   VRcd ns vs
 
-execTerm env (MPrj mRcd nField)
- = case execTerm env mRcd of
-        (VRcd ns vs, fsRcd)
+evalTerm env (MPrj mRcd nField)
+ = case evalTerm env mRcd of
+        VRcd ns vs
          -> case lookup nField (zip ns vs) of
-                Just v  -> (v, fsRcd)
+                Just v  -> v
                 Nothing -> error $ "evalTerm: missing field " ++ show nField
 
-        (VFact fact, fsRcd)
-         -> case lookup nField (factEnv fact) of
-                Just v  -> (v, fsRcd)
+        VFact fact
+         | Env nvsEnv <- factEnv fact
+         -> case lookup nField nvsEnv of
+                Just v  -> v
                 Nothing -> error $ "evalTerm: missing field " ++ show nField
 
         v  -> error $ unlines
@@ -78,50 +61,37 @@ execTerm env (MPrj mRcd nField)
                 , "  value = " ++ show v
                 , "  field = " ++ show nField ]
 
-execTerm env (MSay nFact mData mMeta)
- | (VRcd nsData vsData, fsData) <- execTerm env mData
- , envData                      <- zip nsData vsData
-
- , (VRcd nsMeta vsMeta, fsMeta) <- execTerm env mMeta
- , envMeta                      <- zip nsMeta vsMeta
+evalTerm env (MSay nFact mData mBy mObs mUse mNum)
+ | VRcd nsData vsData   <- evalTerm env mData
+ , nvsData              <- zip nsData vsData
  = let
-        vBy     = fromMaybe (VAuth Set.empty) $ lookup "by" envMeta
-        aBy     = fromMaybe (error "execTerm: 'by' value in say statement is not an auth set")
-                $ takeAuthOfValue vBy
+        nsBy    = fromMaybe (error "evalTerm: by val is not an auth set")
+                $ takeAuthOfValue  $ evalTerm env mBy
 
-        vObs    = fromMaybe (VAuth Set.empty) $ lookup "obs" envMeta
-        aObs    = fromMaybe (error "execTerm: 'obs' value in say statement is not an auth set")
-                $ takeAuthOfValue vObs
+        nsObs   = fromMaybe (error "evalTerm: obs val is not an auth set")
+                $ takeAuthOfValue  $ evalTerm env mObs
 
-        vRules  = fromMaybe (VRules []) $ lookup "use" envMeta
-        nsRule  = fromMaybe (error "execTerm: 'use' value in say statement is not a rules set")
-                $ takeRulesOfValue vRules
+        nsUse   = fromMaybe (error "evalTerm: use val is not a rules set")
+                $ takeRulesOfValue $ evalTerm env mUse
 
-        vWeight = fromMaybe (VNat 1) $ lookup "weight" envMeta
-        nWeight = fromMaybe (error "execTerm: 'weight' value in say statement is not a nat.")
-                $ takeNatOfValue vWeight
+        nNum    = fromMaybe (error "evalTerm: num val is not a nat")
+                $ takeNatOfValue   $ evalTerm env mNum
 
         fact    = Fact
                 { factName      = nFact
-                , factEnv       = envData
-                , factBy        = aBy
-                , factObs       = aObs
-                , factUse       = nsRule }
+                , factEnv       = Env nvsData
+                , factBy        = nsBy
+                , factObs       = nsObs
+                , factUse       = nsUse }
 
-        factoid = (fact, nWeight)
-
-   in   ( VUnit
-        , [factoid] ++ fsData ++ fsMeta)
+   in   VMap $ Map.singleton
+                (VFact $ mapAnnot (const ()) fact)
+                (VInt nNum)
 
  | otherwise
  = error $ "evalTerm: runtime type error in 'say'"
 
-execTerm env (MSeq m1 m2)
- = let  (_,  fs1) = execTerm env m1
-        (v2, fs2) = execTerm env m2
-   in   (v2, fs1 ++ fs2)
-
-execTerm _ (MKey{})
+evalTerm _ (MKey{})
  = error $ "evalTerm: malformed term"
 
 
@@ -142,8 +112,8 @@ evalPrim "symbol'eq"    [VSym s1, VSym s2]      = VBool (s1 == s2)
 
 evalPrim "party'eq"     [VParty p1, VParty p2]  = VBool (p1 == p2)
 
-evalPrim "auth'one"     [VParty p]              = VAuth (Set.singleton p)
-evalPrim "auth'union"   [VAuth a1, VAuth a2]    = VAuth (Set.union a1 a2)
+evalPrim "set'one"      [v]                     = VSet (Set.singleton $ mapAnnot (const ()) v)
+evalPrim "set'union"    [VSet vs1, VSet vs2]    = VSet (Set.union vs1 vs2)
 
 evalPrim name vsArg
  = error $ unlines

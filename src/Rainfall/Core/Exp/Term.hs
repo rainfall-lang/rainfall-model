@@ -2,21 +2,30 @@
 module Rainfall.Core.Exp.Term where
 import Rainfall.Core.Exp.Base
 import Data.String
+import Data.Set                 (Set)
+import Data.Map                 (Map)
 
 
 ---------------------------------------------------------------------------------------------------
+-- | Type expression.
 data Type a
         = TAnn a (Type a)
         | TUnit
         | TBool
-        | TSym
         | TNat
         | TText
-        | TAuth
+        | TSym
+        | TParty
+        | TSet  (Type a)
+        | TFact (Type a)
+        | TFoid
+        | TRcd  [Name]   [Type a]
+        | TFun  (Type a) (Type a)
         deriving (Show, Eq, Ord)
 
 
 ---------------------------------------------------------------------------------------------------
+-- | Term expression.
 data Term a
         = MAnn  a (Term a)                      -- ^ Annotation.
 
@@ -26,23 +35,25 @@ data Term a
 
         | MRef  (TermRef a)                     -- ^ Reference.
 
-        | MRcd  [Name]   [Term a]               -- ^ Record former.
-        | MPrj  (Term a) Name                   -- ^ Record projection.
-
-        | MKey  (TermKey a) [Term a]            -- ^ Keyword application.
+        | MKey  TermKey [Term a]                -- ^ Keyword application.
         deriving (Show, Eq, Ord)
 
 
+-- | Term reference.
 data TermRef a
         = MRVal (Value a)                       -- ^ Embed a value.
         deriving (Show, Eq, Ord)
 
 
-data TermKey a
-        = MKSay
-        | MKSet
-        | MKSeq
+-- | Term keyword.
+data TermKey
+        = MKPrm Name                            -- ^ Primitive application.
+        | MKRcd [Name]                          -- ^ Construct a record.
+        | MKPrj Name                            -- ^ Project a field from a record.
+        | MKSet                                 -- ^ Construct a set.
+        | MKSay Name                            -- ^ Construct a factoid.
         deriving (Show, Eq, Ord)
+
 
 instance IsString (Term a) where
  fromString s = MVar (Name s)
@@ -51,26 +62,29 @@ instance IsString (Term a) where
 ---------------------------------------------------------------------------------------------------
 data Value a
         = VLit  Lit                              -- ^ Literal value.
-        | VPrm  Name                             -- ^ Primitive reference.
         | VClo  (Env a) [Bind] [Type a] (Term a) -- ^ Function closure
         | VRcd  [Name] [Value a]                 -- ^ Record value.
+        | VSet  (Set (Value ()))                 -- ^ Set value.
+        | VMap  (Map (Value ()) (Value a))       -- ^ Map value.
         | VFact (Fact a)                         -- ^ Fact value.
         deriving (Show, Eq, Ord)
 
 data Lit
         = LUnit
         | LBool  Bool
-        | LSym   Name
         | LNat   Integer
         | LInt   Integer
         | LText  String
+        | LSym   Name
         | LParty Name
-        | LAuth  Auth
-        | LRules [Name]
         deriving (Show, Eq, Ord)
 
 data Clo a = Clo  (Env a) [(Bind, Type a)] (Term a)
-type Env a = [(Name, Value a)]
+
+data Env a
+        = Env [(Name, Value a)]
+        deriving (Show, Eq, Ord)
+
 
 instance IsString (Value a) where
  fromString s = VLit (LText s)
@@ -81,10 +95,12 @@ data Fact a
         = Fact
         { factName      :: Name
         , factEnv       :: Env a
-        , factBy        :: Auth
-        , factObs       :: Auth
-        , factUse       :: [Name] }
+        , factBy        :: Set Name
+        , factObs       :: Set Name
+        , factUse       :: Set Name }
         deriving (Show, Eq, Ord)
 
+type Factoid    = (Fact (), Weight)
+type Factoids   = Map (Fact ()) Weight
 
 

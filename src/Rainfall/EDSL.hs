@@ -11,7 +11,7 @@ module Rainfall.EDSL
         , (!), pattern (:=)
         , auths
 
-        , say, sqq
+        , say
         , bool'eq
         , nat'add, nat'sub, nat'eq, nat'le, nat'ge
         , text'eq
@@ -21,7 +21,7 @@ module Rainfall.EDSL
 
         , runScenario
         , printStoreS
-        , sayS, sayS'
+--        , sayS, sayS'
         , fireS, fireIO)
 where
 import Rainfall.Core.Exp
@@ -62,8 +62,8 @@ nat   n                 = MNat   n
 text  t                 = MText  t
 sym   s                 = MSym   s
 party n                 = MParty n
-auth  ns                = MAuth  (Set.fromList ns)
-rules ns                = MRules ns
+auth  ns                = MSet $ map party ns
+rules ns                = MSet $ map sym ns
 
 (!) m n                 = MPrj m n
 pattern (:=) a b        = (a, b)
@@ -72,32 +72,29 @@ infixl 0 :=
 auths ns                = Set.fromList ns
 
 -- Prim -------------------------------------------------------------------------------------------
-sqq m1 m2
- = MSeq m1 m2
-
 say nFact nmsFields nmsMeta
  = let  (nsFields, vsFields)    = unzip nmsFields
         (nsMeta,   vsMeta)      = unzip nmsMeta
    in   MSay nFact (MRcd nsFields vsFields) (MRcd nsMeta vsMeta)
 
-bool'eq mx my           = MApp (MPrm "bool'eq")         [mx, my]
+bool'eq mx my           = MPrm "bool'eq"    [mx, my]
 
-nat'add nx ny           = MApp (MPrm "nat'add")         [nx, ny]
-nat'sub nx ny           = MApp (MPrm "nat'sub")         [nx, ny]
-nat'eq  nx ny           = MApp (MPrm "nat'eq")          [nx, ny]
-nat'le  nx ny           = MApp (MPrm "nat'le")          [nx, ny]
-nat'ge  nx ny           = MApp (MPrm "nat'ge")          [nx, ny]
+nat'add nx ny           = MPrm "nat'add"    [nx, ny]
+nat'sub nx ny           = MPrm "nat'sub"    [nx, ny]
+nat'eq  nx ny           = MPrm "nat'eq"     [nx, ny]
+nat'le  nx ny           = MPrm "nat'le"     [nx, ny]
+nat'ge  nx ny           = MPrm "nat'ge"     [nx, ny]
 
-text'eq tx ty           = MApp (MPrm "text'eq")         [tx, ty]
+text'eq tx ty           = MPrm "text'eq"    [tx, ty]
 
-symbol'eq mx my         = MApp (MPrm "symbol'eq")       [mx, my]
+symbol'eq mx my         = MPrm "symbol'eq"  [mx, my]
 
-party'eq  mx my         = MApp (MPrm "party'eq")        [mx, my]
+party'eq  mx my         = MPrm "party'eq"   [mx, my]
 
-auth'one   mp           = MApp (MPrm "auth'one")        [mp]
-auth'union ma mb        = MApp (MPrm "auth'union")      [ma, mb]
+auth'one   mp           = MPrm "auth'one"   [mp]
+auth'union ma mb        = MPrm "auth'union" [ma, mb]
 auth'unions ms          = foldr auth'union auth'none ms
-auth'none               = MAuth Set.empty
+auth'none               = MSet []
 auth'parties ms         = foldr auth'union auth'none $ map auth'one ms
 
 
@@ -124,32 +121,32 @@ runScenario nsParty rules scenario
          , worldRules   = Map.fromList [ (ruleName r, r) | r <- rules] }
 
 
--- | Add a fact to the store with authority of a single party.
-sayS :: Name -> Name -> [(Name, Term ())] -> [(Name, Term ())] -> Scenario ()
-sayS _nParty nFact nmsFields nmsMeta
- = do
-        let (_, [(fact, num)])
-                = execTerm []
-                $ say nFact nmsFields nmsMeta
+---- | Add a fact to the store with authority of a single party.
+--sayS :: Name -> Name -> [(Name, Term ())] -> [(Name, Term ())] -> Scenario ()
+--sayS _nParty nFact nmsFields nmsMeta
+-- = do
+--        let (_, [(fact, num)])
+--                = evalTerm []
+--                $ say nFact nmsFields nmsMeta
+--
+--        -- TODO: check by is covered by nParty
+--        store <- S.gets worldStore
+--        S.modify' $ \s -> s { worldStore = Map.insertWith (+) fact num store }
 
-        -- TODO: check by is covered by nParty
-        store <- S.gets worldStore
-        S.modify' $ \s -> s { worldStore = Map.insertWith (+) fact num store }
 
-
--- | Wrapper for `sayS` to help fill in some of the fields.
-sayS'   :: Name                 -- ^ Name of submitting party.
-        -> [Name]               -- ^ Names of observing parties.
-        -> Name                 -- ^ Name of fact to add.
-        -> [(Name, Term ())]    -- ^ Terms for fields.
-        -> [Name]               -- ^ Names of useable rules.
-        -> Weight               -- ^ Weight of fact.
-        -> Scenario ()
-
-sayS' nSub nsObs nFact nvsEnv nsUse weight
- = sayS nSub nFact
-        nvsEnv
-        [ "by" := auth [nSub], "obs" := auth nsObs, "use" := rules nsUse, "num" := nat weight ]
+---- | Wrapper for `sayS` to help fill in some of the fields.
+--sayS'   :: Name                 -- ^ Name of submitting party.
+--        -> [Name]               -- ^ Names of observing parties.
+--        -> Name                 -- ^ Name of fact to add.
+--        -> [(Name, Term ())]    -- ^ Terms for fields.
+--        -> [Name]               -- ^ Names of useable rules.
+--        -> Weight               -- ^ Weight of fact.
+--        -> Scenario ()
+--
+--sayS' nSub nsObs nFact nvsEnv nsUse weight
+-- = sayS nSub nFact
+--        nvsEnv
+--        [ "by" := auth [nSub], "obs" := auth nsObs, "use" := rules nsUse, "num" := nat weight ]
 
 
 -- | Try to fire a single rule in the scenario monad,
@@ -188,8 +185,8 @@ fireIO auth rule store
                 return Nothing
 
          [(trans, store')]
-          -> do let dsSpent     = transactionSpent trans
-                let dsNew       = transactionNew   trans
+          -> do let dsSpent = Map.toList $ transactionSpent trans
+                let dsNew   = Map.toList $ transactionNew   trans
                 putStrLn $ (P.displayS $ renderMax $ ppFiring dsSpent dsNew store') ""
                 return $ Just (trans, store')
 

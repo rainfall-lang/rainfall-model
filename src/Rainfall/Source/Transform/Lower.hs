@@ -8,7 +8,6 @@ import qualified Control.Monad.Trans.State.Strict       as S
 import Data.Maybe
 import qualified Data.Map.Strict                        as Map
 import Data.Map                                         (Map)
-import qualified Debug.Trace as Debug
 
 
 ------------------------------------------------------------------------------------------ Fresh --
@@ -108,7 +107,7 @@ lowerMatch dsFact nmsMatch (E.Match mbBind gather select consume gain)
         consume' <- lowerConsume nmsMatch' consume
         gain'    <- lowerGain    nmsMatch' gain
 
-        return  ( Debug.trace (show nmsMatch) nmsMatch'
+        return  ( nmsMatch'
                 , C.Match (BindName nBindFact) gather' select' consume' gain')
 
 
@@ -326,11 +325,12 @@ lowerTerm nmsMatch (E.MSet msArg)
  = do   msArg'  <- mapM (lowerTerm nmsMatch) msArg
         return  $  C.MSet msArg'
 
-lowerTerm nmsMatch (E.MSay _nFact msBy msObs msUse msNum)
- = do   _msBy    <- mapM (lowerTerm nmsMatch) msBy
-        _msObs   <- mapM (lowerTerm nmsMatch) msObs
-        _msUse   <- mapM (lowerTerm nmsMatch) msUse
-        _msNum   <- mapM (lowerTerm nmsMatch) msNum
+lowerTerm nmsMatch (E.MSay _nFact mData msBy msObs msUse msNum)
+ = do   _mData' <- lowerTerm nmsMatch mData
+        _msBy'  <- mapM (lowerTerm nmsMatch) msBy
+        _msObs' <- mapM (lowerTerm nmsMatch) msObs
+        _msUse' <- mapM (lowerTerm nmsMatch) msUse
+        _msNum' <- mapM (lowerTerm nmsMatch) msNum
         return  $ C.MUnit       -- TODO: fix say
 
 lowerTerm _ _
@@ -342,7 +342,6 @@ lowerTerm _ _
 lowerTermRef :: E.TermRef a -> S (C.TermRef a)
 lowerTermRef tr
  = case tr of
-        E.MRPrm n       -> pure $ C.MRVal (C.VPrm n)
         E.MRVal v       -> C.MRVal <$> lowerValue v
 
 

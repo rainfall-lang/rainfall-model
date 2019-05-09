@@ -10,12 +10,15 @@ import qualified Data.Set               as Set
 import Data.Maybe
 import Control.Monad
 
+
+---------------------------------------------------------------------------------------------------
 data Transaction
         = Transaction
         { transactionRule       :: Name
-        , transactionSpent      :: [Factoid ()]
-        , transactionNew        :: [Factoid ()] }
+        , transactionSpent      :: Factoids
+        , transactionNew        :: Factoids }
         deriving Show
+
 
 ---------------------------------------------------------------------------------------------------
 -- | Try to fire a rule applied to a store.
@@ -27,14 +30,19 @@ applyFire
 
 applyFire aSub store rule
  = do
-        (aHas, dsSpent, store', env')
-         <- applyMatches (ruleName rule) aSub Set.empty [] store [] (ruleMatch rule)
+        (aHas, dsSpend, store', env')
+         <- applyMatches (ruleName rule) aSub Set.empty
+                Map.empty store (Env []) (ruleMatch rule)
 
-        let (VUnit, dsNew) = execTerm env' (ruleBody rule)
-        guard $ all (authCoversFact aHas) $ map fst dsNew
+        let Just dsNew
+                = takeFactoidsOfValue
+                $ evalTerm env' (ruleBody rule)
 
-        let trans   = Transaction (ruleName rule) dsSpent dsNew
-        let store'' = storePrune $ Map.unionWith (+) (Map.fromList dsNew) store'
+        guard $ all (authCoversFact aHas) $ Map.keys dsNew
+
+        let trans   = Transaction (ruleName rule) dsSpend dsNew
+        let store'' = storePrune $ Map.unionWith (+) dsNew store'
+
         return  (trans, store'')
 
 
@@ -45,24 +53,24 @@ applyMatches
         :: Name         -- ^ Name of the current rule.
         -> Auth         -- ^ Authority of the submitter.
         -> Auth         -- ^ Current authority of the rule.
-        -> [Factoid ()] -- ^ Factoids spent so far.
+        -> Factoids    -- ^ Factoids spent so far.
         -> Store        -- ^ Initial store.
         -> Env ()       -- ^ Initial environment.
         -> [Match ()]   -- ^ Matches to apply.
-        -> [(Auth, [Factoid ()], Store, Env ())]
+        -> [(Auth, Factoids, Store, Env ())]
 
-applyMatches _name _aSub aHas dsSpent store env []
- =      return (aHas, dsSpent, store, env)
+applyMatches _name _aSub aHas dSpent store env []
+ =      return (aHas, dSpent, store, env)
 
-applyMatches name aSub aHas dsSpent store env (match : matches)
+applyMatches name aSub aHas dSpent store env (match : matches)
  = do
-        (aGain, dSpent, store', env')
+        (aGain, dSpent', store', env')
          <- applyMatch name aSub store env match
 
         let aHas'       = Set.union aHas aGain
-        let dsSpent'    = dSpent : dsSpent
+        let dSpent''    = Map.unionWith (+) dSpent dSpent'
 
-        applyMatches name aSub aHas' dsSpent' store' env' matches
+        applyMatches name aSub aHas' dSpent'' store' env' matches
 
 
 ---------------------------------------------------------------------------------------------------
@@ -77,7 +85,7 @@ applyMatch
         -> Store        -- ^ Initial store.
         -> Env ()       -- ^ Initial environment.
         -> Match ()
-        -> [(Auth, Factoid (), Store, Env ())]
+        -> [(Auth, Factoids, Store, Env ())]
 
 applyMatch nRule aSub store env (MatchAnn _a match)
  = applyMatch nRule aSub store env match
@@ -96,7 +104,7 @@ applyMatch nRule aSub store env (Match bFact gather select consume gain)
         -- computing the weight with the new fact in scope.
         let env' = envBind bFact (VFact fSelect) env
         (weight', store') <- applyConsume nRule fSelect store env' consume
-        let dSpent      = (fSelect, weight')
+        let dSpent      = Map.singleton fSelect weight'
 
         -- Gain authority from the matched fact.
         aGain    <- applyGain nRule fSelect env' gain
@@ -208,12 +216,12 @@ applyGain _nRule _fact _env GainNone
  = [Set.empty]
 
 applyGain _nRule fact env (GainCheck mAuth)
- = do   let VAuth aGain = evalTerm env mAuth
-        guard $ Set.isSubsetOf aGain (factBy fact)
+ = do   let Just nsGain = takeAuthOfValue $ evalTerm env mAuth
+        guard $ Set.isSubsetOf nsGain (factBy fact)
         return Set.empty
 
 applyGain nRule fact env (GainTerm mAuth)
- = do   let VAuth aGain = evalTerm env mAuth
+ = do   let Just nsGain = takeAuthOfValue $ evalTerm env mAuth
         guard $ elem nRule (factUse fact)
-        guard $ Set.isSubsetOf aGain (factBy fact)
-        return aGain
+        guard $ Set.isSubsetOf nsGain (factBy fact)
+        return nsGain
