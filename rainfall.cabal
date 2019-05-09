@@ -19,7 +19,8 @@ executable rainfall
         extra,
         inchworm,
         wl-pprint,
-        parsec
+        parsec,
+        pretty-show
 
  ghc-options:
         -Wall
@@ -63,6 +64,7 @@ executable rainfall
         Rainfall.Source.Exp.Type
         Rainfall.Source.Exp.Type.Patterns
         Rainfall.Source.Exp.Name
+        Rainfall.Source.Transform.Lower
         Rainfall.Source.Exp
 
         Rainfall.Source.Codec.Text.Token

@@ -6,6 +6,7 @@ data Mode
         = ModeNone
         | ModeLex       FilePath
         | ModeParse     FilePath
+        | ModeLower     FilePath
         deriving Show
 
 
