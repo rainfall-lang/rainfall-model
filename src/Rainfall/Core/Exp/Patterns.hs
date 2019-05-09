@@ -22,6 +22,8 @@ pattern MRules ns       = MLit (LRules ns)
 pattern MSay n mD mM    = MKey MKSay [MSym n, mD, mM]
 pattern MSeq mA mB      = MKey MKSeq [mA, mB]
 
+pattern MSet ms         = MKey MKSet ms
+
 ------------------------------------------------------------------------------------------ Value --
 pattern VUnit           = VLit LUnit
 pattern VBool b         = VLit (LBool b)
@@ -29,6 +31,7 @@ pattern VTrue           = VLit (LBool True)
 pattern VFalse          = VLit (LBool False)
 pattern VSym s          = VLit (LSym  s)
 pattern VNat n          = VLit (LNat  n)
+pattern VInt i          = VLit (LInt  i)
 pattern VText s         = VLit (LText s)
 pattern VParty s        = VLit (LParty s)
 pattern VAuth ns        = VLit (LAuth ns)

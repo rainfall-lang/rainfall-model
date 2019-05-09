@@ -40,6 +40,7 @@ data TermRef a
 
 data TermKey a
         = MKSay
+        | MKSet
         | MKSeq
         deriving (Show, Eq, Ord)
 
@@ -61,6 +62,7 @@ data Lit
         | LBool  Bool
         | LSym   Name
         | LNat   Integer
+        | LInt   Integer
         | LText  String
         | LParty Name
         | LAuth  Auth

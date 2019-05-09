@@ -28,6 +28,7 @@ ppLit lit
         LUnit           -> text "#unit"
         LBool b         -> if b then text "#true" else text "#false"
         LNat i          -> integer i
+        LInt i          -> integer i
         LText s         -> text (show s)
         LParty n        -> text "!" <> ppName n
         LAuth  a        -> text (show a)

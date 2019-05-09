@@ -55,8 +55,7 @@ lowerRule
         -> S (C.Rule a)
 
 lowerRule dsFact (E.Rule nRule hsMatch _m)
- = do
-        (_nmsMatch, hsMatch')
+ = do   (_nmsMatch, hsMatch')
          <- lowerMatches dsFact [] hsMatch
 
         pure $ C.Rule nRule hsMatch' C.MUnit
@@ -66,7 +65,7 @@ lowerRule dsFact (E.Rule nRule hsMatch _m)
 -- | Lower a sequence of matches to core.
 lowerMatches
         :: Show a
-        => Facts a
+        => Facts a                      -- ^ Map of fact names to their payload types.
         -> [(Name, C.Term a)]           -- ^ Definition of match variables in scope.
         -> [E.Match a]
         -> S ([(Name, C.Term a)], [C.Match a])
@@ -83,7 +82,7 @@ lowerMatches dsFact  nmsMatch (m : ms)
 -- | Lower a source fact matcher to core.
 lowerMatch
         :: Show a
-        => Facts a
+        => Facts a                      -- ^ Map of fact names to their payload types.
         -> [(Name, C.Term a)]           -- ^ Definitions of match variable in scope.
         -> E.Match a                    -- ^ Match to desugar.
         -> S ([(Name, C.Term a)], C.Match a)
@@ -94,7 +93,7 @@ lowerMatch dsFact nmsMatch (E.MatchAnn a m)
 
         return  (nmsMatch', C.MatchAnn a m')
 
-lowerMatch dsFact nmsMatch (E.Match mbBind gather _select _consume _gain)
+lowerMatch dsFact nmsMatch (E.Match mbBind gather select consume gain)
  = do
         nBindFact
           <- case mbBind of
@@ -105,9 +104,9 @@ lowerMatch dsFact nmsMatch (E.Match mbBind gather _select _consume _gain)
         (nmsMatch', gather')
          <- lowerGather dsFact nmsMatch nBindFact gather
 
-        select'  <- pure $ C.SelectAny
-        consume' <- pure $ C.ConsumeNone
-        gain'    <- pure $ C.GainNone
+        select'  <- lowerSelect  nmsMatch' select
+        consume' <- lowerConsume nmsMatch' consume
+        gain'    <- lowerGain    nmsMatch' gain
 
         return  ( Debug.trace (show nmsMatch) nmsMatch'
                 , C.Match (BindName nBindFact) gather' select' consume' gain')
@@ -124,7 +123,7 @@ lowerMatch dsFact nmsMatch (E.Match mbBind gather _select _consume _gain)
 --
 lowerGather
         :: Show a
-        => Facts a
+        => Facts a                      -- ^ Map of fact names to their payload types.
         -> [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
         -> Name                         -- ^ Variable bound to the fact being considered.
         -> E.Gather a                   -- ^ Gather to desugar.
@@ -220,25 +219,143 @@ lowerGatherPat ntsField nmsMatch nBindFact nField
         return  (Nothing, Just mPred')
 
 
+----------------------------------------------------------------------------------------- Select --
+-- | Lower a select clause to core.
+lowerSelect
+        :: Show a
+        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        -> E.Select a -> S (C.Select a)
+
+lowerSelect nmsMatch (E.SelectAnn a cc)
+ = do   cc' <- lowerSelect nmsMatch cc
+        return $ C.SelectAnn a cc'
+
+lowerSelect _nmsMatch E.SelectAny
+ = do   return $ C.SelectAny
+
+lowerSelect nmsMatch (E.SelectFirst m)
+ = do   m' <- lowerTerm nmsMatch m
+        return  $ C.SelectFirst m'
+
+lowerSelect nmsMatch (E.SelectLast m)
+ = do   m' <- lowerTerm nmsMatch m
+        return  $ C.SelectLast m'
+
+
+---------------------------------------------------------------------------------------- Consume --
+-- | Lower a consume clause to core.
+lowerConsume
+        :: Show a
+        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        -> E.Consume a -> S (C.Consume a)
+
+lowerConsume nmsMatch (E.ConsumeAnn a uu)
+ = do   uu' <- lowerConsume nmsMatch uu
+        return $ C.ConsumeAnn a uu'
+
+lowerConsume _nmsMatch E.ConsumeNone
+ = do   return $ C.ConsumeNone
+
+lowerConsume nmsMatch (E.ConsumeWeight mWeight)
+ = do   mWeight' <- lowerTerm nmsMatch mWeight
+        return $ C.ConsumeWeight mWeight'
+
+
+------------------------------------------------------------------------------------------- Gain --
+-- | Lower a gain clause to core.
+lowerGain
+        :: Show a
+        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        -> E.Gain a -> S (C.Gain a)
+
+lowerGain nmsMatch (E.GainAnn a ii)
+ = do   ii' <- lowerGain nmsMatch ii
+        return  $ C.GainAnn a ii'
+
+lowerGain _nmsMatch E.GainNone
+ = do   return  $ C.GainNone
+
+lowerGain _nmsMatch (E.GainCheck _m)
+ = do   error "lowerGain check: need to add a new predicate"
+
+lowerGain nmsMatch (E.GainTerm m)
+ = do   m'      <- lowerTerm nmsMatch m
+        return   $ C.GainTerm m'
+
+
 ------------------------------------------------------------------------------------------- Term --
+-- | Lower a source term to core.
 lowerTerm
         :: Show a
-        => [(Name, C.Term a)]
-        -> E.Term a
-        -> S (C.Term a)
+        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        -> E.Term a -> S (C.Term a)
+
+lowerTerm nmsMatch (E.MAnn a m)
+ = do   m' <- lowerTerm nmsMatch m
+        return $ C.MAnn a m'
+
+lowerTerm _nmsMatch (E.MRef ref)
+ = do   ref' <- lowerTermRef ref
+        return $ C.MRef ref'
 
 lowerTerm nmsMatch (E.MVar (Bound n))
  = case lookup n nmsMatch of
         Nothing -> pure $ C.MVar n
         Just m' -> pure m'
 
+lowerTerm _nmsMatch E.MAbs{}
+ = error "lowerTerm: abstractions not done"
+
 lowerTerm _nmsMatch (E.MParty n)
  =      return $ C.MParty n
 
-lowerTerm nmsMatch (E.MKey E.MKApp [E.MGTerm mFun, E.MGTerms msArg])
+lowerTerm nmsMatch (E.MApm mFun msArg)
  = do   mFun'   <- lowerTerm nmsMatch mFun
         msArg'  <- mapM (lowerTerm nmsMatch) msArg
         return  $  C.MApp mFun' msArg'
 
+lowerTerm nmsMatch (E.MRecord ns ms)
+ = do   ms'     <- mapM (lowerTerm nmsMatch) ms
+        return  $  C.MRcd ns ms'
+
+lowerTerm nmsMatch (E.MProject m n)
+ = do   m'      <- lowerTerm nmsMatch m
+        return  $ C.MPrj m' n
+
+lowerTerm nmsMatch (E.MSet msArg)
+ = do   msArg'  <- mapM (lowerTerm nmsMatch) msArg
+        return  $  C.MSet msArg'
+
+lowerTerm nmsMatch (E.MSay _nFact msBy msObs msUse msNum)
+ = do   _msBy    <- mapM (lowerTerm nmsMatch) msBy
+        _msObs   <- mapM (lowerTerm nmsMatch) msObs
+        _msUse   <- mapM (lowerTerm nmsMatch) msUse
+        _msNum   <- mapM (lowerTerm nmsMatch) msNum
+        return  $ C.MUnit       -- TODO: fix say
+
 lowerTerm _ _
- = return C.MUnit
+ = error "lowerTerm: malformed term"
+
+
+---------------------------------------------------------------------------------------- TermRef --
+-- | Lower a source term reference to core.
+lowerTermRef :: E.TermRef a -> S (C.TermRef a)
+lowerTermRef tr
+ = case tr of
+        E.MRPrm n       -> pure $ C.MRVal (C.VPrm n)
+        E.MRVal v       -> C.MRVal <$> lowerValue v
+
+
+------------------------------------------------------------------------------------------ Value --
+-- | Lower a source value to core.
+lowerValue :: E.Value a -> S (C.Value a)
+lowerValue vv
+ = case vv of
+        E.VUnit         -> pure $ C.VUnit
+        E.VBool b       -> pure $ C.VBool b
+        E.VNat  n       -> pure $ C.VNat  n
+        E.VInt  i       -> pure $ C.VInt  i
+        E.VText tx      -> pure $ C.VText tx
+        E.VSym  s       -> pure $ C.VSym  s
+        E.VParty n      -> pure $ C.VParty n
+

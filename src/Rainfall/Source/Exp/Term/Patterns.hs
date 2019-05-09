@@ -5,10 +5,19 @@ import Rainfall.Source.Exp.Term.Base
 ------------------------------------------------------------------------------------------- Term --
 pattern MVal v                  = MRef  (MRVal v)
 pattern MPrm n                  = MRef  (MRPrm n)
-pattern MCon n                  = MRef  (MRCon n)
+
+pattern MAps mFun mgssArg       = MKey   MKApp  (MGTerm  mFun : mgssArg)
+pattern MApp mFun mgsArg        = MKey   MKApp  [MGTerm  mFun, mgsArg]
+pattern MApv mFun mArg          = MKey   MKApp  [MGTerm  mFun, MGTerm  mArg]
+pattern MApm mFun msArg         = MKey   MKApp  [MGTerm  mFun, MGTerms msArg]
+pattern MApt mFun tsArg         = MKey   MKApp  [MGTerm  mFun, MGTypes tsArg]
 
 pattern MRecord ns ms           = MKey  (MKRecord ns)   [MGTerms ms]
+pattern MProject m n            = MKey  (MKProject n)   [MGTerm m]
 pattern MSet ms                 = MKey  MKSet           [MGTerms ms]
+
+pattern MSay n msBy msObs msUse msNum
+ = MKey (MKSay n) [MGTerms msBy, MGTerms msObs, MGTerms msUse, MGTerms msNum]
 
 ------------------------------------------------------------------------------------------ Value --
 pattern MSym n                  = MRef  (MRVal (VSym n))

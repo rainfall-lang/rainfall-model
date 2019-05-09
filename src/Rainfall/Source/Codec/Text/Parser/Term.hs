@@ -37,9 +37,6 @@ pTermArg
         n <- pVar
         return $ MVar $ Bound n
 
- , do   -- Con
-        pCon    >>= return . MCon
-
  , do   -- Syn
         pSym    >>= return . MSym
 
