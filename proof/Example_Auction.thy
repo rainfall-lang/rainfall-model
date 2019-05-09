@@ -23,16 +23,17 @@ fact Offer   [lot: Symbol, broker: Party, buyer: Party, price: Nat]
 broker side:
 fact Order   [broker: Party, buyer: Party, desc: Text, limit: Nat]
 fact Reserve [broker: Party, buyer: Party, lot: Nat, offer: Nat]
-fact Budget  [broker: Party, buyer: Party, budget: Nat]
+fact Budget  [broker: Party, buyer: Party, desc: Text, budget: Nat, remain: Nat]
 *)
 
-(* Boilerplate for fact definitions: these would be a lot cleaner if we used a shallow embedding for the types,
-   but they're all pretty mechanical anyway.
+(* Because we use a shallow embedding of expressions and a deep embedding of values, we define
+   constructor and accessor functions to use the deeply embedded fact values.
+   These would be a lot cleaner if we used a shallow embedding for the types, but they're all pretty mechanical anyway.
 *)
 definition "mk_AcceptPayload lot broker price = vpair (vlit (lsymbol lot)) (vpair (vlit (lparty broker)) (vlit (lnat price)))"
-fun tk_AcceptPayload where
-  "tk_AcceptPayload (vpair (vlit (lsymbol lot)) (vpair (vlit (lparty broker)) (vlit (lnat price)))) = (lot, broker, price)"
-| "tk_AcceptPayload _ = undefined" 
+definition "tk_AcceptPayload v =
+ (case v of (vpair (vlit (lsymbol lot)) (vpair (vlit (lparty broker)) (vlit (lnat price))))
+  \<Rightarrow> (lot, broker, price))"
 
 definition "Accept_lot    =       fst o tk_AcceptPayload o fact_value"
 definition "Accept_broker = fst o snd o tk_AcceptPayload o fact_value"
@@ -43,9 +44,9 @@ definition "mk_Accept lot broker price by obs = \<lparr>fact_name = Accept, fact
 
 
 definition "mk_ItemPayload lot desc ask = vpair (vlit (lsymbol lot)) (vpair (vlit (lsymbol desc)) (vlit (lnat ask)))"
-fun tk_ItemPayload where
-  "tk_ItemPayload (vpair (vlit (lsymbol lot)) (vpair (vlit (lsymbol desc)) (vlit (lnat ask)))) = (lot, desc, ask)"
-| "tk_ItemPayload _ = undefined" 
+definition "tk_ItemPayload v =
+  (case v of (vpair (vlit (lsymbol lot)) (vpair (vlit (lsymbol desc)) (vlit (lnat ask))))
+  \<Rightarrow> (lot, desc, ask))"
 
 definition "Item_lot  =       fst o tk_ItemPayload o fact_value"
 definition "Item_desc = fst o snd o tk_ItemPayload o fact_value"
@@ -56,9 +57,9 @@ definition "mk_Item lot desc ask by obs = \<lparr>fact_name = Item, fact_value =
 
 
 definition "mk_InvoicePayload broker buyer desc amount = vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol desc)) (vlit (lnat amount))))"
-fun tk_InvoicePayload where
-  "tk_InvoicePayload (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol desc)) (vlit (lnat amount))))) = (broker, buyer, desc, amount)"
-| "tk_InvoicePayload _ = undefined" 
+definition "tk_InvoicePayload v =
+  (case v of (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol desc)) (vlit (lnat amount)))))
+  \<Rightarrow> (broker, buyer, desc, amount))"
 
 definition "Invoice_broker =             fst o tk_InvoicePayload o fact_value"
 definition "Invoice_buyer  =       fst o snd o tk_InvoicePayload o fact_value"
@@ -70,9 +71,9 @@ definition "mk_Invoice broker buyer desc amount by obs = \<lparr>fact_name = Inv
 
 
 definition "mk_BidPayload lot broker buyer price = vpair (vlit (lsymbol lot)) (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vlit (lnat price))))"
-fun tk_BidPayload where
-  "tk_BidPayload (vpair (vlit (lsymbol lot)) (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vlit (lnat price))))) = (lot, broker, buyer, price)"
-| "tk_BidPayload _ = undefined" 
+definition "tk_BidPayload v =
+ (case v of (vpair (vlit (lsymbol lot)) (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vlit (lnat price)))))
+ \<Rightarrow> (lot, broker, buyer, price))"
 
 definition "Bid_lot    =             fst o tk_BidPayload o fact_value"
 definition "Bid_broker =       fst o snd o tk_BidPayload o fact_value"
@@ -95,9 +96,9 @@ definition "mk_Offer lot broker buyer price by obs = \<lparr>fact_name = Offer, 
 
 
 definition "mk_OrderPayload broker buyer desc limit budget = vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol desc)) (vpair (vlit (lnat limit)) (vlit (lnat budget)))))"
-fun tk_OrderPayload where
-  "tk_OrderPayload (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol desc)) (vpair (vlit (lnat limit)) (vlit (lnat budget)))))) = (broker, buyer, desc, limit, budget)"
-| "tk_OrderPayload _ = undefined" 
+definition "tk_OrderPayload v =
+ (case v of (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol desc)) (vpair (vlit (lnat limit)) (vlit (lnat budget))))))
+ \<Rightarrow> (broker, buyer, desc, limit, budget))"
 
 definition "Order_broker =                   fst o tk_OrderPayload o fact_value"
 definition "Order_buyer  =             fst o snd o tk_OrderPayload o fact_value"
@@ -110,9 +111,9 @@ definition "mk_Order broker buyer desc limit budget by obs = \<lparr>fact_name =
 
 
 definition "mk_ReservePayload broker buyer lot amount = vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol lot)) (vlit (lnat amount))))"
-fun tk_ReservePayload where
-  "tk_ReservePayload (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol lot)) (vlit (lnat amount))))) = (broker, buyer, lot, amount)"
-| "tk_ReservePayload _ = undefined" 
+definition "tk_ReservePayload v = 
+  (case v of (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol lot)) (vlit (lnat amount)))))
+  \<Rightarrow> (broker, buyer, lot, amount))"
 
 definition "Reserve_broker =             fst o tk_ReservePayload o fact_value"
 definition "Reserve_buyer  =       fst o snd o tk_ReservePayload o fact_value"
@@ -123,28 +124,39 @@ definition "Reserve = fact_ctor ''Reserve''"
 definition "mk_Reserve broker buyer lot amount by obs = \<lparr>fact_name = Reserve, fact_value = mk_ReservePayload broker buyer lot amount, fact_by = by, fact_obs = obs, fact_rules = broker_rules\<rparr>"
 
 
-definition "mk_BudgetPayload broker buyer budget remain = vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lnat budget)) (vlit (lnat remain))))"
-fun tk_BudgetPayload where
-  "tk_BudgetPayload (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lnat budget)) (vlit (lnat remain))))) = (broker, buyer, budget, remain)"
-| "tk_BudgetPayload _ = undefined" 
+definition "mk_BudgetPayload broker buyer desc budget remain = vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol desc)) (vpair (vlit (lnat budget)) (vlit (lnat remain)))))"
+definition "tk_BudgetPayload v =
+  (case v of (vpair (vlit (lparty broker)) (vpair (vlit (lparty buyer)) (vpair (vlit (lsymbol desc)) (vpair (vlit (lnat budget)) (vlit (lnat remain))))))
+  \<Rightarrow> (broker, buyer, desc, budget, remain))"
 
-definition "Budget_broker =             fst o tk_BudgetPayload o fact_value"
-definition "Budget_buyer  =       fst o snd o tk_BudgetPayload o fact_value"
-definition "Budget_budget = fst o snd o snd o tk_BudgetPayload o fact_value"
-definition "Budget_remain = snd o snd o snd o tk_BudgetPayload o fact_value"
+definition "Budget_broker =                   fst o tk_BudgetPayload o fact_value"
+definition "Budget_buyer  =             fst o snd o tk_BudgetPayload o fact_value"
+definition "Budget_desc   =       fst o snd o snd o tk_BudgetPayload o fact_value"
+definition "Budget_budget = fst o snd o snd o snd o tk_BudgetPayload o fact_value"
+definition "Budget_remain = snd o snd o snd o snd o tk_BudgetPayload o fact_value"
 
 definition "Budget = fact_ctor ''Budget''"
-definition "mk_Budget broker buyer budget remain by obs = \<lparr>fact_name = Budget, fact_value = mk_BudgetPayload broker buyer budget remain, fact_by = by, fact_obs = obs, fact_rules = broker_rules\<rparr>"
+definition "mk_Budget broker buyer desc budget remain by obs = \<lparr>fact_name = Budget, fact_value = mk_BudgetPayload broker buyer desc budget remain, fact_by = by, fact_obs = obs, fact_rules = broker_rules\<rparr>"
 
 lemmas payload_defs =
+  mk_AcceptPayload_def tk_AcceptPayload_def Accept_lot_def Accept_broker_def Accept_ask_def mk_Accept_def
+  mk_ItemPayload_def tk_ItemPayload_def Item_lot_def Item_desc_def Item_ask_def mk_Item_def
+  mk_InvoicePayload_def tk_InvoicePayload_def Invoice_broker_def Invoice_buyer_def Invoice_desc_def Invoice_amount_def mk_Invoice_def
+  mk_BidPayload_def tk_BidPayload_def Bid_lot_def Bid_broker_def Bid_buyer_def Bid_price_def mk_Bid_def
+  mk_OfferPayload_def tk_OfferPayload_def Offer_lot_def Offer_broker_def Offer_buyer_def Offer_price_def mk_Offer_def
+  mk_OrderPayload_def tk_OrderPayload_def Order_broker_def Order_buyer_def Order_desc_def Order_limit_def Order_budget_def mk_Order_def
+  mk_ReservePayload_def tk_ReservePayload_def Reserve_broker_def Reserve_buyer_def Reserve_lot_def Reserve_amount_def mk_Reserve_def
+  mk_BudgetPayload_def tk_BudgetPayload_def Budget_broker_def Budget_buyer_def Budget_desc_def Budget_budget_def Budget_remain_def mk_Budget_def
+
+lemmas payload_defs_no_tk =
   mk_AcceptPayload_def Accept_lot_def Accept_broker_def Accept_ask_def mk_Accept_def
   mk_ItemPayload_def Item_lot_def Item_desc_def Item_ask_def mk_Item_def
   mk_InvoicePayload_def Invoice_broker_def Invoice_buyer_def Invoice_desc_def Invoice_amount_def mk_Invoice_def
   mk_BidPayload_def Bid_lot_def Bid_broker_def Bid_buyer_def Bid_price_def mk_Bid_def
-  mk_OfferPayload_def tk_OfferPayload_def Offer_lot_def Offer_broker_def Offer_buyer_def Offer_price_def mk_Offer_def
+  mk_OfferPayload_def Offer_lot_def Offer_broker_def Offer_buyer_def Offer_price_def mk_Offer_def
   mk_OrderPayload_def Order_broker_def Order_buyer_def Order_desc_def Order_limit_def Order_budget_def mk_Order_def
   mk_ReservePayload_def Reserve_broker_def Reserve_buyer_def Reserve_lot_def Reserve_amount_def mk_Reserve_def
-  mk_BudgetPayload_def Budget_broker_def Budget_buyer_def Budget_budget_def Budget_remain_def mk_Budget_def
+  mk_BudgetPayload_def Budget_broker_def Budget_buyer_def Budget_desc_def Budget_budget_def Budget_remain_def mk_Budget_def
 
 lemmas fact_ctor_defs =
   Accept_def Item_def Invoice_def Bid_def Offer_def Order_def Reserve_def Budget_def
@@ -226,8 +238,8 @@ definition
         (\<lambda>h. {Budget_broker (h budget_v)})
   ]
   (\<lambda>h. {#
-    mk_Budget (Budget_broker (h budget_v)) (Budget_buyer (h budget_v)) (Budget_budget (h budget_v))
-          (Budget_remain (h budget_v) - Reserve_amount (h reserve_v))
+    mk_Budget (Budget_broker (h budget_v)) (Budget_buyer (h budget_v)) (Budget_desc (h budget_v))
+          (Budget_budget (h budget_v)) (Budget_remain (h budget_v) - Reserve_amount (h reserve_v))
           {Budget_broker (h budget_v)}
           {}
   , mk_Bid (Item_lot (h item_v)) (Reserve_broker (h reserve_v)) (Order_buyer (h order_v)) (Reserve_amount (h reserve_v))
@@ -253,8 +265,7 @@ definition "offers_for_budget s b =
 
 definition "budget_matches_order b order =
   (Order_buyer order = Budget_buyer b \<and> Order_broker order = Budget_broker b)"
-(* TODO: Budget is missing the description, so we only allow one order per buyer.
-   We should add the restriction that budgets are specific to order descriptions *)
+(* We only allow one order per buyer. *)
 
 definition "budgets_for_order s order =
   {# b \<in># facts_of_type Budget s. budget_matches_order b order #}"
@@ -291,10 +302,10 @@ lemmas invariant_defs =
 
 (* Method to fully eliminate evaluation of a rule *)
 method elim_EvRule =
-  elim EvFire.cases EvExec.cases; clarsimp;
+  elim EvFire.cases EvExec.cases; clarify; simp;
   elim EvMatches_inverts;
-  elim EvMatch.cases EvGather.cases; clarsimp;
-  elim EvGain_inverts EvSelect_inverts EvConsume_inverts; clarsimp
+  elim EvMatch.cases EvGather.cases; clarify; simp;
+  elim EvGain_inverts EvSelect_inverts EvConsume_inverts; clarify; simp
 
 
 section \<open>Invariant is established\<close>
@@ -416,7 +427,7 @@ lemma budget_ok__accept_offer_ok:
         (add_mset
           (mk_Invoice (Accept_broker fc) (Offer_buyer fd) (Item_desc fe) (Offer_price fd) by obs)
           s) b"
-  apply (simp add: invariant_defs fact_ctor_defs payload_defs)
+  apply (simp add: invariant_defs fact_ctor_defs payload_defs_no_tk tk_InvoicePayload_def)
   by (intro allI conjI impI; force simp add: add.assoc add.left_commute)
 
 lemma store_ok__accept_offer_ok:
@@ -440,7 +451,7 @@ lemma store_ok__auction_accept__ok:
  \<Longrightarrow> asub | s \<turnstile> auction_accept \<Down> fread | dspent | dnew | s' FIRE
  \<Longrightarrow> store_ok s'"
   unfolding rule_defs fact_var_defs
-  apply elim_EvRule (* This elimination step is quite slow (30s) *)
+  apply elim_EvRule
   apply (simp add: check_gather_def)
   apply (rule_tac
         t="add_mset (mk_Invoice (Accept_broker fc) (Offer_buyer fd) (Item_desc fe) (Offer_price fd)
@@ -471,7 +482,7 @@ lemma order_ok__add_bid_budget_ok:
    Reserve_amount fb \<le> Order_limit f \<Longrightarrow>
    order_ok
     (add_mset
-      (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
+      (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_desc fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
         buby buobs)
       (add_mset
         (mk_Bid (Item_lot fa) (Budget_broker fc) (Budget_buyer fc) (Reserve_amount fb)
@@ -482,7 +493,6 @@ lemma order_ok__add_bid_budget_ok:
    apply (intro impI conjI allI; simp)
      apply (simp add: HOL.Let_def)
      apply (intro conjI; auto)
-    (* TODO: rewrite without smt *)
     apply (smt Budget_def empty_not_add_mset filter_diff_mset filter_empty_mset filter_mset_add_mset multi_member_split)
    apply force
   by (force simp add: invariant_defs fact_ctor_defs payload_defs)
@@ -505,7 +515,7 @@ lemma store_ok__add_bid_budget_ok:
    Reserve_amount fb \<le> Order_limit f \<Longrightarrow>
    store_ok
     (add_mset
-      (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
+      (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_desc fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
         buby buobs)
       (add_mset
         (mk_Bid (Item_lot fa) (Budget_broker fc) (Budget_buyer fc) (Reserve_amount fb)
@@ -520,18 +530,18 @@ lemma store_ok__broker_reserve__ok:
  \<Longrightarrow> asub | s \<turnstile> broker_reserve \<Down> fread | dspent | dnew | s' FIRE
  \<Longrightarrow> store_ok s'"
   unfolding rule_defs fact_var_defs
-  apply (elim EvFire.cases EvExec.cases; clarsimp)
+  apply (elim EvFire.cases EvExec.cases; clarify; simp)
   apply (elim EvMatches_inverts)
   apply (elim EvMatch.cases)
   apply (elim EvGather.cases)
-  apply clarsimp
-  apply (elim EvGain.cases; clarsimp)
-  apply (elim EvSelect_inverts; clarsimp)
-  apply (elim EvConsume_inverts; clarsimp)
+  apply (clarify; simp)
+  apply (elim EvGain.cases; clarify; simp)
+  apply (elim EvSelect_inverts)
+  apply (elim EvConsume_inverts; clarify)
   apply (simp add: check_gather_def find_firsts_def)
   apply (rule_tac
         t="(add_mset
-          (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
+          (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_desc fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
             {Budget_broker fc} {})
           (add_mset
             (mk_Bid (Item_lot fa) (Budget_broker fc) (Budget_buyer fc) (Reserve_amount fb)
@@ -539,7 +549,7 @@ lemma store_ok__broker_reserve__ok:
             s) -
          {#fc, fb#})"
     and s="(add_mset
-      (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
+      (mk_Budget (Budget_broker fc) (Budget_buyer fc) (Budget_desc fc) (Budget_budget fc) (Budget_remain fc - Reserve_amount fb)
             {Budget_broker fc} {})
       (add_mset
         (mk_Bid (Item_lot fa) (Budget_broker fc) (Budget_buyer fc) (Reserve_amount fb)
