@@ -6,6 +6,8 @@ import qualified Rainfall.Core.Exp                      as C
 import qualified Rainfall.EDSL                          as CC
 import qualified Control.Monad.Trans.State.Strict       as S
 import Data.Maybe
+import qualified Data.Map.Strict                        as Map
+import Data.Map                                         (Map)
 import qualified Debug.Trace as Debug
 
 
@@ -22,29 +24,40 @@ fresh
         S.put (prefix, n + 1)
         return $ Name (prefix ++ show n)
 
+type Facts a = Map Name [(Name, E.Type a)]
+
 
 ------------------------------------------------------------------------------------------- Decl --
 -- | Lower a list of source decls to core.
 lowerDecls :: Show a => [E.Decl a] -> S [C.Rule a]
 lowerDecls ds
- = fmap catMaybes $ mapM lowerDecl ds
+ = do   let dsFact = Map.fromList [(nFact, fs) | E.DeclFact nFact fs <- ds ]
+        fmap catMaybes $ mapM (lowerDecl dsFact) ds
 
 
 -- | Lower a source decl to core.
-lowerDecl :: Show a => E.Decl a -> S (Maybe (C.Rule a))
-lowerDecl d
+lowerDecl
+        :: Show a
+        => Facts a -> E.Decl a
+        -> S (Maybe (C.Rule a))
+
+lowerDecl dsFact d
  = case d of
         E.DeclFact{}      -> pure Nothing
-        E.DeclRule rule   -> Just <$> lowerRule rule
+        E.DeclRule rule   -> Just <$> lowerRule dsFact rule
 
 
 ------------------------------------------------------------------------------------------- Rule --
 -- | Lower a source rule to core.
-lowerRule :: Show a => E.Rule a -> S (C.Rule a)
-lowerRule (E.Rule nRule hsMatch _m)
+lowerRule
+        :: Show a
+        => Facts a -> E.Rule a
+        -> S (C.Rule a)
+
+lowerRule dsFact (E.Rule nRule hsMatch _m)
  = do
         (_nmsMatch, hsMatch')
-         <- lowerMatches [] hsMatch
+         <- lowerMatches dsFact [] hsMatch
 
         pure $ C.Rule nRule hsMatch' C.MUnit
 
@@ -53,33 +66,35 @@ lowerRule (E.Rule nRule hsMatch _m)
 -- | Lower a sequence of matches to core.
 lowerMatches
         :: Show a
-        => [(Name, C.Term a)]           -- ^ Definition of match variables in scope.
+        => Facts a
+        -> [(Name, C.Term a)]           -- ^ Definition of match variables in scope.
         -> [E.Match a]
         -> S ([(Name, C.Term a)], [C.Match a])
 
-lowerMatches nmsMatch []
+lowerMatches _dsFact nmsMatch []
  = return (nmsMatch, [])
 
-lowerMatches nmsMatch (m : ms)
- = do   (nmsMatch', m')   <- lowerMatch   nmsMatch  m
-        (nmsMatch'', ms') <- lowerMatches nmsMatch' ms
+lowerMatches dsFact  nmsMatch (m : ms)
+ = do   (nmsMatch', m')   <- lowerMatch   dsFact nmsMatch  m
+        (nmsMatch'', ms') <- lowerMatches dsFact nmsMatch' ms
         return (nmsMatch'', (m' : ms'))
 
 
 -- | Lower a source fact matcher to core.
 lowerMatch
         :: Show a
-        => [(Name, C.Term a)]           -- ^ Definitions of match variable in scope.
+        => Facts a
+        -> [(Name, C.Term a)]           -- ^ Definitions of match variable in scope.
         -> E.Match a                    -- ^ Match to desugar.
         -> S ([(Name, C.Term a)], C.Match a)
 
-lowerMatch nmsMatch (E.MatchAnn a m)
+lowerMatch dsFact nmsMatch (E.MatchAnn a m)
  = do   (nmsMatch', m')
-         <- lowerMatch nmsMatch m
+         <- lowerMatch dsFact nmsMatch m
 
         return  (nmsMatch', C.MatchAnn a m')
 
-lowerMatch nmsMatch (E.Match mbBind gather _select _consume _gain)
+lowerMatch dsFact nmsMatch (E.Match mbBind gather _select _consume _gain)
  = do
         nBindFact
           <- case mbBind of
@@ -88,7 +103,7 @@ lowerMatch nmsMatch (E.Match mbBind gather _select _consume _gain)
                 Nothing            -> fresh
 
         (nmsMatch', gather')
-         <- lowerGather nmsMatch nBindFact gather
+         <- lowerGather dsFact nmsMatch nBindFact gather
 
         select'  <- pure $ C.SelectAny
         consume' <- pure $ C.ConsumeNone
@@ -109,30 +124,34 @@ lowerMatch nmsMatch (E.Match mbBind gather _select _consume _gain)
 --
 lowerGather
         :: Show a
-        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        => Facts a
+        -> [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
         -> Name                         -- ^ Variable bound to the fact being considered.
         -> E.Gather a                   -- ^ Gather to desugar.
         -> S ([(Name, C.Term a)], C.Gather a)
 
-lowerGather nmsMatch nBindFact (E.GatherAnn a g)
+lowerGather dsFact nmsMatch nBindFact (E.GatherAnn a g)
  = do   (nmsMatch', g')
-          <- lowerGather nmsMatch nBindFact g
+          <- lowerGather dsFact nmsMatch nBindFact g
         return  (nmsMatch', C.GatherAnn a g')
 
-lowerGather nmsMatch nBindFact (E.GatherPat nFact fsMatch mmPred)
+lowerGather dsFact nmsMatch nBindFact (E.GatherPat nFact fsMatch mmPred)
  = do
+        let ntsField = fromMaybe [] $ Map.lookup nFact dsFact
+
         (mnsMatch', msPred)
-         <- lowerGatherFields nmsMatch [] nBindFact fsMatch
+         <- lowerGatherFields ntsField nmsMatch [] nBindFact fsMatch
 
         mmPred'
          <- case mmPred of
                 Nothing -> return Nothing
                 Just m  -> Just <$> lowerTerm nmsMatch m
 
+
         return  ( mnsMatch'
                 , C.GatherWhere nFact (maybeToList mmPred' ++ reverse msPred))
 
-lowerGather _nmsMatch _nBind _
+lowerGather _dsFact _nmsMatch _nBind _
  = error "lowerGather: not finished"
 
 
@@ -140,49 +159,63 @@ lowerGather _nmsMatch _nBind _
 --   Match variables defined in earlier fields are in-scope in latter fields.
 lowerGatherFields
         :: Show a
-        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        => [(Name, E.Type a)]           -- ^ Types of fields for this fact.
+        -> [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
         -> [C.Term a]                   -- ^ Predicate terms so far.
         -> Name                         -- ^ Variable bound to the fact being gathered.
         -> [(Name, E.GatherPat a)]      -- ^ More field matchings to desugar.
         -> S ([(Name, C.Term a)], [C.Term a])
 
-lowerGatherFields nmsMatch msPred
+lowerGatherFields _ntsField nmsMatch msPred
         _nBoundFact []
  =      return (nmsMatch, msPred)
 
-lowerGatherFields nmsMatch msPred
+lowerGatherFields ntsField nmsMatch msPred
         nBoundFact ((nField, gatherPat) : rest)
  = do
         (nmMatch, mPred)
-         <- lowerGatherPat nmsMatch nBoundFact nField gatherPat
+         <- lowerGatherPat ntsField nmsMatch nBoundFact nField gatherPat
 
         let nmsMatch'   = maybeToList nmMatch ++ nmsMatch
         let msPred'     = maybeToList mPred   ++ msPred
 
-        lowerGatherFields nmsMatch' msPred' nBoundFact rest
+        lowerGatherFields ntsField nmsMatch' msPred' nBoundFact rest
 
 
 -- | Lower a gather pattern.
---   TODO: need the fact decls so we can work out the field types.
 lowerGatherPat
         :: Show a
-        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        => [(Name, E.Type a)]           -- ^ Types of fields for thie fact.
+        -> [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
         -> Name                         -- ^ Variable bound to the fact being considered.
         -> Name                         -- ^ Name of the current field.
         -> E.GatherPat a                -- ^ Pattern to desguar.
         -> S ( Maybe (Name, (C.Term a)) -- Match variable to bind in the body.
              , Maybe (C.Term a))        -- Match predicate to check.
 
-lowerGatherPat _nmsMatch nBindFact nField
+lowerGatherPat _ntsField _nmsMatch nBindFact nField
         (E.GatherPatBind n)
  = do   return  ( Just (n, C.MPrj (C.MVar nBindFact) nField)
                 , Nothing)
 
-lowerGatherPat nmsMatch nBindFact nField
+lowerGatherPat ntsField nmsMatch nBindFact nField
         (E.GatherPatEq mTerm)
  = do
+        -- Lower the match term to core.
         mTerm' <- lowerTerm nmsMatch mTerm
-        let mPred' =  CC.nat'eq (C.MVar nBindFact CC.! nField) mTerm'
+
+        -- Decide what comparison function to use
+        -- to compare the field value with the stated term.
+        let fEq = case lookup nField ntsField of
+                        Just (E.TCon "Bool")   -> CC.bool'eq
+                        Just (E.TCon "Nat")    -> CC.nat'eq
+                        Just (E.TCon "Text")   -> CC.text'eq
+                        Just (E.TCon "Symbol") -> CC.symbol'eq
+                        Just (E.TCon "Party")  -> CC.party'eq
+                        t -> error $ "lowerGatherPat: no comparison for " ++ show t
+
+        -- Buila a term to do the comparison.
+        let mPred' = fEq (C.MVar nBindFact CC.! nField) mTerm'
 
         return  (Nothing, Just mPred')
 

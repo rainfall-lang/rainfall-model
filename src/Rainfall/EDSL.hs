@@ -12,11 +12,12 @@ module Rainfall.EDSL
         , auths
 
         , say, sqq
+        , bool'eq
+        , nat'add, nat'sub, nat'eq, nat'le, nat'ge
+        , text'eq
         , symbol'eq
         , party'eq
         , auth'one, auth'union, auth'unions, auth'parties
-        , nat'add, nat'sub, nat'eq, nat'le, nat'ge
-        , text'eq
 
         , runScenario
         , printStoreS
@@ -57,9 +58,9 @@ gain  m                 = GainTerm m
 -- Term -------------------------------------------------------------------------------------------
 unit                    = MUnit
 bool  b                 = MBool  b
-sym   s                 = MSym   s
 nat   n                 = MNat   n
 text  t                 = MText  t
+sym   s                 = MSym   s
 party n                 = MParty n
 auth  ns                = MAuth  (Set.fromList ns)
 rules ns                = MRules ns
@@ -79,9 +80,7 @@ say nFact nmsFields nmsMeta
         (nsMeta,   vsMeta)      = unzip nmsMeta
    in   MSay nFact (MRcd nsFields vsFields) (MRcd nsMeta vsMeta)
 
-symbol'eq mx my         = MApp (MPrm "symbol'eq")       [mx, my]
-
-party'eq  mx my         = MApp (MPrm "party'eq")        [mx, my]
+bool'eq mx my           = MApp (MPrm "bool'eq")         [mx, my]
 
 nat'add nx ny           = MApp (MPrm "nat'add")         [nx, ny]
 nat'sub nx ny           = MApp (MPrm "nat'sub")         [nx, ny]
@@ -90,6 +89,10 @@ nat'le  nx ny           = MApp (MPrm "nat'le")          [nx, ny]
 nat'ge  nx ny           = MApp (MPrm "nat'ge")          [nx, ny]
 
 text'eq tx ty           = MApp (MPrm "text'eq")         [tx, ty]
+
+symbol'eq mx my         = MApp (MPrm "symbol'eq")       [mx, my]
+
+party'eq  mx my         = MApp (MPrm "party'eq")        [mx, my]
 
 auth'one   mp           = MApp (MPrm "auth'one")        [mp]
 auth'union ma mb        = MApp (MPrm "auth'union")      [ma, mb]
