@@ -30,27 +30,29 @@ scanner _fileName
                 0       -> Char.isUpper c
                 _       -> Char.isAlpha c
 
-        , fmap (stamp KSym) $ munchWord $ \ix c
-          -> case ix of
-                0       -> c == '\''
-                _       -> Char.isAlphaNum c
+        , fmap  (stamp KSym) $ munchPred Nothing
+                (\ix c -> case ix of
+                                0       -> c == '\''
+                                _       -> Char.isAlphaNum c)
+                (\('\'' : rest) -> Just rest)
 
-        , fmap (stamp KMatch) $ munchWord $ \ix c
-          -> case ix of
-                0       -> c == '?'
-                1       -> Char.isLower c
-                _       -> Char.isAlphaNum c
+        , fmap  (stamp KMatch) $ munchPred Nothing
+                (\ix c -> case ix of
+                                0       -> c == '?'
+                                1       -> Char.isLower c
+                                _       -> Char.isAlphaNum c)
+                (\('?' : rest) -> Just rest)
+
+        , fmap  (stamp KParty) $ munchPred Nothing
+                (\ix c -> case ix of
+                                0       -> c == '!'
+                                1       -> Char.isUpper c
+                                _       -> Char.isAlphaNum c)
+                (\('!' : rest) -> Just rest)
 
         , fmap (stamp KInt)     $ scanInteger
         , fmap (stamp KChar)    $ scanHaskellChar
         , fmap (stamp KText)    $ scanHaskellString
-
-        , fmap (stamp KParty)
-          $ munchWord $ \ix c
-          -> case ix of
-                0       -> c == '!'
-                1       -> Char.isUpper c
-                _       -> Char.isAlphaNum c
 
         ]
  where  -- Stamp a token with source location information.
