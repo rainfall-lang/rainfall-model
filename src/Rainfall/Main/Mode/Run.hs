@@ -41,24 +41,28 @@ runScenario config rules (C.Scenario _name actions)
                 , worldRules    = Map.fromList [ (C.ruleName r, r) | r <- rules ] }
 
         flip S.evalStateT world
-         $ mapM_ (runAction config world) actions
+         $ mapM_ (runAction config) actions
 
 
 ----------------------------------------------------------------------------------------- Action --
 runAction
-        :: Main.Config -> World
+        :: Main.Config
         -> C.Action Parser.RL -> S ()
 
-runAction _config _world (C.ActionAdd mFoids)
+runAction _config (C.ActionAdd mFoids)
  = do   let vFoids      = C.evalTerm (C.Env []) mFoids
         let Just foids  = C.takeFactoidsOfValue vFoids
         S.modify $ \s -> s {
                 worldStore = Map.unionWith (+) foids (worldStore s) }
 
-runAction _config _world (C.ActionFire mSub mRules)
+runAction _config (C.ActionFire mSub mRules)
  = do   let Just aSub   = C.takeAuthOfValue  $ C.evalTerm (C.Env []) mSub
         let Just rs     = C.takeRulesOfValue $ C.evalTerm (C.Env []) mRules
         mapM_ (fireRuleS aSub) $ Set.toList rs
+
+runAction _config C.ActionDump
+ = do   store   <- S.gets worldStore
+        S.liftIO $ putStrLn $ (P.displayS $ renderMax $ C.ppStore store) ""
 
 
 ------------------------------------------------------------------------------------------- Fire --

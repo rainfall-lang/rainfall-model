@@ -105,5 +105,7 @@ data Action a
         | ActionFire
         { actionFireAuth        :: Term a
         , actionFireRules       :: Term a }
+
+        | ActionDump
         deriving Show
 

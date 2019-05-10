@@ -42,7 +42,7 @@ evalTerm _env (MRef mr)
         MRVal v -> v
 
 evalTerm env (MRcd ns ms)
- = let  vs      = map (evalTerm env) ms
+ = let  vs = map (evalTerm env) ms
    in   VRcd ns vs
 
 evalTerm env (MPrj mRcd nField)
@@ -62,6 +62,10 @@ evalTerm env (MPrj mRcd nField)
                 [ "evalTerm: cannot project field from non-record"
                 , "  value = " ++ show v
                 , "  field = " ++ show nField ]
+
+evalTerm env (MPrm nPrim msArg)
+ = let  vsArg = map (evalTerm env) msArg
+   in   evalPrim nPrim vsArg
 
 evalTerm env (MSay nFact mData mBy mObs mUse mNum)
  | VRcd nsData vsData   <- evalTerm env mData
@@ -98,8 +102,9 @@ evalTerm env (MSet msElem)
    in   VSet $ Set.fromList $ vsElem
 
 evalTerm _ m@(MKey{})
- = error $ "evalTerm: malformed term"
-        ++ show m
+ = error $ unlines
+        [ "evalTerm: malformed term"
+        , show m ]
 
 
 ---------------------------------------------------------------------------------------------------

@@ -21,10 +21,12 @@ scenario test to
 
  add    say Offer  [ id = '1234
                    , giver = !Alice, receiver = !Bob]
-        by {!Alice} use {'transfer}
+        by {!Alice} obs {!Bob} use {'transfer}
 
  add    say Accept [id = '1234, accepter = !Bob]
-        by {!Bob}   use {'transfer}
+        by {!Bob}   obs {!Alice} use {'transfer}
+
+ dump
 
  fire   by {!Alice} rules {'transfer}
 

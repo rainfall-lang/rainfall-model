@@ -31,18 +31,21 @@ applyFire
 
 applyFire aSub store rule
  = do
-        (aHas, dsSpend, store', env')
-         <- applyMatches (ruleName rule) aSub Set.empty
-                Map.empty store (Env []) (ruleMatch rule)
+        (_fsRead, dsSpend, aGain, env)
+         <- applyMatches
+                (ruleName rule) aSub store (Env [])
+                (ruleMatch rule)
 
         let Just dsNew
                 = takeFactoidsOfValue
-                $ evalTerm env' (ruleBody rule)
+                $ evalTerm env (ruleBody rule)
 
-        guard $ all (authCoversFact aHas) $ Map.keys dsNew
+        guard $ all (authCoversFact aGain) $ Map.keys dsNew
 
         let trans   = Transaction (ruleName rule) dsSpend dsNew
-        let store'' = storePrune $ Map.unionWith (+) dsNew store'
+
+        let store'  = storeUp store dsNew
+        store''    <- maybeToList $ storeDown store' dsSpend
 
         return  (trans, store'')
 
@@ -54,25 +57,27 @@ applyMatches
         :: Show a
         => Name         -- ^ Name of the current rule.
         -> Auth         -- ^ Authority of the submitter.
-        -> Auth         -- ^ Current authority of the rule.
-        -> Factoids     -- ^ Factoids spent so far.
         -> Store        -- ^ Initial store.
         -> Env          -- ^ Initial environment.
         -> [Match a]    -- ^ Matches to apply.
-        -> [(Auth, Factoids, Store, Env)]
+        -> [(Facts, Factoids, Auth, Env)]
 
-applyMatches _name _aSub aHas dSpent store env []
- =      return (aHas, dSpent, store, env)
+applyMatches _name _aSub _store env []
+ =      return (Set.empty, Map.empty, Set.empty, env)
 
-applyMatches name aSub aHas dSpent store env (match : matches)
+applyMatches name aSub store env (match : matches)
  = do
-        (aGain, dSpent', store', env')
+        (fRead, dSpend, aGain, env')
          <- applyMatch name aSub store env match
 
-        let aHas'       = Set.union aHas aGain
-        let dSpent''    = Map.unionWith (+) dSpent dSpent'
+        (fsRead', dsSpend', aGain', env'')
+         <- applyMatches name aSub store env' matches
 
-        applyMatches name aSub aHas' dSpent'' store' env' matches
+        let fsRead''    = Set.union     (Set.singleton fRead) fsRead'
+        let dsSpend''   = Map.unionWith (+) (Map.fromList [dSpend]) dsSpend'
+        let aGain''     = Set.union     aGain aGain'
+
+        return (fsRead'', dsSpend'', aGain'', env'')
 
 
 ---------------------------------------------------------------------------------------------------
@@ -88,7 +93,7 @@ applyMatch
         -> Store        -- ^ Initial store.
         -> Env          -- ^ Initial environment.
         -> Match a
-        -> [(Auth, Factoids, Store, Env)]
+        -> [(Fact, Factoid, Auth, Env)]
 
 applyMatch nRule aSub store env (MatchAnn _a match)
  = applyMatch nRule aSub store env match
@@ -101,18 +106,16 @@ applyMatch nRule aSub store env (Match bFact gather select consume gain)
         -- Select a single fact from the gathered set.
         fSelect  <- applySelect fsGather env bFact select
 
-        -- The fact must have the current rule in its whitelist.
-
-        -- Consume the required quantify of the fact,
-        -- computing the weight with the new fact in scope.
+        -- Compute the weight we need to consume,
+        -- checking the fact has this rule in its whitelist, if needed.
         let env' = envBind bFact (VFact fSelect) env
-        (weight', store') <- applyConsume nRule fSelect store env' consume
-        let dSpent      = Map.singleton fSelect weight'
+        weight' <- applyConsume nRule fSelect env' consume
 
-        -- Gain authority from the matched fact.
-        aGain    <- applyGain nRule fSelect env' gain
+        -- Compute authority to gain from this fact,
+        -- checking the fact has this rule in its whitelist, if needed.
+        aGain   <- applyGain nRule fSelect env' gain
 
-        return  (aGain, dSpent, store', env')
+        return  (fSelect, (fSelect, weight'), aGain, env')
 
 
 ---------------------------------------------------------------------------------------------------
@@ -183,27 +186,20 @@ applyConsume
         :: Show a
         => Name         -- ^ Name of enclosing rule.
         -> Fact         -- ^ Fact to consume.
-        -> Store        -- ^ Initial store.
         -> Env          -- ^ Current environment.
         -> Consume a    -- ^ Consume specifier.
-        -> [(Weight, Store)]
+        -> [Weight]
 
-applyConsume nRule fact store env (ConsumeAnn _ consume)
- = applyConsume nRule fact store env consume
+applyConsume nRule fact env (ConsumeAnn _ consume)
+ = applyConsume nRule fact env consume
 
-applyConsume _nRule _fact store _env ConsumeNone
- = [(0, store)]
+applyConsume _nRule _fact _env ConsumeNone
+ =      return 0
 
-applyConsume nRule fact store env (ConsumeWeight mWeight)
- = do   let VNat nWeightWant = evalTerm env mWeight
-        let nWeightAvail     = fromMaybe 0 $ Map.lookup fact store
-
-        guard  $ nWeightAvail >= nWeightWant
-        -- TODO: check fact weight in top level rule.
-
-        guard   $ elem nRule (factUse fact)
-
-        return $ (nWeightWant, Map.insert fact (nWeightAvail - nWeightWant) store)
+applyConsume nRule fact env (ConsumeWeight mWeight)
+ = do   let VNat nWeight = evalTerm env mWeight
+        guard $ elem nRule (factUse fact)
+        return nWeight
 
 
 ---------------------------------------------------------------------------------------------------

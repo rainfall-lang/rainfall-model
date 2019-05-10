@@ -310,6 +310,8 @@ lowerAction (E.ActionFire mAuth mRules)
         mRules' <- lowerTerm [] mRules
         return  $ C.ActionFire mAuth' mRules'
 
+lowerAction E.ActionDump
+ =      return  $ C.ActionDump
 
 ------------------------------------------------------------------------------------------- Term --
 -- | Lower a source term to core.

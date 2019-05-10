@@ -118,5 +118,8 @@ pAction
         pKey "rules"
         mRules  <- pTerm
         return  $ ActionFire mAuth mRules
+
+ , do   pKey "dump"
+        return  $ ActionDump
  ]
 

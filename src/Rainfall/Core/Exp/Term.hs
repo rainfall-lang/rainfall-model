@@ -99,6 +99,8 @@ data Fact
         , factUse       :: Set Name }
         deriving (Show, Eq, Ord)
 
+type Facts      = Set Fact
+
 type Factoid    = (Fact, Weight)
 type Factoids   = Map Fact Weight
 
