@@ -1,0 +1,28 @@
+
+
+fact Item    [lot:   Nat,  desc:   Text, ask: Nat]
+fact Bid     [lot:   Nat,  offer:  Nat]
+fact Order   [desc:  Text, limit:  Nat,  budget: Nat]
+fact Budget  [total: Nat,  remain: Nat]
+fact Reserve [lot:   Nat,  bid:    Nat]
+
+
+rule reserve
+await Order   [desc  = ?d, limit = ?l]
+      consume none
+      gain {!Alice}
+  and Item    [lot   = ?o, desc  = d, ask = ?a]
+      select first a  consume none
+      check {!Mark}
+  and Budget  [total = ?t, remain = ?m]
+      gain  {!Brendan}
+  and Reserve [lot   = o,  bid    = ?b]
+      where #bool'and (#nat'le b l) (#bool'and (#nat'lt b a) (#nat'le b m))
+      gain {!Brendan}
+to #factoids'union
+      (say Budget [total = t, remain = #nat'sub m a]
+       by {!Brendan} use {'reserve})
+      (say Bid    [lot   = o, price  = a]
+       by {!Brendan, !Alice}  obs {!Mark} use {'reserve})
+
+

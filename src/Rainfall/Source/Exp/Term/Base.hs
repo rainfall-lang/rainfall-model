@@ -33,8 +33,6 @@ data TermArg a
         = MGAnn  a  (TermArg a)
         | MGTerm    (Term a)            -- ^ Term argument for a term.
         | MGTerms   [Term a]            -- ^ Multiple term arguments for a term.
-        | MGType    (Type a)            -- ^ Type argument for a term.
-        | MGTypes   [Type a]            -- ^ Multiple type arugments for a term.
         deriving (Show, Eq, Ord)
 
 

@@ -25,9 +25,18 @@ pTerm
                         , MGTerms $ maybeToList mmObs
                         , MGTerms $ maybeToList mmUse
                         , MGTerms $ maybeToList mmNum ]
- , do   pTermArg ]
+ , do   pTermApp ]
 
 
+pTermApp :: Parser (Term RL)
+pTermApp
+ = P.choice
+ [ do   nPrm    <- pPrm
+        msArg   <- P.many pTermArg
+        return  $  MPrm nPrm $ map MGTerm msArg
+
+ , do   pTermArg
+ ]
 
 -- | Parser for a term argument.
 pTermArg :: Parser (Term RL)
@@ -54,6 +63,11 @@ pTermArg
 
  , do   -- Record
         pTermRecord
+
+ , do   pPunc "("
+        m       <- pTerm
+        pPunc ")"
+        return m
  ]
 
 

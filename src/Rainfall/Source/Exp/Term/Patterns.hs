@@ -11,7 +11,6 @@ pattern MAps mFun mgssArg       = MKey   MKApp  (MGTerm  mFun : mgssArg)
 pattern MApp mFun mgsArg        = MKey   MKApp  [MGTerm  mFun, mgsArg]
 pattern MApv mFun mArg          = MKey   MKApp  [MGTerm  mFun, MGTerm  mArg]
 pattern MApm mFun msArg         = MKey   MKApp  [MGTerm  mFun, MGTerms msArg]
-pattern MApt mFun tsArg         = MKey   MKApp  [MGTerm  mFun, MGTypes tsArg]
 
 pattern MRecord ns ms           = MKey  (MKRecord ns)   [MGTerms ms]
 pattern MProject m n            = MKey  (MKProject n)   [MGTerm m]

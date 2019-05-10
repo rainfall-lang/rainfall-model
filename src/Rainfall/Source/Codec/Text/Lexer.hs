@@ -30,6 +30,12 @@ scanner _fileName
                 0       -> Char.isUpper c
                 _       -> Char.isAlpha c
 
+        , fmap  (stamp KPrm) $ munchPred Nothing
+                (\ix c -> case ix of
+                                0       -> c == '#'
+                                _       -> Char.isAlphaNum c)
+                (\('#' : rest) -> Just rest)
+
         , fmap  (stamp KSym) $ munchPred Nothing
                 (\ix c -> case ix of
                                 0       -> c == '\''
@@ -69,7 +75,10 @@ scanner _fileName
          = [ "fact"
            , "rule", "await", "and", "to"
            , "scenario", "do", "add", "fire", "rules", "dump"
-           , "select", "consume", "gain", "check", "none"
+           , "where"
+           , "select", "first", "last"
+           , "consume", "none"
+           , "gain", "check"
            , "say",  "by", "obs", "use", "num" ]
 
 

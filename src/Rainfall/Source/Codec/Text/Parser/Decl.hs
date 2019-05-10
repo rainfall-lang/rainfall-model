@@ -60,15 +60,26 @@ pMatch
                         p       <- pGatherPat
                         return  (l, p)
         pPunc "]"
+        mPred   <- pWhere
         select  <- pSelect
         consume <- pConsume
         gain    <- pGain
         return  $ Match
                 { matchBind     = Nothing
-                , matchGather   = GatherPat nFact ps Nothing
+                , matchGather   = GatherPat nFact ps mPred
                 , matchSelect   = select
                 , matchConsume  = consume
                 , matchGain     = gain }
+
+
+pWhere :: Parser (Maybe (Term RL))
+pWhere
+ = P.choice
+ [ do   pKey "where"
+        m       <- pTerm
+        return  $ Just m
+
+ , do   return  Nothing ]
 
 
 pGatherPat :: Parser (GatherPat RL)
@@ -86,16 +97,19 @@ pGatherPat
 pSelect :: Parser (Select RL)
 pSelect
  = P.choice
- [ do   pKey "any"
-        return  $ SelectAny
+ [ do   pKey "select"
+        P.choice
+         [ do   pKey "any"
+                return  $ SelectAny
 
- , do   pKey "first"
-        mKey    <- pTerm
-        return  $ SelectFirst mKey
+         , do   pKey "first"
+                mKey    <- pTerm
+                return  $ SelectFirst mKey
 
- , do   pKey "last"
-        mKey    <- pTerm
-        return  $ SelectLast mKey
+         , do   pKey "last"
+                mKey    <- pTerm
+                return  $ SelectLast mKey
+         ]
 
  , do   return  $ SelectAny
  ]
@@ -105,12 +119,14 @@ pSelect
 pConsume :: Parser (Consume RL)
 pConsume
  = P.choice
- [ do   pKey "none"
-        return  $ ConsumeNone
+ [ do   pKey "consume"
+        P.choice
+         [ do   pKey "none"
+                return  $ ConsumeNone
 
- , do   pKey "consume"
-        mWeight <- pTerm
-        return  $ ConsumeWeight mWeight
+         , do   mWeight <- pTerm
+                return  $ ConsumeWeight mWeight
+         ]
 
  , do   return $ ConsumeWeight (MNat 1)  ]
 

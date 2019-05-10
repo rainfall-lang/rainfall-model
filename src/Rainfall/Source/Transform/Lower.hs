@@ -277,12 +277,13 @@ lowerGain nmsMatch (E.GainAnn a ii)
 lowerGain _nmsMatch E.GainNone
  = do   return  $ C.GainNone
 
-lowerGain _nmsMatch (E.GainCheck _m)
- = do   error "lowerGain check: need to add a new predicate"
+lowerGain nmsMatch (E.GainCheck m)
+ = do   m' <- lowerTerm nmsMatch m
+        return  $ C.GainCheck m'
 
 lowerGain nmsMatch (E.GainTerm m)
- = do   m'      <- lowerTerm nmsMatch m
-        return   $ C.GainTerm m'
+ = do   m' <- lowerTerm nmsMatch m
+        return  $ C.GainTerm m'
 
 
 --------------------------------------------------------------------------------------- Scenario --
@@ -312,6 +313,7 @@ lowerAction (E.ActionFire mAuth mRules)
 
 lowerAction E.ActionDump
  =      return  $ C.ActionDump
+
 
 ------------------------------------------------------------------------------------------- Term --
 -- | Lower a source term to core.
@@ -343,6 +345,10 @@ lowerTerm nmsMatch (E.MApm mFun msArg)
  = do   mFun'   <- lowerTerm nmsMatch mFun
         msArg'  <- mapM (lowerTerm nmsMatch) msArg
         return  $  C.MApp mFun' msArg'
+
+lowerTerm nmsMatch (E.MPrm nPrm mgsArg)
+ = do   mgsArg' <- fmap concat $ mapM (lowerTermArg nmsMatch) mgsArg
+        return  $ C.MPrm nPrm mgsArg'
 
 lowerTerm nmsMatch (E.MRecord ns ms)
  = do   ms'     <- mapM (lowerTerm nmsMatch) ms
@@ -391,6 +397,19 @@ lowerTermRef :: E.TermRef a -> S (C.TermRef a)
 lowerTermRef tr
  = case tr of
         E.MRVal v       -> C.MRVal <$> lowerValue v
+
+
+---------------------------------------------------------------------------------------- TermArg --
+lowerTermArg
+        :: Show a
+        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        -> E.TermArg a -> S [C.Term a]
+
+lowerTermArg nmsMatch tg
+ = case tg of
+        E.MGAnn _a tg'  -> lowerTermArg nmsMatch tg'
+        E.MGTerm m      -> fmap (\x -> [x]) $ lowerTerm nmsMatch m
+        E.MGTerms ms    -> mapM (lowerTerm nmsMatch) ms
 
 
 ------------------------------------------------------------------------------------------ Value --
