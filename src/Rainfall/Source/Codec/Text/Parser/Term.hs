@@ -40,8 +40,8 @@ pTermArg
  , do   -- Syn
         pSym    >>= return . MSym
 
- , do   -- Int
-        pInt    >>= return . MInt
+ , do   -- Nat
+        pNat    >>= return . MNat
 
  , do   -- Party
         pParty  >>= return . MParty

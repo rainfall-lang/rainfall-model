@@ -3,6 +3,7 @@ module Main where
 
 import qualified Rainfall.Main.Args                     as Main
 import qualified Rainfall.Main.Config                   as Main
+import qualified Rainfall.Main.Mode.Run                 as Main
 
 import qualified Rainfall.Source.Exp                    as S
 import qualified Rainfall.Source.Codec.Text.Token       as Token
@@ -17,15 +18,17 @@ import qualified System.Exit                            as System
 
 import qualified Text.Show.Pretty                       as Pretty
 
+
 ------------------------------------------------------------------------------------------- Main --
 main :: IO ()
 main
  = do   args    <- System.getArgs
         config  <- Main.parseArgs args Main.configZero
         case Main.configMode config of
-         Main.ModeLex filePath          -> mainLex   config filePath
-         Main.ModeParse filePath        -> mainParse config filePath
-         Main.ModeLower filePath        -> mainLower config filePath
+         Main.ModeLex   filePath -> mainLex   config filePath
+         Main.ModeParse filePath -> mainParse config filePath
+         Main.ModeLower filePath -> mainLower config filePath
+         Main.ModeRun   filePath -> mainRun   config filePath
 
          Main.ModeNone
           -> do putStrLn $ Main.usage
@@ -82,5 +85,18 @@ mainLower config filePath
         putStrLn $ Pretty.ppShow rs
 
 
+-------------------------------------------------------------------------------------------- Run --
+-- | Load a source file and run the scenario tests.
+runRun :: Main.Config -> FilePath -> IO ()
+runRun config filePath
+ = do   dsCore  <- runLower config filePath
+
+        let rules       = [rule | C.DeclRule     rule <- dsCore]
+        let scenarios   = [scen | C.DeclScenario scen <- dsCore]
+
+        mapM_ (Main.runScenario config rules) scenarios
+
+mainRun config filePath
+ = runRun config filePath
 
 

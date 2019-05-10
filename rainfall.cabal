@@ -80,6 +80,7 @@ executable rainfall
 
         Rainfall.Main.Config
         Rainfall.Main.Args
+        Rainfall.Main.Mode.Run
 
 
 

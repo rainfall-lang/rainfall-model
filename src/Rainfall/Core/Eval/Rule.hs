@@ -23,9 +23,10 @@ data Transaction
 ---------------------------------------------------------------------------------------------------
 -- | Try to fire a rule applied to a store.
 applyFire
-        :: Auth         -- ^ Authority of submitter.
+        :: Show a
+        => Auth         -- ^ Authority of submitter.
         -> Store        -- ^ Initial store.
-        -> Rule ()      -- ^ Rule to apply.
+        -> Rule a       -- ^ Rule to apply.
         -> [(Transaction, Store)]
 
 applyFire aSub store rule
@@ -50,14 +51,15 @@ applyFire aSub store rule
 -- | Match multiple patterns against the store,
 --   trying to satisfy them one after another.
 applyMatches
-        :: Name         -- ^ Name of the current rule.
+        :: Show a
+        => Name         -- ^ Name of the current rule.
         -> Auth         -- ^ Authority of the submitter.
         -> Auth         -- ^ Current authority of the rule.
-        -> Factoids    -- ^ Factoids spent so far.
+        -> Factoids     -- ^ Factoids spent so far.
         -> Store        -- ^ Initial store.
-        -> Env ()       -- ^ Initial environment.
-        -> [Match ()]   -- ^ Matches to apply.
-        -> [(Auth, Factoids, Store, Env ())]
+        -> Env          -- ^ Initial environment.
+        -> [Match a]    -- ^ Matches to apply.
+        -> [(Auth, Factoids, Store, Env)]
 
 applyMatches _name _aSub aHas dSpent store env []
  =      return (aHas, dSpent, store, env)
@@ -80,12 +82,13 @@ applyMatches name aSub aHas dSpent store env (match : matches)
 --   and returns all available options.
 --
 applyMatch
-        :: Name         -- ^ Name of the current rule.
+        :: Show a
+        => Name         -- ^ Name of the current rule.
         -> Auth         -- ^ Authority of submitter.
         -> Store        -- ^ Initial store.
-        -> Env ()       -- ^ Initial environment.
-        -> Match ()
-        -> [(Auth, Factoids, Store, Env ())]
+        -> Env          -- ^ Initial environment.
+        -> Match a
+        -> [(Auth, Factoids, Store, Env)]
 
 applyMatch nRule aSub store env (MatchAnn _a match)
  = applyMatch nRule aSub store env match
@@ -116,12 +119,13 @@ applyMatch nRule aSub store env (Match bFact gather select consume gain)
 -- | Gather visible facts from the store that match the gather predicates,
 --   returning all matching facts and the available weight of each one.
 applyGather
-        :: Auth         -- ^ Authority of the submitter.
+        :: Show a
+        => Auth         -- ^ Authority of the submitter.
         -> Store        -- ^ Store to gather facts from.
-        -> Env ()       -- ^ Current environment, used in gather predicates.
+        -> Env          -- ^ Current environment, used in gather predicates.
         -> Bind         -- ^ Binder for the fact value in the gather predicate.
-        -> Gather ()    -- ^ The gather predicates.
-        -> [[Fact ()]]
+        -> Gather a     -- ^ The gather predicates.
+        -> [[Fact]]
 
 applyGather aSub store env bFact (GatherAnn _a gg)
  = applyGather aSub store env bFact gg
@@ -142,11 +146,12 @@ applyGather aSub store env bFact (GatherWhere nFact msPred)
 --   This rule is non-deterministic due to the 'any' case.
 --
 applySelect
-        :: [Fact ()]    -- ^ Gathered facts to select from.
-        -> Env ()       -- ^ Current environment.
+        :: Show a
+        => [Fact]       -- ^ Gathered facts to select from.
+        -> Env          -- ^ Current environment.
         -> Bind         -- ^ Fact binder within the rake.
-        -> Select ()    -- ^ Selection specifier.
-        -> [Fact ()]
+        -> Select a     -- ^ Selection specifier.
+        -> [Fact]
 
 applySelect fs env bFact (SelectAnn _a select)
  = applySelect fs env bFact select
@@ -175,11 +180,12 @@ applySelect fs env bFact (SelectLast mKey)
 -- | Try to consume the given weight of a fact from the store,
 --   returning a new store if possible.
 applyConsume
-        :: Name         -- ^ Name of enclosing rule.
-        -> Fact ()      -- ^ Fact to consume.
+        :: Show a
+        => Name         -- ^ Name of enclosing rule.
+        -> Fact         -- ^ Fact to consume.
         -> Store        -- ^ Initial store.
-        -> Env ()       -- ^ Current environment.
-        -> Consume ()   -- ^ Consume specifier.
+        -> Env          -- ^ Current environment.
+        -> Consume a    -- ^ Consume specifier.
         -> [(Weight, Store)]
 
 applyConsume nRule fact store env (ConsumeAnn _ consume)
@@ -203,10 +209,11 @@ applyConsume nRule fact store env (ConsumeWeight mWeight)
 ---------------------------------------------------------------------------------------------------
 -- | Gain delegated authority from a given fact.
 applyGain
-        :: Name         -- ^ Name of enclosing rule.
-        -> Fact ()      -- ^ Fact to acquire authority from.
-        -> Env ()       -- ^ Current environment.
-        -> Gain ()      -- ^ Gain specification.
+        :: Show a
+        => Name         -- ^ Name of enclosing rule.
+        -> Fact         -- ^ Fact to acquire authority from.
+        -> Env          -- ^ Current environment.
+        -> Gain a       -- ^ Gain specification.
         -> [Auth]       -- ^ Resulting authority, including what we started with.
 
 applyGain nRule fact env (GainAnn _a acquire)

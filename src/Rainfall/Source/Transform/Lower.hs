@@ -368,12 +368,12 @@ lowerTerm nmsMatch (E.MSay nFact mData msBy msObs msUse msNum)
                         _       -> error "lowerTerm: malformed obs"
 
         mUse'   <- case msUse of
-                        []      -> pure CC.auth'none
+                        []      -> pure CC.set'empty
                         [mUse]  -> lowerTerm nmsMatch mUse
                         _       -> error "lowerTerm: malformed use"
 
         mNum'   <- case msNum of
-                        []      -> pure CC.auth'none
+                        []      -> pure $ CC.nat 1
                         [mNum]  -> lowerTerm nmsMatch mNum
                         _       -> error "lowerTerm: malformed num"
 
@@ -393,13 +393,12 @@ lowerTermRef tr
 
 ------------------------------------------------------------------------------------------ Value --
 -- | Lower a source value to core.
-lowerValue :: E.Value a -> S (C.Value a)
+lowerValue :: E.Value a -> S C.Value
 lowerValue vv
  = case vv of
         E.VUnit         -> pure $ C.VUnit
         E.VBool b       -> pure $ C.VBool b
         E.VNat  n       -> pure $ C.VNat  n
-        E.VInt  i       -> pure $ C.VInt  i
         E.VText tx      -> pure $ C.VText tx
         E.VSym  s       -> pure $ C.VSym  s
         E.VParty n      -> pure $ C.VParty n

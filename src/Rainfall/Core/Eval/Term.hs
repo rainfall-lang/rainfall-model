@@ -9,7 +9,7 @@ import qualified Data.Map.Strict        as Map
 
 ---------------------------------------------------------------------------------------------------
 -- | Evaluate a term.
-evalTerm :: Show a => Env a -> Term a -> Value a
+evalTerm :: Show a => Env -> Term a -> Value
 
 evalTerm env (MAnn _ m')
  = evalTerm env m'
@@ -21,7 +21,9 @@ evalTerm env (MVar n)
         Nothing -> error $ "execTerm: unbound variable " ++ show n
 
 evalTerm env (MAbs bs ts mBody)
- = VClo env bs ts mBody
+ = VClo env bs
+        (map (mapAnnot (const ())) ts)
+        (mapAnnot (const ()) mBody)
 
 evalTerm env (MApp mFun msArg)
  = case evalTerm env mFun of
@@ -74,7 +76,7 @@ evalTerm env (MSay nFact mData mBy mObs mUse mNum)
         nsUse   = fromMaybe (error "evalTerm: use val is not a rules set")
                 $ takeRulesOfValue $ evalTerm env mUse
 
-        nNum    = fromMaybe (error "evalTerm: num val is not a nat")
+        nNum    = fromMaybe (error $ "evalTerm: num val is not a nat" ++ show mNum)
                 $ takeNatOfValue   $ evalTerm env mNum
 
         fact    = Fact
@@ -85,18 +87,23 @@ evalTerm env (MSay nFact mData mBy mObs mUse mNum)
                 , factUse       = nsUse }
 
    in   VMap $ Map.singleton
-                (VFact $ mapAnnot (const ()) fact)
-                (VInt nNum)
+                (VFact fact)
+                (VNat nNum)
 
  | otherwise
  = error $ "evalTerm: runtime type error in 'say'"
 
-evalTerm _ (MKey{})
+evalTerm env (MSet msElem)
+ = let  vsElem  = map (evalTerm env) msElem
+   in   VSet $ Set.fromList $ vsElem
+
+evalTerm _ m@(MKey{})
  = error $ "evalTerm: malformed term"
+        ++ show m
 
 
 ---------------------------------------------------------------------------------------------------
-evalPrim :: Show a => Name -> [Value a] -> Value a
+evalPrim :: Name -> [Value] -> Value
 
 evalPrim "bool'eq"      [VBool b1, VBool b2]    = VBool (b1 == b2)
 
@@ -112,7 +119,7 @@ evalPrim "symbol'eq"    [VSym s1, VSym s2]      = VBool (s1 == s2)
 
 evalPrim "party'eq"     [VParty p1, VParty p2]  = VBool (p1 == p2)
 
-evalPrim "set'one"      [v]                     = VSet (Set.singleton $ mapAnnot (const ()) v)
+evalPrim "set'one"      [v]                     = VSet (Set.singleton v)
 evalPrim "set'union"    [VSet vs1, VSet vs2]    = VSet (Set.union vs1 vs2)
 
 evalPrim name vsArg

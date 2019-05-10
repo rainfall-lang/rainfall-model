@@ -17,6 +17,7 @@ module Rainfall.EDSL
         , text'eq
         , symbol'eq
         , party'eq
+        , set'empty, set'one, set'union, set'unions
         , auth'one, auth'none, auth'union, auth'unions, auth'parties
 
         , runScenario
@@ -90,6 +91,11 @@ text'eq tx ty           = MPrm "text'eq"    [tx, ty]
 symbol'eq mx my         = MPrm "symbol'eq"  [mx, my]
 
 party'eq  mx my         = MPrm "party'eq"   [mx, my]
+
+set'empty               = MSet []
+set'one m               = MPrm "set'one"    [m]
+set'union ma mb         = MPrm "set'union"  [ma, mb]
+set'unions ms           = foldl set'union set'empty ms
 
 auth'one   mp           = MPrm "auth'one"   [mp]
 auth'union ma mb        = MPrm "auth'union" [ma, mb]

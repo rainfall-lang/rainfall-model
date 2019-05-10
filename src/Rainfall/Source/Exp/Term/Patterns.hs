@@ -28,7 +28,6 @@ pattern MBool b                 = MRef  (MRVal (VBool b))
 pattern MTrue                   = MRef  (MRVal (VBool True))
 pattern MFalse                  = MRef  (MRVal (VBool False))
 pattern MNat i                  = MRef  (MRVal (VNat i))
-pattern MInt i                  = MRef  (MRVal (VInt i))
 pattern MText tx                = MRef  (MRVal (VText tx))
 
 

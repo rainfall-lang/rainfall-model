@@ -89,9 +89,9 @@ pPrmOf t = pTokOf $ \case { KPrm s | s == t -> Just (); _ -> Nothing }
 pLbl :: Parser Name
 pLbl    = pTokOf $ \case { KVar s -> Just (Name s); _ -> Nothing }
 
--- | Parser for an integer.
-pInt :: Parser Integer
-pInt    = pTokOf $ \case { KInt i -> Just i; _ -> Nothing }
+-- | Parser for a natural number.
+pNat :: Parser Integer
+pNat    = pTokOf $ \case { KNat n -> Just n; _ -> Nothing }
 
 -- | Parser for a Haskell-style string.
 pText :: Parser String

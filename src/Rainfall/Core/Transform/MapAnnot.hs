@@ -1,7 +1,6 @@
 
 module Rainfall.Core.Transform.MapAnnot where
 import Rainfall.Core.Exp.Term
-import qualified Data.Map.Strict        as Map
 
 
 class MapAnnot c where
@@ -41,28 +40,8 @@ instance MapAnnot Term where
 
 
 instance MapAnnot TermRef where
- mapAnnot f tr
+ mapAnnot _f tr
   = case tr of
-        MRVal v         -> MRVal (mapAnnot f v)
+        MRVal v         -> MRVal v
 
-
-instance MapAnnot Value where
- mapAnnot f vv
-  = case vv of
-        VLit lit        -> VLit lit
-        VClo en bs ts m -> VClo (mapAnnot f en) bs (map (mapAnnot f) ts) (mapAnnot f m)
-        VRcd ns vs      -> VRcd ns (map (mapAnnot f) vs)
-        VSet vs         -> VSet vs
-        VMap kvs        -> VMap $ Map.fromList [ (k, mapAnnot f v) | (k, v) <- Map.toList kvs]
-        VFact fact      -> VFact (mapAnnot f fact)
-
-
-instance MapAnnot Env where
- mapAnnot f (Env nvs)
-  = Env [ (n, mapAnnot f m) | (n, m) <- nvs ]
-
-
-instance MapAnnot Fact where
- mapAnnot f (Fact n env nsBy nsObs nsUse)
-  = Fact n (mapAnnot f env) nsBy nsObs nsUse
 

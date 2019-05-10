@@ -50,7 +50,7 @@ scanner _fileName
                                 _       -> Char.isAlphaNum c)
                 (\('!' : rest) -> Just rest)
 
-        , fmap (stamp KInt)     $ scanInteger
+        , fmap (stamp KNat)     $ scanInteger
         , fmap (stamp KChar)    $ scanHaskellChar
         , fmap (stamp KText)    $ scanHaskellString
 

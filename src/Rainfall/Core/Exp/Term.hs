@@ -41,7 +41,7 @@ data Term a
 
 -- | Term reference.
 data TermRef a
-        = MRVal (Value a)                       -- ^ Embed a value.
+        = MRVal Value                           -- ^ Embed a value.
         deriving (Show, Eq, Ord)
 
 
@@ -60,47 +60,46 @@ instance IsString (Term a) where
 
 
 ---------------------------------------------------------------------------------------------------
-data Value a
-        = VLit  Lit                              -- ^ Literal value.
-        | VClo  (Env a) [Bind] [Type a] (Term a) -- ^ Function closure
-        | VRcd  [Name] [Value a]                 -- ^ Record value.
-        | VSet  (Set (Value ()))                 -- ^ Set value.
-        | VMap  (Map (Value ()) (Value a))       -- ^ Map value.
-        | VFact (Fact a)                         -- ^ Fact value.
+data Value
+        = VLit  Lit                             -- ^ Literal value.
+        | VClo  Env [Bind] [Type ()] (Term ())  -- ^ Function closure
+        | VRcd  [Name] [Value]                  -- ^ Record value.
+        | VSet  (Set Value)                     -- ^ Set value.
+        | VMap  (Map Value Value)               -- ^ Map value.
+        | VFact  Fact                           -- ^ Fact value.
         deriving (Show, Eq, Ord)
 
 data Lit
         = LUnit
         | LBool  Bool
         | LNat   Integer
-        | LInt   Integer
         | LText  String
         | LSym   Name
         | LParty Name
         deriving (Show, Eq, Ord)
 
-data Clo a = Clo  (Env a) [(Bind, Type a)] (Term a)
+data Clo = Clo Env [(Bind, Type ())] (Term ())
+         deriving (Show, Eq, Ord)
 
-data Env a
-        = Env [(Name, Value a)]
-        deriving (Show, Eq, Ord)
+data Env = Env [(Name, Value)]
+         deriving (Show, Eq, Ord)
 
 
-instance IsString (Value a) where
+instance IsString Value where
  fromString s = VLit (LText s)
 
 
 ---------------------------------------------------------------------------------------------------
-data Fact a
+data Fact
         = Fact
         { factName      :: Name
-        , factEnv       :: Env a
+        , factEnv       :: Env
         , factBy        :: Set Name
         , factObs       :: Set Name
         , factUse       :: Set Name }
         deriving (Show, Eq, Ord)
 
-type Factoid    = (Fact (), Weight)
-type Factoids   = Map (Fact ()) Weight
+type Factoid    = (Fact, Weight)
+type Factoids   = Map Fact Weight
 
 

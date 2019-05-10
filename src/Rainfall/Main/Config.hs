@@ -7,6 +7,7 @@ data Mode
         | ModeLex       FilePath
         | ModeParse     FilePath
         | ModeLower     FilePath
+        | ModeRun       FilePath
         deriving Show
 
 
@@ -14,6 +15,7 @@ data Config
         = Config
         { configMode    :: Mode }
         deriving Show
+
 
 configZero
         = Config

@@ -12,7 +12,7 @@ ppName (Name s) = text s
 
 
 ------------------------------------------------------------------------------------------ Value --
-ppValue :: Value a -> Doc
+ppValue :: Value -> Doc
 ppValue val
  = case val of
         VLit lit        -> ppLit lit
@@ -35,13 +35,12 @@ ppLit lit
         LUnit           -> text "#unit"
         LBool b         -> if b then text "#true" else text "#false"
         LNat i          -> integer i
-        LInt i          -> integer i
         LText s         -> text (show s)
         LParty n        -> text "!" <> ppName n
         LSym n          -> text "'" <> ppName n
 
 
-ppEnv :: Env a -> Doc
+ppEnv :: Env -> Doc
 ppEnv (Env nvs)
  = encloseSep (char '[') (char ']') (text ", ")
  $ [ppName n <+> text "=" <+> ppValue v | (n, v) <- nvs ]
@@ -60,7 +59,7 @@ ppRules rs
 
 
 ------------------------------------------------------------------------------------------- Fact --
-ppFact :: Fact a -> Doc
+ppFact :: Fact -> Doc
 ppFact (Fact n env aBy aObs rsUse)
  = nest 10
  $ vcat [ fill 10 (ppName n) <+> ppEnv env

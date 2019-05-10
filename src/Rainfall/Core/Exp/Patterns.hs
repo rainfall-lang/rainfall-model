@@ -29,7 +29,6 @@ pattern MSet ms         = MKey MKSet ms
 pattern VUnit           = VLit LUnit
 pattern VBool b         = VLit (LBool b)
 pattern VNat n          = VLit (LNat  n)
-pattern VInt i          = VLit (LInt  i)
 pattern VTrue           = VLit (LBool True)
 pattern VFalse          = VLit (LBool False)
 pattern VText s         = VLit (LText s)

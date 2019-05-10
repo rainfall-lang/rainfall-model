@@ -56,7 +56,6 @@ data Value a
         = VUnit                         -- ^ Unit value.
         | VBool     Bool                -- ^ Boolean value.
         | VNat      Integer             -- ^ Natural value.
-        | VInt      Integer             -- ^ Integer value.
         | VText     String              -- ^ Text value.
         | VSym      Name                -- ^ Symbol value.
         | VParty    Name                -- ^ Party literal.

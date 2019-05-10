@@ -4,6 +4,7 @@ fact  Offer  [id:     Symbol, terms:    Text,
               giver:  Party,  receiver: Party]
 fact  Accept [id:     Symbol, accepter: Party]
 
+
 rule  transfer
 await Offer  [id = ?i, giver = ?g, receiver = ?r] gain {g}
   and Accept [id = i,  accepter = r]              gain {r}
@@ -12,11 +13,19 @@ to
   say Coin   [issuer = !Isabelle,  holder = r]
    by {!Isabelle,r} use {'transfer}
 
+
 scenario test to
  add    say Coin [issuer = !Isabelle, holder = !Alice]
         by  {!Isabelle, !Alice}
         use {'transfer} num 100
 
- fire   by {!Brendan} rules {'transfer}
+ add    say Offer  [ id = '1234
+                   , giver = !Alice, receiver = !Bob]
+        by {!Alice} use {'transfer}
+
+ add    say Accept [id = '1234, accepter = !Bob]
+        by {!Bob}   use {'transfer}
+
+ fire   by {!Alice} rules {'transfer}
 
 

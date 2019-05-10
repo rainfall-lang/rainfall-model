@@ -15,7 +15,7 @@ data Token
         | KSym          String          -- ^ Symbol,            starts with apostrophe.
         | KPrm          String          -- ^ Primitive,         starts with '#'.
         | KMatch        String          -- ^ Match variable,    starts with question mark.
-        | KInt          Integer         -- ^ Literal integer.
+        | KNat          Integer         -- ^ Literal natural number.
         | KChar         Char            -- ^ Literal character, Haskell style.
         | KText         String          -- ^ Literal string, Haskell style.
         | KParty        String          -- ^ Literal party identifier.

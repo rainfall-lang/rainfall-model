@@ -4,9 +4,9 @@ import Rainfall.Core.Exp
 import Data.Map                         (Map)
 import qualified Data.Map.Strict        as Map
 
-type Store      = Map (Fact ()) Weight
+type Store = Map Fact Weight
 
-pattern (:*) f w        = (f, w)
+pattern (:*) f w = (f, w)
 
 -- | An empty store.
 storeEmpty :: Store
