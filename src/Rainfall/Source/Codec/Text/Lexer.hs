@@ -54,6 +54,8 @@ scanner _fileName
         , fmap (stamp KChar)    $ scanHaskellChar
         , fmap (stamp KText)    $ scanHaskellString
 
+        , fmap (stamp KCOMMENT) $ scanHaskellCommentLine
+        , fmap (stamp KCOMMENT) $ scanHaskellCommentBlock
         ]
  where  -- Stamp a token with source location information.
         stamp k (l, t)

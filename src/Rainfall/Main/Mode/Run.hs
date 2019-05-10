@@ -62,6 +62,7 @@ runAction _config (C.ActionFire mSub mRules)
 
 runAction _config C.ActionDump
  = do   store   <- S.gets worldStore
+        S.liftIO $ putStrLn "* Dump"
         S.liftIO $ putStrLn $ (P.displayS $ renderMax $ C.ppStore store) ""
 
 

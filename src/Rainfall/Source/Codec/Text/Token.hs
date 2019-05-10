@@ -2,13 +2,15 @@
 module Rainfall.Source.Codec.Text.Token
         ( Location (..)
         , Token    (..)
-        , At       (..))
+        , At       (..)
+        , isKCOMMENT)
 where
 import Text.Lexer.Inchworm.Char
 
 -- | A source token.
 data Token
         = KEND                          -- ^ Indicate end of input.
+        | KCOMMENT      String          -- ^ Capture source level comments.
         | KPunc         String          -- ^ Punctuation.
         | KVar          String          -- ^ Variable,          starts with lower case.
         | KCon          String          -- ^ Constructor,       starts with upper case.
@@ -26,3 +28,10 @@ data At a
         = At (Range Location) a
         deriving Show
 
+
+-- | Check if this is a comment token.
+isKCOMMENT :: Token -> Bool
+isKCOMMENT kk
+ = case kk of
+        KCOMMENT{}      -> True
+        _               -> False

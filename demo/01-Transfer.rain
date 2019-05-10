@@ -1,0 +1,48 @@
+
+-- A coin supplied by an issuer, held by a holder.
+fact  Coin   [issuer: Party,  holder:   Party]
+
+-- An offer by a giving party to give a coin to a receiving party,
+-- on the specified terms.
+fact  Offer  [id:     Symbol, terms:    Text,
+              giver:  Party,  receiver: Party]
+
+-- The receiving party accepts the offer.
+fact  Accept [id:     Symbol, accepter: Party]
+
+
+-- Transfer rule combines the above facts,
+-- consumes the input coin owned by the giving party,
+-- and produces a new one owned by the receiving party.
+rule  transfer
+await Offer  [id = ?i, giver = ?g, receiver = ?r] gain {g}
+  and Accept [id = i,  accepter = r]              gain {r}
+  and Coin   [issuer = !Isabelle,  holder = g]    gain {!Isabelle,g}
+to
+  say Coin   [issuer = !Isabelle,  holder = r]
+   by {!Isabelle,r} obs {!Mona} use {'transfer}
+
+
+-- Scenario to test coin transfer.
+scenario test to
+ -- Alice starts out with 100 coins.
+ add    say Coin [issuer = !Isabelle, holder = !Alice]
+        by  {!Isabelle, !Alice} obs {!Mona}
+        use {'transfer} num 100
+
+ -- Alice offers to give her coin to Bob.
+ add    say Offer  [ id = '1234
+                   , giver = !Alice, receiver = !Bob]
+        by {!Alice} obs {!Bob, !Mona}   use {'transfer}
+
+ -- Bob accepts the offer.
+ add    say Accept [id = '1234, accepter = !Bob]
+        by {!Bob}   obs {!Alice, !Mona} use {'transfer}
+
+ -- Dump the current store.
+ dump
+
+ -- Alice fires the transfer rule.
+ fire   by {!Alice} rules {'transfer}
+
+

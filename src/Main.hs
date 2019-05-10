@@ -60,8 +60,15 @@ mainLex config filePath
 -- | Parse a source file and print the AST to console.
 runParse :: Main.Config -> FilePath -> IO [S.Decl Parser.RL]
 runParse config filePath
- = do   toks    <- runLex config filePath
-        case Parser.parseDecls toks of
+ = do   -- Run lexical analysis on the source file.
+        toks     <- runLex config filePath
+
+        -- Strip comments before parsing.
+        let toks' = [ ak | ak@(Token.At _ k) <- toks
+                         , not $ Token.isKCOMMENT k ]
+
+        -- Parse declarations from the file.
+        case Parser.parseDecls toks' of
          Right ds -> return ds
          Left err
           -> do putStrLn $ show err
