@@ -60,12 +60,14 @@ pMatch
                         p       <- pGatherPat
                         return  (l, p)
         pPunc "]"
+        select  <- pSelect
+        consume <- pConsume
         gain    <- pGain
         return  $ Match
                 { matchBind     = Nothing
                 , matchGather   = GatherPat nFact ps Nothing
-                , matchSelect   = SelectAny
-                , matchConsume  = ConsumeNone
+                , matchSelect   = select
+                , matchConsume  = consume
                 , matchGain     = gain }
 
 
@@ -80,6 +82,40 @@ pGatherPat
  ]
 
 
+-- | Parse a select clause.
+pSelect :: Parser (Select RL)
+pSelect
+ = P.choice
+ [ do   pKey "any"
+        return  $ SelectAny
+
+ , do   pKey "first"
+        mKey    <- pTerm
+        return  $ SelectFirst mKey
+
+ , do   pKey "last"
+        mKey    <- pTerm
+        return  $ SelectLast mKey
+
+ , do   return  $ SelectAny
+ ]
+
+
+-- | Parse a consume clause.
+pConsume :: Parser (Consume RL)
+pConsume
+ = P.choice
+ [ do   pKey "none"
+        return  $ ConsumeNone
+
+ , do   pKey "consume"
+        mWeight <- pTerm
+        return  $ ConsumeWeight mWeight
+
+ , do   return $ ConsumeWeight (MNat 1)  ]
+
+
+-- | Parse a gain cause.
 pGain :: Parser (Gain RL)
 pGain
  = P.choice

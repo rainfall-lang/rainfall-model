@@ -27,7 +27,6 @@ scenario test to
         by {!Bob}   obs {!Alice} use {'transfer}
 
  dump
-
  fire   by {!Alice} rules {'transfer}
 
 

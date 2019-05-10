@@ -14,7 +14,6 @@ import qualified Data.Map                               as Map
 import qualified Data.Set                               as Set
 
 
-
 ------------------------------------------------------------------------------------------ World --
 type S a
         = S.StateT World IO a
@@ -45,6 +44,7 @@ runScenario config rules (C.Scenario _name actions)
 
 
 ----------------------------------------------------------------------------------------- Action --
+-- | Run a single scenario action.
 runAction
         :: Main.Config
         -> C.Action Parser.RL -> S ()
@@ -66,7 +66,7 @@ runAction _config C.ActionDump
 
 
 ------------------------------------------------------------------------------------------- Fire --
--- | Try and fire the given rule.
+-- | Try and fire the given rule, printing the result to stdout.
 fireRuleS :: C.Auth -> C.Name -> S ()
 fireRuleS aSub nRule
  = do   store   <- S.gets worldStore
@@ -83,6 +83,8 @@ fireRuleS aSub nRule
                   -> do S.modify' $ \s -> s { worldStore = store' }
                         return ()
 
+
+-- | Try to fire the given rule, printing the result to stdout.
 fireRuleIO
         :: C.Auth
         -> C.Rule Parser.RL
@@ -90,11 +92,11 @@ fireRuleIO
 
 fireRuleIO auth rule store
  = do   let C.Name sName = C.ruleName rule
-        putStrLn $ "* Rule " ++ sName
+        putStrLn $ "* Fire: " ++ sName
 
         case C.applyFire auth store rule of
          []
-          -> do putStrLn "* Fizz"
+          -> do putStrLn $ "* Fizz: " ++ sName
                 return Nothing
 
          [(trans, store')]

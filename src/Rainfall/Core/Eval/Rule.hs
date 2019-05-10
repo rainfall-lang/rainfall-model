@@ -31,7 +31,7 @@ applyFire
 
 applyFire aSub store rule
  = do
-        (_fsRead, dsSpend, aGain, env)
+        (fsRead, dsSpend, aGain, env)
          <- applyMatches
                 (ruleName rule) aSub store (Env [])
                 (ruleMatch rule)
@@ -42,7 +42,9 @@ applyFire aSub store rule
 
         guard $ all (authCoversFact aGain) $ Map.keys dsNew
 
-        let trans   = Transaction (ruleName rule) dsSpend dsNew
+        let dsRead  = Map.fromList [ (fRead, 0) | fRead <- Set.toList fsRead ]
+        let dsTouch = Map.unionWith (+) dsRead dsSpend
+        let trans   = Transaction (ruleName rule) dsTouch dsNew
 
         let store'  = storeUp store dsNew
         store''    <- maybeToList $ storeDown store' dsSpend
@@ -228,3 +230,4 @@ applyGain nRule fact env (GainTerm mAuth)
         guard $ elem nRule (factUse fact)
         guard $ Set.isSubsetOf nsGain (factBy fact)
         return nsGain
+
