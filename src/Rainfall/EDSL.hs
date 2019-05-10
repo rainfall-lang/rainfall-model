@@ -17,7 +17,7 @@ module Rainfall.EDSL
         , text'eq
         , symbol'eq
         , party'eq
-        , auth'one, auth'union, auth'unions, auth'parties
+        , auth'one, auth'none, auth'union, auth'unions, auth'parties
 
         , runScenario
         , printStoreS

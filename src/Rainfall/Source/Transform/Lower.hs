@@ -54,11 +54,13 @@ lowerRule
         => Facts a -> E.Rule a
         -> S (C.Rule a)
 
-lowerRule dsFact (E.Rule nRule hsMatch _m)
- = do   (_nmsMatch, hsMatch')
+lowerRule dsFact (E.Rule nRule hsMatch mBody)
+ = do   (nmsMatch, hsMatch')
          <- lowerMatches dsFact [] hsMatch
 
-        pure $ C.Rule nRule hsMatch' C.MUnit
+        mBody' <- lowerTerm nmsMatch mBody
+
+        pure $ C.Rule nRule hsMatch' mBody'
 
 
 ------------------------------------------------------------------------------------------ Match --
@@ -352,13 +354,30 @@ lowerTerm nmsMatch (E.MSet msArg)
  = do   msArg'  <- mapM (lowerTerm nmsMatch) msArg
         return  $  C.MSet msArg'
 
-lowerTerm nmsMatch (E.MSay _nFact mData msBy msObs msUse msNum)
- = do   _mData' <- lowerTerm nmsMatch mData
-        _msBy'  <- mapM (lowerTerm nmsMatch) msBy
-        _msObs' <- mapM (lowerTerm nmsMatch) msObs
-        _msUse' <- mapM (lowerTerm nmsMatch) msUse
-        _msNum' <- mapM (lowerTerm nmsMatch) msNum
-        return  $ C.MUnit       -- TODO: fix say
+lowerTerm nmsMatch (E.MSay nFact mData msBy msObs msUse msNum)
+ = do   mData'  <- lowerTerm nmsMatch mData
+
+        mBy'    <- case msBy of
+                        []      -> pure CC.auth'none
+                        [mBy]   -> lowerTerm nmsMatch mBy
+                        _       -> error "lowerTerm: malformed by"
+
+        mObs'   <- case msObs of
+                        []      -> pure CC.auth'none
+                        [mObs]  -> lowerTerm nmsMatch mObs
+                        _       -> error "lowerTerm: malformed obs"
+
+        mUse'   <- case msUse of
+                        []      -> pure CC.auth'none
+                        [mUse]  -> lowerTerm nmsMatch mUse
+                        _       -> error "lowerTerm: malformed use"
+
+        mNum'   <- case msNum of
+                        []      -> pure CC.auth'none
+                        [mNum]  -> lowerTerm nmsMatch mNum
+                        _       -> error "lowerTerm: malformed num"
+
+        return  $ C.MSay nFact mData' mBy' mObs' mUse' mNum'
 
 lowerTerm _ _
  = error "lowerTerm: malformed term"
