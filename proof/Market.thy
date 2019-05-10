@@ -1,6 +1,6 @@
-(* Auction example: see also demo/Auction.hs *)
-theory Example_Auction
-  imports Dynamic
+(* Market example: see also demo/02-Market.rain *)
+theory Market
+  imports Dynamic "HOL-Eisbach.Eisbach"
 begin
 section \<open>Rule names\<close>
 

@@ -1,7 +1,7 @@
 (* Proofs about the dynamic semantics *)
 theory DynamicLemmas
-  imports Main "HOL-Library.Multiset" "HOL-Eisbach.Eisbach" "HOL-Eisbach.Eisbach_Tools"
-  Dynamic
+  imports Main "HOL-Library.Multiset"
+  Dynamic "HOL-Eisbach.Eisbach"
 begin
 
 

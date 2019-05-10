@@ -1,6 +1,6 @@
 (* Expressions and rules *)
 theory Exp
-  imports Main "HOL-Library.Multiset" "HOL-Eisbach.Eisbach" "HOL-Eisbach.Eisbach_Tools"
+  imports Main "HOL-Library.Multiset"
   Base
 begin
 
