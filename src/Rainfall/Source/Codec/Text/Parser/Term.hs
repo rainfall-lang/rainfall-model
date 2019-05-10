@@ -52,6 +52,9 @@ pTermArg
  , do   -- Nat
         pNat    >>= return . MNat
 
+ , do   -- Text
+        pText   >>= return . MText
+
  , do   -- Party
         pParty  >>= return . MParty
 
@@ -77,7 +80,7 @@ pTermRecord
  = do   -- '[' (Lbl '=' Term),* ']'
         pPunc "["
         (ls, ms) <- fmap unzip
-                 $  flip P.sepEndBy1 (pPunc ",")
+                 $  flip P.sepEndBy (pPunc ",")
                  $  do  l       <- pLbl
                         pPunc "="
                         m       <- pTerm

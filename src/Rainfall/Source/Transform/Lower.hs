@@ -140,16 +140,16 @@ lowerGather dsFact nmsMatch nBindFact (E.GatherPat nFact fsMatch mmPred)
  = do
         let ntsField = fromMaybe [] $ Map.lookup nFact dsFact
 
-        (mnsMatch', msPred)
+        (nmsMatch', msPred)
          <- lowerGatherFields ntsField nmsMatch [] nBindFact fsMatch
 
         mmPred'
          <- case mmPred of
                 Nothing -> return Nothing
-                Just m  -> Just <$> lowerTerm nmsMatch m
+                Just m  -> Just <$> lowerTerm nmsMatch' m
 
 
-        return  ( mnsMatch'
+        return  ( nmsMatch'
                 , C.GatherWhere nFact (maybeToList mmPred' ++ reverse msPred))
 
 lowerGather _dsFact _nmsMatch _nBind _

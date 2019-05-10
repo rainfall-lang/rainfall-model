@@ -33,13 +33,13 @@ scanner _fileName
         , fmap  (stamp KPrm) $ munchPred Nothing
                 (\ix c -> case ix of
                                 0       -> c == '#'
-                                _       -> Char.isAlphaNum c)
+                                _       -> Char.isAlphaNum c || c == '\'')
                 (\('#' : rest) -> Just rest)
 
         , fmap  (stamp KSym) $ munchPred Nothing
                 (\ix c -> case ix of
                                 0       -> c == '\''
-                                _       -> Char.isAlphaNum c)
+                                _       -> Char.isAlphaNum c || c == '\'')
                 (\('\'' : rest) -> Just rest)
 
         , fmap  (stamp KMatch) $ munchPred Nothing

@@ -93,7 +93,6 @@ fireRuleIO
 
 fireRuleIO auth rule store
  = do   let C.Name sName = C.ruleName rule
-        putStrLn $ "* Fire: " ++ sName
 
         case C.applyFire auth store rule of
          []
@@ -101,7 +100,8 @@ fireRuleIO auth rule store
                 return Nothing
 
          [(trans, store')]
-          -> do let dsSpent = Map.toList $ C.transactionSpent trans
+          -> do putStrLn $ "* Fire: " ++ sName
+                let dsSpent = Map.toList $ C.transactionSpent trans
                 let dsNew   = Map.toList $ C.transactionNew   trans
                 putStrLn $ (P.displayS $ renderMax $ C.ppFiring dsSpent dsNew store') ""
                 return $ Just (trans, store')
