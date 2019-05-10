@@ -109,10 +109,10 @@ data World
 
 
 --------------------------------------------------------------------------------------- Scenario --
-type Scenario a = S.StateT World IO a
+type ScenarioS a = S.StateT World IO a
 
 
-runScenario :: [Name] -> [Rule ()] -> Scenario a -> IO a
+runScenario :: [Name] -> [Rule ()] -> ScenarioS a -> IO a
 runScenario nsParty rules scenario
  = do   S.evalStateT scenario
          $ World
@@ -151,7 +151,7 @@ runScenario nsParty rules scenario
 
 -- | Try to fire a single rule in the scenario monad,
 --   using the first available firing.
-fireS :: [Name] -> Name -> Scenario ()
+fireS :: [Name] -> Name -> ScenarioS ()
 fireS nsSub nRule
  = do   store   <- S.gets worldStore
         rules   <- S.gets worldRules
@@ -167,7 +167,7 @@ fireS nsSub nRule
                   -> do S.modify' $ \s -> s { worldStore = store'}
                         return ()
 
-printStoreS :: Scenario ()
+printStoreS :: ScenarioS ()
 printStoreS
  = do   store   <- S.gets worldStore
         S.liftIO $ putStrLn $ (P.displayS $ renderMax $ ppStore store) ""

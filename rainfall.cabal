@@ -51,7 +51,7 @@ executable rainfall
         Rainfall.Core.Exp.Compounds
         Rainfall.Core.Exp.Patterns
         Rainfall.Core.Exp.Predicates
-        Rainfall.Core.Exp.Rule
+        Rainfall.Core.Exp.Decl
         Rainfall.Core.Exp.Term
         Rainfall.Core.Transform.MapAnnot
         Rainfall.Core.Exp

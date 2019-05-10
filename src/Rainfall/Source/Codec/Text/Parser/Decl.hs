@@ -29,9 +29,10 @@ pDecl
         return $ DeclFact n fs
 
  , do   -- Rule
-        rule    <- pRule
-        return  $ DeclRule rule
+        DeclRule <$> pRule
 
+ , do   -- Scenario
+        DeclScenario <$> pScenario
  ]
 
 
@@ -92,4 +93,30 @@ pGain
 
  , do   return GainNone ]
 
+
+--------------------------------------------------------------------------------------- Scenario --
+-- 'scenario' Var 'to' Action+
+pScenario :: Parser (Scenario RL)
+pScenario
+ = do   pKey "scenario"
+        nScn    <- pVar
+        pKey "to"
+        actions <- P.many pAction
+        return  $ Scenario nScn actions
+
+
+pAction :: Parser (Action RL)
+pAction
+ = P.choice
+ [ do   pKey "add"
+        mFoids  <- pTerm
+        return  $ ActionAdd mFoids
+
+ , do   pKey "fire"
+        pKey "by"
+        mAuth   <- pTerm
+        pKey "rules"
+        mRules  <- pTerm
+        return  $ ActionFire mAuth mRules
+ ]
 

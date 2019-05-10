@@ -1,10 +1,22 @@
 
-module Rainfall.Core.Exp.Rule where
+module Rainfall.Core.Exp.Decl where
 import Rainfall.Core.Exp.Base
 import Rainfall.Core.Exp.Term
 
 
----------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------- Decl --
+-- | A top-level declaration.
+data Decl a
+        = DeclRule
+        { declRule      :: Rule a }
+
+        | DeclScenario
+        { declScenario  :: Scenario a }
+        deriving Show
+
+
+------------------------------------------------------------------------------------------- Rule --
+-- | A transition rule.
 data Rule a
         = Rule
         { ruleName      :: Name         -- ^ Name of the rule.
@@ -13,7 +25,7 @@ data Rule a
         } deriving Show
 
 
----------------------------------------------------------------------------------------------------
+-- | A fact matching clause.
 data Match a
         = MatchAnn    a (Match a)
 
@@ -33,7 +45,7 @@ data Gather a
         deriving Show
 
 
--- | How to select a single fact from the gathered set.
+-- | Which fact to select from the gathered set.
 data Select a
         = SelectAnn     a (Select a)
         | SelectAny                     -- ^ Select any fact that matches.
@@ -56,5 +68,27 @@ data Gain a
         | GainNone                      -- ^ Retain the same authority.
         | GainCheck     (Term a)        -- ^ Check for the given auth, but don't gain it.
         | GainTerm      (Term a)        -- ^ Gain the given authority.
+        deriving Show
+
+
+--------------------------------------------------------------------------------------- Scenario --
+-- | A test scenario.
+data Scenario a
+        = Scenario
+        { scenarioName          :: Name
+        , scenarioActions       :: [Action a] }
+        deriving Show
+
+
+-- | A scenario action.
+data Action a
+        -- | Compute some factoids and add them to the store.
+        = ActionAdd
+        { actionAddTerm         :: Term a }
+
+        -- | Use some authority to fire rules from the given set.
+        | ActionFire
+        { actionFireAuth        :: Term a
+        , actionFireRules       :: Term a }
         deriving Show
 

@@ -5,7 +5,7 @@ import Rainfall.Source.Exp.Term
 
 
 ------------------------------------------------------------------------------------------- Decl --
--- | A top-level declaratino.
+-- | A top-level declaration.
 data Decl a
         = DeclFact
         { declName      :: Name
@@ -13,6 +13,9 @@ data Decl a
 
         | DeclRule
         { declRule      :: Rule a }
+
+        | DeclScenario
+        { declScenario  :: Scenario a }
         deriving Show
 
 
@@ -83,3 +86,24 @@ data Gain a
         | GainCheck     (Term a)        -- ^ Check for the given auth, but don't gain it.
         | GainTerm      (Term a)        -- ^ Gain the given authority.
         deriving Show
+
+
+--------------------------------------------------------------------------------------- Scenario --
+-- | A test scenario.
+data Scenario a
+        = Scenario
+        { scenarioName          :: Name
+        , scenarioActions       :: [Action a] }
+        deriving Show
+
+
+-- | A scenario action.
+data Action a
+        = ActionAdd
+        { actionTerm            :: Term a }
+
+        | ActionFire
+        { actionFireAuth        :: Term a
+        , actionFireRules       :: Term a }
+        deriving Show
+

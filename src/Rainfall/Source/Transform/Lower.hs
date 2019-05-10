@@ -28,7 +28,7 @@ type Facts a = Map Name [(Name, E.Type a)]
 
 ------------------------------------------------------------------------------------------- Decl --
 -- | Lower a list of source decls to core.
-lowerDecls :: Show a => [E.Decl a] -> S [C.Rule a]
+lowerDecls :: Show a => [E.Decl a] -> S [C.Decl a]
 lowerDecls ds
  = do   let dsFact = Map.fromList [(nFact, fs) | E.DeclFact nFact fs <- ds ]
         fmap catMaybes $ mapM (lowerDecl dsFact) ds
@@ -37,13 +37,14 @@ lowerDecls ds
 -- | Lower a source decl to core.
 lowerDecl
         :: Show a
-        => Facts a -> E.Decl a
-        -> S (Maybe (C.Rule a))
+        => Facts a
+        -> E.Decl a -> S (Maybe (C.Decl a))
 
 lowerDecl dsFact d
  = case d of
         E.DeclFact{}      -> pure Nothing
-        E.DeclRule rule   -> Just <$> lowerRule dsFact rule
+        E.DeclRule rule   -> Just . C.DeclRule     <$> lowerRule dsFact rule
+        E.DeclScenario sc -> Just . C.DeclScenario <$> lowerScenario sc
 
 
 ------------------------------------------------------------------------------------------- Rule --
@@ -280,6 +281,32 @@ lowerGain _nmsMatch (E.GainCheck _m)
 lowerGain nmsMatch (E.GainTerm m)
  = do   m'      <- lowerTerm nmsMatch m
         return   $ C.GainTerm m'
+
+
+--------------------------------------------------------------------------------------- Scenario --
+-- | Lower a source scenario to core.
+lowerScenario
+        :: Show a
+        => E.Scenario a -> S (C.Scenario a)
+
+lowerScenario (E.Scenario name actions)
+ = do   actions' <- mapM lowerAction actions
+        return  $ C.Scenario name actions'
+
+
+-- | Lower a source scenario action to core.
+lowerAction
+        :: Show a
+        => E.Action a -> S (C.Action a)
+
+lowerAction (E.ActionAdd m)
+ = do   m' <- lowerTerm [] m
+        return  $ C.ActionAdd m'
+
+lowerAction (E.ActionFire mAuth mRules)
+ = do   mAuth'  <- lowerTerm [] mAuth
+        mRules' <- lowerTerm [] mRules
+        return  $ C.ActionFire mAuth' mRules'
 
 
 ------------------------------------------------------------------------------------------- Term --

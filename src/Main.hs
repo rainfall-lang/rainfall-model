@@ -71,7 +71,7 @@ mainParse config filePath
 
 ------------------------------------------------------------------------------------------ Lower --
 -- | Parse a source file, lower it to core, then print the core AST to console.
-runLower :: Main.Config -> FilePath -> IO [C.Rule Parser.RL]
+runLower :: Main.Config -> FilePath -> IO [C.Decl Parser.RL]
 runLower config filePath
  = do   dsSource   <- runParse config filePath
         let dsCore =  Lower.runState "w" $ Lower.lowerDecls dsSource

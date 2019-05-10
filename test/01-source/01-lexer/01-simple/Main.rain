@@ -7,8 +7,16 @@ fact  Accept [id:     Symbol, accepter: Party]
 rule  transfer
 await Offer  [id = ?i, giver = ?g, receiver = ?r] gain {g}
   and Accept [id = i,  accepter = r]              gain {r}
-  and Coin   [issuer = !Isabelle,  holder = g]
-      gain {!Isabelle,g}
+  and Coin   [issuer = !Isabelle,  holder = g]    gain {!Isabelle,g}
 to
   say Coin   [issuer = !Isabelle,  holder = r]
-   by {!Isabelle,r}  use {'transfer}
+   by {!Isabelle,r} use {'transfer}
+
+scenario test to
+ add    say Coin [issuer = !Isabelle, holder = !Alice]
+        by  {!Isabelle, !Alice}
+        use {'transfer} num 100
+
+ fire   by {!Brendan} rules {'transfer}
+
+
