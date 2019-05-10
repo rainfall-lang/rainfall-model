@@ -68,7 +68,7 @@ scanner _fileName
         keywords
          = [ "fact"
            , "rule", "await", "and", "to"
-           , "scenario", "add", "fire", "rules", "dump"
+           , "scenario", "do", "add", "fire", "rules", "dump"
            , "select", "consume", "gain", "check", "none"
            , "say",  "by", "obs", "use", "num" ]
 

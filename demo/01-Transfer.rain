@@ -24,7 +24,7 @@ to
 
 
 -- Scenario to test coin transfer.
-scenario test to
+scenario test do
  -- Alice starts out with 100 coins.
  add    say Coin [issuer = !Isabelle, holder = !Alice]
         by  {!Isabelle, !Alice} obs {!Mona}

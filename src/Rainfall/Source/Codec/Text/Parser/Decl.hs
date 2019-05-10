@@ -136,7 +136,7 @@ pScenario :: Parser (Scenario RL)
 pScenario
  = do   pKey "scenario"
         nScn    <- pVar
-        pKey "to"
+        pKey "do"
         actions <- P.many pAction
         return  $ Scenario nScn actions
 
