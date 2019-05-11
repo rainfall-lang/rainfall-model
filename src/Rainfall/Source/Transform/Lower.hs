@@ -204,12 +204,16 @@ lowerGatherPat ntsField nmsMatch nBindFact nField
 
         -- Decide what comparison function to use
         -- to compare the field value with the stated term.
+        -- These are just enough comparisons to do the examples in the paper.
+        -- for a produnction implementation we'd need to handle equality
+        -- more generally.
         let fEq = case lookup nField ntsField of
                         Just (E.TCon "Bool")   -> CC.bool'eq
                         Just (E.TCon "Nat")    -> CC.nat'eq
                         Just (E.TCon "Text")   -> CC.text'eq
                         Just (E.TCon "Symbol") -> CC.symbol'eq
                         Just (E.TCon "Party")  -> CC.party'eq
+                        Just (E.TSet (E.TCon "Symbol")) -> CC.set'symbol'eq
                         t -> error $ "lowerGatherPat: no comparison for " ++ show t
 
         -- Buila a term to do the comparison.

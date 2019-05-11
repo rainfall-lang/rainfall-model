@@ -29,7 +29,7 @@ await Offer  [id = ?i, giver = ?g, receiver = ?r] gain {g}
   and Accept [id = i,  accepter = r]              gain {r}
 to
   say Agreed [giver = g, receiver = r]
-   by {g,r}  obs {!Mona,!Isabelle} use {'performTheTransfer}
+   by {g,r}  obs {!Mona,!Isabelle} use {'performTransfer}
 
 -- Given an agreement to perform a transfer,
 -- and a coin that can be transferred,
@@ -47,19 +47,19 @@ to
 scenario test do
  add    say Coin  [ issuer = !Isabelle, holder = !Alice]
         by {!Isabelle, !Alice}
-        use {'performTheTransfer} num 100
+        use {'performTransfer} num 100
 
  add    say Offer [ id = '1234, terms = "To purchase a Guitar"
                   , giver = !Alice, receiver = !Bob ]
-        by {!Alice} obs {!Bob} use {'agreeOnOffer}
+        by {!Alice} obs {!Bob} use {'agreeOffer}
 
  add    say Accept [id = '1234, accepter = !Bob ]
-        by {!Bob} obs {!Alice} use {'agreeOnOffer}
+        by {!Bob} obs {!Alice} use {'agreeOffer}
 
  dump
 
  -- Alice can fire both rules in one go.
  -- In a concrete implementation both firings would be bundled
  -- into a nested transaction that describes both.
- fire   by {!Alice} rules {'agreeOnOffer, 'performTheTransfer}
+ fire   by {!Alice} rules {'agreeOffer, 'performTransfer}
 

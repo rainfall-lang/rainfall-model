@@ -1,0 +1,69 @@
+
+
+---------------------------------------------------------------------------------------------------
+-- In the paper "Smart Contracts as Authorized Production Rules"
+-- this example appears in Section 3.7: Upgrade.
+
+
+---------------------------------------------------------------------------------------------------
+-- Standard coin fact.
+fact Coin        [issuer: Party, holder: Party]
+
+-- Indicates that a party wants to upgrade a coin to work with
+-- a new set of rules.
+fact LetsUpgrade [party: Party, new: Set Symbol]
+
+
+---------------------------------------------------------------------------------------------------
+-- Upgrade rule will rewrite the use-set of a coin,
+-- provided both the issuer and the holder agree.
+rule upgrade
+await Coin [issuer = ?s, holder = ?h]    gain {s, h}
+  and LetsUpgrade [party = s, new = ?rs] gain {s}
+  and LetsUpgrade [party = h, new = rs]  gain {h}
+to
+  say Coin [issuer = s, holder = h]
+  by {s, h} use rs
+
+
+---------------------------------------------------------------------------------------------------
+-- Original transfer workflow for the coin.
+fact  Offer  [id:     Symbol, terms:    Text,
+              giver:  Party,  receiver: Party]
+fact  Accept [id:     Symbol, accepter: Party]
+
+rule  transfer
+await Offer  [id = ?i, giver = ?g, receiver = ?r] gain {g}
+  and Accept [id = i,  accepter = r]              gain {r}
+  and Coin   [issuer = !Isabelle,  holder = g]    gain {!Isabelle,g}
+to
+  say Coin   [issuer = !Isabelle,  holder = r]
+   by {!Isabelle,r} obs {!Mona} use {'transfer}
+
+
+-- New version of the transfer rule also makes Monica an observer of result coins.
+rule  newTransfer
+await Offer  [id = ?i, giver = ?g, receiver = ?r] gain {g}
+  and Accept [id = i,  accepter = r]              gain {r}
+  and Coin   [issuer = !Isabelle,  holder = g]    gain {!Isabelle,g}
+to
+  say Coin   [issuer = !Isabelle,  holder = r]
+   by {!Isabelle,r} obs {!Mona, !Monica} use {'transfer}
+
+
+---------------------------------------------------------------------------------------------------
+scenario test do
+ add    say Coin [issuer = !Isabelle, holder = !Alice]
+        by {!Isabelle, !Alice} use {'transfer, 'upgrade} num 1
+
+ add    say LetsUpgrade [party = !Isabelle, new = {'newTransfer}]
+        by {!Isabelle} obs {!Alice} use {'upgrade}
+
+ add    say LetsUpgrade [party = !Alice, new = {'newTransfer}]
+        by {!Alice} obs {!Isabelle} use {'upgrade}
+
+ dump
+
+ fire   by {!Isabelle} rules {'upgrade}
+
+

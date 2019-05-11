@@ -23,8 +23,8 @@ pDecl
         fs      <- flip P.sepBy (pPunc ",")
                 $  do   l       <- pLbl
                         pPunc ":"
-                        n       <- pCon
-                        return  (l, TCon n)
+                        t       <- pType
+                        return  (l, t)
         pPunc "]"
         return $ DeclFact n fs
 
@@ -36,7 +36,7 @@ pDecl
         pKey "to"
         mBody   <- pTerm
         return  $  DeclRule rl
-                $ Rule nRule ps mBody
+                $  Rule nRule ps mBody
 
  , do   -- 'scenario' Var 'to' Action+
         rl      <- pKey' "scenario"
@@ -46,6 +46,19 @@ pDecl
         return  $ DeclScenario rl
                 $ Scenario nScn actions
  ]
+
+
+pType :: Parser (Type RL)
+pType
+ = do   nFun  <- pCon
+        P.choice
+         [ do   tArg    <- pType
+                case nFun of
+                 Name "Set"  -> return $ TSet tArg
+                 Name "Sets" -> return $ TSets tArg
+                 _           -> error $ "cannot apply type" ++ show tArg
+
+         , do   return $ TCon nFun ]
 
 
 ------------------------------------------------------------------------------------------- Rule --
