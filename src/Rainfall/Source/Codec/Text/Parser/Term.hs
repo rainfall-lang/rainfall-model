@@ -8,7 +8,72 @@ import Data.Maybe
 
 -- | Parser for a term.
 pTerm :: Parser (Term RL)
-pTerm
+pTerm = pTermInfix5
+
+
+-- | Parse infix application at precedence 5.
+pTermInfix5 :: Parser (Term RL)
+pTermInfix5
+ = do   m       <- pTermInfix4
+        P.choice
+         [ do   op      <- pInfixOf ["∨", "∪", "∪+"]
+                m'      <- pTermInfix5
+                return  $  MInfix op m m'
+
+         , do   return   m ]
+
+
+-- | Parse infix application at precedence 4.
+pTermInfix4 :: Parser (Term RL)
+pTermInfix4
+ = do   m       <- pTermInfix3
+        P.choice
+         [ do   op      <- pInfixOf ["∧", "∩"]
+                m'      <- pTermInfix4
+                return  $  MInfix op m m'
+
+         , do   return   m ]
+
+
+-- | Parse infix application at precedence 3.
+pTermInfix3 :: Parser (Term RL)
+pTermInfix3
+ = do   m       <- pTermInfix2
+        P.choice
+         [ do   op      <- pInfixOf ["<", "<=", "≤", ">", ">=", "≥"]
+                m'      <- pTermInfix3
+                return  $  MInfix op m m'
+
+         , do   return   m ]
+
+
+-- | Parse infix application at precedence 2.
+pTermInfix2 :: Parser (Term RL)
+pTermInfix2
+ = do   m       <- pTermInfix1
+        P.choice
+         [ do   op      <- pInfixOf ["+", "-"]
+                m'      <- pTermInfix2
+                return  $  MInfix op m m'
+
+         , do   return   m ]
+
+
+-- | Parse infix application at precedence 1.
+pTermInfix1 :: Parser (Term RL)
+pTermInfix1
+ = do   m       <- pTermApp
+        P.choice
+         [ do   op      <- pInfixOf ["*", "/"]
+                m'      <- pTermInfix1
+                return  $  MInfix op m m'
+
+         , do   return   m ]
+
+
+-- | Parser for an application term.
+pTermApp :: Parser (Term RL)
+pTermApp
  = P.choice
  [ do   -- 'say' TermRecord ('by' Term)? ('obs' Term)? ('use' Term)? ('num' Term)?
         pKey "say"
@@ -24,14 +89,8 @@ pTerm
                         , MGTerms $ maybeToList mmObs
                         , MGTerms $ maybeToList mmUse
                         , MGTerms $ maybeToList mmNum ]
- , do   pTermApp ]
 
-
--- | Parser for an application term.
-pTermApp :: Parser (Term RL)
-pTermApp
- = P.choice
- [ do   nPrm    <- pPrm
+ , do   nPrm    <- pPrm
         msArg   <- P.many pTermArg
         return  $  MPrm nPrm $ map MGTerm msArg
 

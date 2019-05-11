@@ -75,6 +75,14 @@ pKey s = pTok (KKey s)
 pKey' :: String -> Parser RL
 pKey' s = pTok' (KKey s)
 
+-- | Parser for infix op.
+pInfix :: Parser Name
+pInfix  = pTokOf $ \case { KInfix s -> Just (Name s); _ -> Nothing }
+
+-- | Parser for one of a specified infix op.
+pInfixOf :: [String] -> Parser Name
+pInfixOf ops = pTokOf $ \case { KInfix s | elem s ops -> Just (Name s); _ -> Nothing }
+
 -- | Parser for punctuation.
 pPunc :: String -> Parser ()
 pPunc s = pTok (KPunc s)

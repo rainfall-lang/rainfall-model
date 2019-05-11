@@ -16,6 +16,7 @@ data Token
         | KVar          String          -- ^ Variable,          starts with lower case.
         | KCon          String          -- ^ Constructor,       starts with upper case.
         | KSym          String          -- ^ Symbol,            starts with apostrophe.
+        | KInfix        String          -- ^ Infix operator.
         | KPrm          String          -- ^ Primitive,         starts with '#'.
         | KMatch        String          -- ^ Match variable,    starts with question mark.
         | KNat          Integer         -- ^ Literal natural number.

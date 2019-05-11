@@ -40,13 +40,12 @@ await Order     [desc  = ?d, limit = ?l]
       select first a  consume none        check {!Mark}
  and  Budget    [desc  = ?d, total = ?t, remain = ?m] gain  {!Brendan}
  and  Reserve   [lot   = o,  bid    = ?b]
-      where #bool'and (#nat'le b l) (#bool'and (#nat'le b a) (#nat'le b m))
+      where (b ≤ l) ∧ (b ≤ a) ∧ (b ≤ m)
       check {!Brendan}
  to
-     #sets'union
       (say Budget [desc = d, total = t, remain = #nat'sub m a]
        by {!Brendan} use {'reserve})
-      (say Bid    [lot   = o, offer = b]
+   ∪+ (say Bid    [lot   = o, offer = b]
        by {!Brendan, !Alice} obs {!Mark} use {'bid})
 
 
@@ -55,11 +54,9 @@ await Order     [desc  = ?d, limit = ?l]
 --  If the bid price is less than the asking price it is converted
 --  to a resting offer on the book.
 rule  bid
-await Bid       [lot = ?o, offer = ?b]
-      gain {!Brendan}
+await Bid       [lot = ?o, offer = ?b]  gain {!Brendan}
   and Item      [lot = o,  ask   = ?a]
-      where  #nat'lt b a
-      consume none  gain {!Mark}
+      where b < a  consume none         gain {!Mark}
  to
       say Offer [lot = o, price = b]
       by {!Brendan, !Mark} use {'accept}
@@ -71,7 +68,7 @@ rule  accept
 await Accept    [lot = ?o, price = ?p]  gain {!Mark}
   and Offer     [lot = o,  price = p]   gain {!Brendan, !Mark}
   and Item      [lot = o,  desc  = ?d]
-      consume 1 check {!Mark}
+      consume 1                         check {!Mark}
  to
       say Invoice [seller = !Mark, buyer = !Brendan, desc = d, amount = p]
       by  {!Mark, !Brendan}

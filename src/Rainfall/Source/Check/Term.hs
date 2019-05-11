@@ -107,6 +107,27 @@ checkTerm a ctx (MSay nFact mData msBy msObs msUse msNum)
         return  ( MSay  nFact mData' msBy' msObs' msUse' msNum'
                 , TSets TFACT)
 
+checkTerm a ctx mm@(MInfix n m1 m2)
+ = case n of
+        "&&"    -> checkTerm a ctx (MPrm "bool'and" [MGTerm m1, MGTerm m2])
+        "||"    -> checkTerm a ctx (MPrm "bool'or"  [MGTerm m1, MGTerm m2])
+        "∧"     -> checkTerm a ctx (MPrm "bool'and" [MGTerm m1, MGTerm m2])
+        "∨"     -> checkTerm a ctx (MPrm "bool'or"  [MGTerm m1, MGTerm m2])
+
+        "+"     -> checkTerm a ctx (MPrm "nat'add"  [MGTerm m1, MGTerm m2])
+        "-"     -> checkTerm a ctx (MPrm "nat'sub"  [MGTerm m1, MGTerm m2])
+        "<"     -> checkTerm a ctx (MPrm "nat'lt"   [MGTerm m1, MGTerm m2])
+        ">"     -> checkTerm a ctx (MPrm "nat'gt"   [MGTerm m1, MGTerm m2])
+        "≤"     -> checkTerm a ctx (MPrm "nat'le"   [MGTerm m1, MGTerm m2])
+        "≥"     -> checkTerm a ctx (MPrm "nat'ge"   [MGTerm m1, MGTerm m2])
+
+        "∪"     -> checkTerm a ctx (MPrm "set'union"        [MGTerm m1, MGTerm m2])
+        "∩"     -> checkTerm a ctx (MPrm "set'intersection" [MGTerm m1, MGTerm m2])
+
+        "∪+"    -> checkTerm a ctx (MPrm "sets'union"       [MGTerm m1, MGTerm m2])
+
+        _       -> error $ unlines ["checkTerm: malformed infix exp", show mm]
+
 checkTerm _a _ m
  = error $ unlines ["checkTerm: malformed term", show m]
 

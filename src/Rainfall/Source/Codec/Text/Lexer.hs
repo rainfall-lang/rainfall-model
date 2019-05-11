@@ -13,7 +13,11 @@ scanner :: FilePath
         -> Scanner IO Location [Char] (At Token)
 scanner _fileName
  = skip Char.isSpace
- $ alts [ fmap (stamp KPunc)
+ $ alts [ fmap (stamp KInfix) $ munchPred Nothing
+                (\_ix c -> elem c infixChars)
+                (\str   -> if elem str infixOps then Just str else Nothing)
+
+        , fmap (stamp KPunc)
            $ munchWord (\ix c -> ix == 0 && elem c puncs)
 
         , fmap (stamp KKey) $ munchPred Nothing
@@ -70,6 +74,17 @@ scanner _fileName
         puncs
          = [ '(', ')', '[', ']', '{', '}'
            , ':', ',', '=' ]
+
+        infixChars
+         = [ '-', '+', '<', '>', '='
+           , '∧', '∨', '∪'
+           , '≤', '≥' ]
+
+        infixOps
+         = [ "<", "<=", "≤"
+           , ">", ">=", "≥"
+           , "∧", "∨", "∪", "∪+"
+           , "-", "+"]
 
         keywords
          = [ "fact"

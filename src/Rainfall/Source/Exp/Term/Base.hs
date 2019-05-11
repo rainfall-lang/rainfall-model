@@ -45,6 +45,7 @@ data TermKey
         | MKPrj  Name                   -- ^ Record field projection.
         | MKSet                         -- ^ Set constructor.
         | MKSay  Name                   -- ^ Say constructor.
+        | MKInfix Name                  -- ^ Infix application.
         deriving (Show, Eq, Ord)
 
 

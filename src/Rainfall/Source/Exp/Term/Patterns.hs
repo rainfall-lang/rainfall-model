@@ -19,6 +19,8 @@ pattern MSet ms                 = MKey  MKSet      [MGTerms ms]
 pattern MSay nFact mData msBy msObs msUse msNum
  = MKey (MKSay nFact) [MGTerm mData, MGTerms msBy, MGTerms msObs, MGTerms msUse, MGTerms msNum]
 
+pattern MInfix n m1 m2          = MKey  (MKInfix n) [MGTerm m1, MGTerm m2]
+
 ------------------------------------------------------------------------------------------ Value --
 pattern MSym n                  = MRef  (MRVal (VSym n))
 pattern MParty n                = MRef  (MRVal (VParty n))
