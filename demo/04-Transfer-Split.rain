@@ -24,7 +24,7 @@ fact Coin    [issuer: Party, holder: Party]
 ---------------------------------------------------------------------------------------------------
 -- A giver and receiver agree on an offer, and build a
 -- joint Agree fact that witnesses the agreement.
-rule  agreeOnOffer
+rule  agreeOffer
 await Offer  [id = ?i, giver = ?g, receiver = ?r] gain {g}
   and Accept [id = i,  accepter = r]              gain {r}
 to
@@ -34,7 +34,7 @@ to
 -- Given an agreement to perform a transfer,
 -- and a coin that can be transferred,
 -- perform the actual transfer.
-rule  performTheTransfer
+rule  performTransfer
 await Agreed [giver = ?g, receiver = ?r]        gain {g,r}
  and  Coin   [issuer = !Isabelle, holder = g]
       gain {!Isabelle,g}
