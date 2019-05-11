@@ -14,7 +14,7 @@ $ rainfall demo/01-Transfer.rain
  [rainfall-lang/rainfall-model/demo](https://github.com/rainfall-lang/rainfall-model/tree/master/demo)
 
 * Proof scripts for the theorems described in the paper are at 
- [rainfall-lang/rainfall-model/proof](https://github.com/rainfall-lang/rainfall-model/tree/master/proof)
+ [rainfall-lang/rainfall-model/proof](https://github.com/rainfall-lang/rainfall-model/tree/master/proof). A colourized HTML version is at [http://www.cse.unsw.edu.au/~amosr/rainfall-isa/Rainfall/](http://www.cse.unsw.edu.au/~amosr/rainfall-isa/Rainfall/)
  
 * A VSCode plugin that provides syntax highligting is at
  [rainfall-lang/rainfall-vscode](https://github.com/rainfall-lang/rainfall-vscode)
