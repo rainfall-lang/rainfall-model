@@ -102,7 +102,7 @@ checkTerm a ctx (MSay nFact mData msBy msObs msUse msNum)
         msBy'   <- mapM (checkTermIs a (TSet TParty)  ctx) msBy
         msObs'  <- mapM (checkTermIs a (TSet TParty)  ctx) msObs
         msUse'  <- mapM (checkTermIs a (TSet TSymbol) ctx) msUse
-        msNum'  <- mapM (checkTermIs a (TSet TNat)    ctx) msNum
+        msNum'  <- mapM (checkTermIs a TNat           ctx) msNum
 
         return  ( MSay  nFact mData' msBy' msObs' msUse' msNum'
                 , TSets TFACT)

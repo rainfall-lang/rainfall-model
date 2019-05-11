@@ -1,0 +1,154 @@
+
+---------------------------------------------------------------------------------------------------
+-- This is a more general version of the example 03-Market-Simple.
+-- This version has rules which work with arbitrary broker and buyer
+-- parties, rather than being specialized to Brendan and Alice.
+
+
+---------------------------------------------------------------------------------------------------
+-- Client order for a particular item.
+fact Order      [ broker: Party, buyer: Party
+                , desc:   Text,  limit: Nat,  budget: Nat]
+
+-- Market listing of an item for sale.
+fact Item       [ lot:   Nat,  desc:  Text, ask: Nat]
+
+-- Market accepts a lower offer for an item.
+fact Accept     [ broker: Party
+                , lot:  Nat,  price:  Nat]
+
+-- Market tracking of an offer below the asking price.
+fact Offer      [ broker: Party, buyer: Party
+                , lot:    Nat,   price:  Nat]
+
+-- A bid placed on an item by a broker.
+fact Bid        [ broker: Party, buyer: Party
+                , lot:    Nat,   offer:  Nat]
+
+-- Local tracking of remaining budget by a broker.
+fact Budget     [ broker: Party, buyer: Party
+                , desc: Text, total: Nat, remain: Nat]
+
+-- Local tracking of reserved portion of a budget by a broker.
+fact Reserve    [ broker: Party, buyer: Party
+                , lot:   Nat, bid:    Nat]
+
+-- Invoice provided from a seller to a buyer.
+fact Invoice    [ seller: Party, broker: Party, buyer: Party
+                , desc: Text, amount: Nat]
+
+
+---------------------------------------------------------------------------------------------------
+-- Brendan reserves a portion of Alice's budget,
+-- and sends a bid to the market for one of the items Alice has ordered.
+--
+-- By placing the order Alice delegates her authority to Brendan for
+-- the purpose of bidding on orders.
+--
+rule  reserve
+await Order     [ broker = ?r, buyer = ?y
+                , desc   = ?d, limit = ?l ]
+      consume none gain {y}
+
+ and  Item      [ lot = ?o, desc = d, ask = ?a]
+      select first a  consume none
+      check {!Mark}
+
+ and  Budget    [ broker = r,  buyer = y
+                , desc   = ?d, total = ?t, remain = ?m]
+      gain  {r}
+
+ and  Reserve   [ broker = r, buyer = y
+                , lot    = o, bid   = ?b]
+      where (b ≤ l) ∧ (b ≤ a) ∧ (b ≤ m)
+      check {r}
+ to
+ (say Budget    [ broker = r, buyer = y
+                , desc   = d, total = t, remain = m - a]
+  by {r} use {'reserve})
+ ∪+
+ (say Bid       [ broker = r, buyer = y
+                , lot    = o, offer = b]
+  by {r, y} obs {!Mark} use {'bid})
+
+
+-- Mark receives a bid from Brendan,
+--  checks that there is a matching item for sale.
+--  If the bid price is less than the asking price it is converted
+--  to a resting offer on the book.
+rule  bid
+await Bid       [ broker = ?r, buyer = ?y, lot = ?o, offer = ?b]
+      gain {r, y}
+
+  and Item      [ lot = o, ask   = ?a]
+      where b < a  consume none
+      gain {!Mark}
+ to
+      say Offer [ broker = r, buyer = y, lot = o, price = b]
+      by {r, y, !Mark} use {'accept}
+
+
+-- Mark accepts a resting offer,
+--  removing the item from the list and creating an invoice.
+rule  accept
+await Accept    [broker = ?r, lot = ?o, price = ?p]
+      gain {!Mark}
+
+  and Offer     [broker = r,  buyer = ?y, lot = o,  price = p]
+      gain {!Mark, r, y}
+
+  and Item      [lot = o,  desc  = ?d]
+      consume 1
+      check {!Mark}
+ to
+      say Invoice [seller = !Mark, broker = r, buyer = y, desc = d, amount = p]
+      by  {!Mark, r, y}
+
+
+---------------------------------------------------------------------------------------------------
+scenario test do
+        -- Alice tells Brendan she wants Rock Lobsters,
+        --  for less than 28 each, with a total budget of 100.
+ add    say Order       [ broker = !Brendan, buyer = !Alice
+                        , desc = "Rock Lobster", limit = 28, budget = 100]
+        by  {!Alice}    obs {!Brendan}  use {'reserve}
+
+        -- Brendan initializes a local budget fact to track outstanding bids
+        -- for Alice. The budget only needs to be observable to Brendan.
+ add    say Budget      [ broker = !Brendan, buyer = !Alice
+                        , desc = "Rock Lobster", total = 100, remain = 100]
+        by  {!Brendan}  use {'reserve}
+
+        -- Mark announces items for sale.
+ add    say Item        [lot = 1001, desc = "Rock Lobster", ask = 24]
+        by {!Mark} obs {!Brendan, !Brett} use {'bid, 'accept}
+
+ add    say Item        [lot = 1002, desc = "Rock Lobster", ask = 26]
+        by {!Mark} obs {!Brendan, !Brett} use {'bid, 'accept}
+
+ add    say Item        [lot = 1003, desc = "Bikini Whale", ask = 645]
+        by {!Mark} obs {!Brendan, !Brett} use {'bid, 'accept}
+ dump
+
+        -- Brendan enters a bid of 22 for the first lobster,
+        -- checking the current budget along the way.
+ add    say Reserve     [ broker = !Brendan, buyer = !Alice
+                        , lot = 1001, bid = 22]
+        by {!Brendan} use {'reserve}
+
+        -- Brendan fire's his local bid rule.
+ fire   by {!Brendan} rules {'reserve}
+
+        -- Mark cycles the bid into a resting offer.
+ fire   by {!Mark} rules {'bid}
+
+        -- Mark accepts Brendan's lower offer.
+ add    say Accept      [ broker = !Brendan, lot = 1001, price = 22]
+        by {!Mark} use {'accept}
+ dump
+
+        -- Rock lobster is sold.
+ fire   by {!Mark} rules {'accept}
+
+ dump
+

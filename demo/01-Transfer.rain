@@ -1,4 +1,9 @@
 
+---------------------------------------------------------------------------------------------------
+-- In the paper "Smart Contracts as Authorized Production Rules",
+-- this example appears in Section 2.
+
+---------------------------------------------------------------------------------------------------
 -- A coin supplied by an issuer, held by a holder.
 fact  Coin   [issuer: Party,  holder:   Party]
 
@@ -31,7 +36,7 @@ scenario test do
         use {'transfer} num 100
 
  -- Alice offers to give her coin to Bob.
- add    say Offer  [ id = '1234
+ add    say Offer  [ id = '1234, terms = "To purchase a guitar"
                    , giver = !Alice, receiver = !Bob]
         by {!Alice} obs {!Bob, !Mona}   use {'transfer}
 

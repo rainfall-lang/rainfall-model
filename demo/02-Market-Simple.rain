@@ -1,4 +1,11 @@
 
+---------------------------------------------------------------------------------------------------
+-- In the paper "Smart Contracts as Authorized Production Rules",
+-- the rule 'reserve' that appears in Section 3.6 is taken from
+-- this example. This version has been specialized so that Brendan
+-- is the only broker, and Alice is the only client. A more general
+-- version is provided in the 03-Market-General example.
+
 
 ---------------------------------------------------------------------------------------------------
 -- Client order for a particular item.
@@ -35,15 +42,21 @@ fact Invoice [seller: Party, buyer: Party, desc: Text, amount: Nat]
 --
 rule  reserve
 await Order     [desc  = ?d, limit = ?l]
-      consume none                        gain  {!Alice}
+      consume none
+      gain  {!Alice}
+
  and  Item      [lot   = ?o, desc = d, ask = ?a]
-      select first a  consume none        check {!Mark}
- and  Budget    [desc  = ?d, total = ?t, remain = ?m] gain  {!Brendan}
+      select first a  consume none
+      check {!Mark}
+
+ and  Budget    [desc  = ?d, total = ?t, remain = ?m]
+      gain  {!Brendan}
+
  and  Reserve   [lot   = o,  bid    = ?b]
       where (b ≤ l) ∧ (b ≤ a) ∧ (b ≤ m)
       check {!Brendan}
  to
-      (say Budget [desc = d, total = t, remain = #nat'sub m a]
+      (say Budget [desc = d, total = t, remain = m - a]
        by {!Brendan} use {'reserve})
    ∪+ (say Bid    [lot   = o, offer = b]
        by {!Brendan, !Alice} obs {!Mark} use {'bid})
