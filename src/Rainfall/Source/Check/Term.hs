@@ -82,7 +82,7 @@ checkTerm a ctx (MSet msArg)
 
         tArg
          <- case tsArg of
-                []      -> return TBot
+                []      -> return TTop
                 [t]     -> return t
                 t : _   -> do   mapM_ (checkTermIs a t ctx) msArg'
                                 return t
@@ -98,17 +98,17 @@ checkTerm a ctx (MSay nFact mData msBy msObs msUse msNum)
                 Just nts        -> return nts
                 _ -> nope a [text "unknown fact " <+> squotes (ppName nFact)]
 
-        mData'   <- checkTermIs a (TRcd nsField tsField) ctx mData
+        mData'  <- checkTermIs a (TRcd nsField tsField) ctx mData
+        msBy'   <- mapM (checkTermIs a (TSet TParty)  ctx) msBy
+        msObs'  <- mapM (checkTermIs a (TSet TParty)  ctx) msObs
+        msUse'  <- mapM (checkTermIs a (TSet TSymbol) ctx) msUse
+        msNum'  <- mapM (checkTermIs a (TSet TNat)    ctx) msNum
 
-
-        -- TODO: check components.
-        return  ( MSay  nFact mData' msBy msObs msUse msNum
+        return  ( MSay  nFact mData' msBy' msObs' msUse' msNum'
                 , TSets TFACT)
 
 checkTerm _a _ m
- = error $ unlines
-        [ "checkTerm: malformed term"
-        , show m ]
+ = error $ unlines ["checkTerm: malformed term", show m]
 
 
 -- | Check a term, expecting it to have a prior known type.
@@ -139,8 +139,8 @@ checkTermArg a ctx (MGTerm m)
  = do   (m', t) <- checkTerm a ctx m
         return (MGTerm m', t)
 
-checkTermArg _ _ MGTerms{}
- = error "checkTermArg: arity mismatch"
+checkTermArg _ _ mg@MGTerms{}
+ = error $ unlines ["checkTermArg: malformed term", show mg]
 
 
 -- | Check a term argument, expecting it to have a prior known type.

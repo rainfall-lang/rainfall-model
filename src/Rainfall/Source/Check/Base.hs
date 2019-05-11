@@ -44,8 +44,6 @@ checkEq t1 (TAnn _a t2)         = checkEq t1 t2
 checkEq (TPrm n1) (TPrm n2)     = n1 == n2
 checkEq (TCon n1) (TCon n2)     = n1 == n2
 
-checkEq TBot TBot               = True
-
 checkEq TTop _                  = True
 checkEq _    TTop               = True
 

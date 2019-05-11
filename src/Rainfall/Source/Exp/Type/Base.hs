@@ -22,8 +22,7 @@ data TypeRef a
 
 -- | Type Key.
 data TypeKey
-        = TKBot                         -- ^ Used as the element type of empty collections.
-        | TKTop                         -- ^ Used as a placeholder until we implement polymorphism.
+        = TKTop                         -- ^ Used as a placeholder until we implement polymorphism.
         | TKFun                         -- ^ Function type former.
         | TKRcd  [Name]                 -- ^ Record type former.
         | TKSet                         -- ^ Set type former.

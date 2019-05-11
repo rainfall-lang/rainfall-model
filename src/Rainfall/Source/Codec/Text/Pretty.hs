@@ -28,7 +28,6 @@ ppTypeArg tt
         TRef (TRCon n)  -> ppName n
         TVar (Bound n)  -> ppName n
 
-        TBot            -> text "⊥"
         TTop            -> text "⊤"
 
         TFun{}          -> parens $ ppType tt

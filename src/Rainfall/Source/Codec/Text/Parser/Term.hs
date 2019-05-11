@@ -61,7 +61,7 @@ pTermArg
 
  , do   -- '{' Term,* '}'
         pPunc "{"
-        ms      <- flip P.sepEndBy1 (pPunc ",") pTerm
+        ms      <- flip P.sepEndBy (pPunc ",") pTerm
         pPunc "}"
         return  $ MSet ms
 

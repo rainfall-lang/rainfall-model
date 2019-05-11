@@ -9,7 +9,6 @@ pattern TCon n          = TRef (TRCon n)
 
 
 -- Type keywords.
-pattern TBot            = TKey TKBot []
 pattern TTop            = TKey TKTop []
 pattern TFun t1 t2      = TKey TKFun [t1, t2]
 pattern TRcd ns ts      = TKey (TKRcd ns) ts
