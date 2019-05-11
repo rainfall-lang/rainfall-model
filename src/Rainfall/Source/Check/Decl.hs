@@ -2,10 +2,14 @@
 module Rainfall.Source.Check.Decl where
 import Rainfall.Source.Check.Term
 import Rainfall.Source.Check.Base
-import qualified Data.Map                               as Map
+import Rainfall.Source.Codec.Text.Pretty
+
+import Control.Monad
+import Text.PrettyPrint.Leijen  hiding ((<$>))
+import qualified Data.Map       as Map
 
 
-sname n = "'" ++ takeName n ++ "'"
+sname n = text "'" <> text (takeName n) <> text "'"
 
 
 ------------------------------------------------------------------------------------------- Decl --
@@ -41,7 +45,7 @@ checkRule a facts (Rule nRule hsMatch mBody)
         (ctx', hsMatch')   <- checkMatches a ctx hsMatch
 
         -- Check the body in the new context.
-        (mBody', _tBody')  <- checkTerm ctx' mBody
+        (mBody', _tBody')  <- checkTerm a ctx' mBody
 
         -- TODO: check body type
 
@@ -109,8 +113,12 @@ checkGather a ctx (GatherPat nFact ngps mmPred)
          <- case mmPred of
                 Nothing -> return Nothing
                 Just mPred
-                 -> do  (mPred', _tPred) <- checkTerm ctx' mPred
-                        -- TODO: check tPred is a bool
+                 -> do  (mPred', tPred) <- checkTerm a ctx' mPred
+                        when (not $ checkEq tPred TBool) $ nope a
+                         $ [ text "predicate expression"
+                           , text " of type " <> squotes (ppType tPred)
+                           , text " does not match expected type 'Bool'" ]
+
                         return $ Just mPred'
 
         return (ctx', GatherPat nFact ngps' mmPred')
@@ -138,7 +146,7 @@ checkGatherFields a nFact ntsFactPayload ctx (ngp : ngps)
 checkGatherField
         :: RL                   -- ^ Annotation for error messages.
         -> Name                 -- ^ Name of matched fact.
-        -> [(Name, Type RL)]     -- ^ Types of fields of the fact being matched.
+        -> [(Name, Type RL)]    -- ^ Types of fields of the fact being matched.
         -> Context RL ->   (Name, GatherPat RL)
         -> IO (Context RL, (Name, GatherPat RL))
 
@@ -146,32 +154,39 @@ checkGatherField a nFact ntsFactPayload ctx (nField, gatherPat)
  = do
         tField
          <- case lookup nField ntsFactPayload of
-                Nothing -> nope a [ "Fact " ++ sname nFact
-                                            ++ " does not have field " ++ sname nField ++ "."]
+                Nothing -> nope a
+                 [ text "Fact " <> squotes (ppName nFact)
+                        <> text " does not have field "
+                        <> squotes (ppName nField) <> text "."]
                 Just t  -> return t
 
         (ctx', gatherPat')
-         <- checkGatherPat tField ctx gatherPat
+         <- checkGatherPat a nField tField ctx gatherPat
 
         return (ctx', (nField, gatherPat'))
 
 
 -- | Check the pattern match of a single field.
 checkGatherPat
-        :: Show a
-        => Type a               -- ^ Type of the current field of the fact.
-        -> Context a -> GatherPat a
-        -> IO (Context a, GatherPat a)
+        :: RL
+        -> Name                 -- ^ Name of the current field.
+        -> Type RL               -- ^ Type of the current field of the fact.
+        -> Context RL -> GatherPat RL
+        -> IO (Context RL, GatherPat RL)
 
-checkGatherPat tField ctx gp@(GatherPatBind n)
+checkGatherPat _a _nField tField ctx gp@(GatherPatBind n)
  = do   let ctx' = ctx { contextLocal = (n, tField) : contextLocal ctx }
         return (ctx', gp)
 
-checkGatherPat _tField ctx (GatherPatEq mMatch)
- = do   (mMatch', _tMatch)
-         <- checkTerm ctx mMatch
+checkGatherPat a nField tField ctx (GatherPatEq mMatch)
+ = do   (mMatch', tMatch)
+         <- checkTerm a ctx mMatch
 
-        -- TODO: compare
+        when (not $ checkEq tField tMatch) $ nope a
+         $ [ text " in field "            <> squotes (ppName nField)
+           , text " term of type "        <> squotes (ppType tMatch)
+           , text " does not field type " <> squotes (ppType tField) ]
+
         return (ctx, GatherPatEq mMatch')
 
 

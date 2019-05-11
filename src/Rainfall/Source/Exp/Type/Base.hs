@@ -6,10 +6,10 @@ import Data.String
 
 -- | Annotated Type.
 data Type a
-        = TAnn a (Type a)                       -- ^ Annotated type.
-        | TRef (TypeRef a)                      -- ^ Type reference.
-        | TVar Bound                            -- ^ Type variable.
-        | TKey TypeKey [Type a]                 -- ^ Type keyword application.
+        = TAnn a (Type a)               -- ^ Annotated type.
+        | TRef (TypeRef a)              -- ^ Type reference.
+        | TVar Bound                    -- ^ Type variable.
+        | TKey TypeKey [Type a]         -- ^ Type keyword application.
         deriving (Show, Eq, Ord)
 
 
@@ -23,6 +23,7 @@ data TypeRef a
 -- | Type Key.
 data TypeKey
         = TKBot                         -- ^ Used as the element type of empty collections.
+        | TKTop                         -- ^ Used as a placeholder until we implement polymorphism.
         | TKFun                         -- ^ Function type former.
         | TKRcd  [Name]                 -- ^ Record type former.
         | TKSet                         -- ^ Set type former.

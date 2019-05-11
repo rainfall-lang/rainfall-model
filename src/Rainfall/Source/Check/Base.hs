@@ -1,18 +1,17 @@
 
 module Rainfall.Source.Check.Base
-        ( module Rainfall.Source.Check.Error
-        , module Rainfall.Source.Exp
+        ( module Rainfall.Source.Exp
         , Facts
         , Context (..)
         , checkEq
         , RL
         , nope)
 where
-import Rainfall.Source.Check.Error
 import Rainfall.Source.Exp
 import qualified Rainfall.Source.Codec.Text.Token       as Token
 import qualified System.Exit                            as System
 import qualified Data.Map.Strict                        as Map
+import qualified Text.PrettyPrint.Leijen                as P
 
 ---------------------------------------------------------------------------------------- Context --
 -- | Map of fact names to their payload types.
@@ -47,6 +46,9 @@ checkEq (TCon n1) (TCon n2)     = n1 == n2
 
 checkEq TBot TBot               = True
 
+checkEq TTop _                  = True
+checkEq _    TTop               = True
+
 checkEq (TFun t11 t12) (TFun t21 t22)
  = checkEq t11 t21 && checkEq t12 t22
 
@@ -69,11 +71,15 @@ checkEq _ _                     = False
 
 
 ------------------------------------------------------------------------------------------ Error --
-nope :: RL -> [String] -> IO a
-nope a str
- = do   putStrLn "type error"
-        putStr $ " " ++ sloc a ++ " " ++ unlines str
+nope :: RL -> [P.Doc] -> IO a
+nope a docs
+ = do   let doc = P.vcat
+                [ P.text "type error" P.<+> ppLoc a
+                , P.indent 2 $ P.vcat docs ]
+
+        putStrLn $ (P.displayS $ P.renderPretty 1.0 100 doc) ""
         System.exitFailure
 
- where  sloc  (Token.Range (Token.Location l c) _)
-         = show (l + 1) ++ ":" ++ show (c + 1)
+ where  ppLoc  (Token.Range (Token.Location l c) _)
+         = P.int (l + 1) P.<> P.text ":" P.<> P.int (c + 1)
+

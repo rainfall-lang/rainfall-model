@@ -131,7 +131,9 @@ evalPrim "party'eq"     [VParty p1, VParty p2]  = VBool (p1 == p2)
 evalPrim "set'one"      [v]                     = VSet (Set.singleton v)
 evalPrim "set'union"    [VSet vs1, VSet vs2]    = VSet (Set.union vs1 vs2)
 
-evalPrim "factoids'union" [VMap mp1, VMap mp2]
+evalPrim "sets'one"     [v]                     = VMap (Map.singleton v (VNat 1))
+evalPrim "sets'some"    [v, k]                  = VMap (Map.singleton v k)
+evalPrim "sets'union"   [VMap mp1, VMap mp2]
  = VMap (Map.unionWith addNat mp1 mp2)
  where  addNat (VNat n1) (VNat n2) = VNat (n1 + n2)
         addNat _ _                 = error "evalPrim: ill typed weights"

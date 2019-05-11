@@ -110,4 +110,5 @@ fireRuleIO auth rule store
                 putStrLn "* Many"
                 return Nothing
 
+
 renderMax = P.renderPretty 1.0 100

@@ -40,7 +40,7 @@ await Order     [desc  = ?d, limit = ?l]
       where #bool'and (#nat'le b l) (#bool'and (#nat'le b a) (#nat'le b m))
       check {!Brendan}
  to
-     #factoids'union
+     #sets'union
       (say Budget [total = t, remain = #nat'sub m a]
        by {!Brendan} use {'reserve})
       (say Bid    [lot   = o, offer = b]

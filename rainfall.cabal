@@ -69,6 +69,7 @@ executable rainfall
 
         Rainfall.Source.Codec.Text.Token
         Rainfall.Source.Codec.Text.Lexer
+        Rainfall.Source.Codec.Text.Pretty
 
         Rainfall.Source.Codec.Text.Parser.Decl
         Rainfall.Source.Codec.Text.Parser.Term
@@ -76,7 +77,6 @@ executable rainfall
         Rainfall.Source.Codec.Text.Parser
 
         Rainfall.Source.Check.Base
-        Rainfall.Source.Check.Error
         Rainfall.Source.Check.Term
         Rainfall.Source.Check.Decl
         Rainfall.Source.Check
