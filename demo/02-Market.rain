@@ -22,6 +22,9 @@ fact Budget  [total: Nat, remain: Nat]
 -- Local tracking of reserved portion of a budget by a broker.
 fact Reserve [lot:   Nat, bid:    Nat]
 
+-- Invoice provided from a seller to a buyer.
+fact Invoice [seller: Party, buyer: Party, desc: Text, amount: Nat]
+
 
 ---------------------------------------------------------------------------------------------------
 -- Brendan reserves a portion of Alice's budget,

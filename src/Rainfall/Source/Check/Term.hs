@@ -2,15 +2,16 @@
 module Rainfall.Source.Check.Term where
 import Rainfall.Source.Check.Base
 import Rainfall.Source.Codec.Text.Pretty
+
 import Control.Monad
-import Text.PrettyPrint.Leijen  hiding ((<$>))
+import Text.PrettyPrint.Leijen          hiding ((<$>))
+import qualified Data.Map.Strict        as Map
 
 
 ------------------------------------------------------------------------------------------- Term --
 -- | Type check a single term.
-checkTerm
-        :: RL -> Context RL
-        -> Term RL -> IO (Term RL, Type RL)
+checkTerm :: RL -> Context RL
+          -> Term RL -> IO (Term RL, Type RL)
 
 checkTerm _a ctx (MAnn a m)
  = do   (m', t) <- checkTerm a ctx m
@@ -26,7 +27,7 @@ checkTerm a ctx m@(MVar (Bound n))
         Just t  -> return (m, t)
 
 checkTerm _a _ctx (MAbs{})
- = error "checkTerm: general abstraction not used yet."
+ = error "checkTerm: general abstraction not implemented yet."
 
 checkTerm a ctx (MPrm nPrm mgsArg)
  | Just (tsParam, tResult) <- typeOfPrim nPrm
@@ -44,7 +45,7 @@ checkTerm a ctx (MPrm nPrm mgsArg)
  = nope a [ text " unknown primitive " <> squotes (ppName nPrm) ]
 
 checkTerm _a _ctx (MApp{})
- = error "checkTerm: general application not used yet."
+ = error "checkTerm: general application not implemented yet."
 
 checkTerm a ctx (MRcd nsField msField)
  = do
@@ -54,24 +55,54 @@ checkTerm a ctx (MRcd nsField msField)
         return  ( MRcd nsField msField'
                 , TRcd nsField tsField)
 
-checkTerm a ctx (MPrj mRcd _nField)
+checkTerm a ctx (MPrj mRcd nField)
  = do
-        (mRcd', _tRcd)
+        (mRcd', tRcd)
          <- checkTerm a ctx mRcd
 
-        return  ( mRcd'
-                , TUnit)
+        ntsField
+         <- case tRcd of
+                TRcd ns ts -> return $ zip ns ts
+                _ -> nope a [ text "term being projected does not have record type"
+                            , text " actual type: " <+> squotes (ppType tRcd) ]
 
-checkTerm _a _ctx (MSet msArg)
- = do
-        -- TODO: check elems.
-        return  ( MSet msArg
-                , TSet TBot)
+        tField
+         <- case lookup nField ntsField of
+                Just t  -> return t
+                _ -> nope a [ text "record does not have field" <+> squotes (ppName nField)
+                            , text " record type: " <+> squotes (ppType tRcd) ]
 
-checkTerm _a _ctx (MSay nFact mData msBy msObs msUse msNum)
+        return  (mRcd', tField)
+
+
+checkTerm a ctx (MSet msArg)
  = do
+        (msArg', tsArg)
+         <- fmap unzip $ mapM (checkTerm a ctx) msArg
+
+        tArg
+         <- case tsArg of
+                []      -> return TBot
+                [t]     -> return t
+                t : _   -> do   mapM_ (checkTermIs a t ctx) msArg'
+                                return t
+
+        return  ( MSet msArg'
+                , TSet tArg)
+
+checkTerm a ctx (MSay nFact mData msBy msObs msUse msNum)
+ = do
+        (nsField, tsField)
+         <- fmap unzip
+         $  case Map.lookup nFact (contextFacts ctx) of
+                Just nts        -> return nts
+                _ -> nope a [text "unknown fact " <+> squotes (ppName nFact)]
+
+        mData'   <- checkTermIs a (TRcd nsField tsField) ctx mData
+
+
         -- TODO: check components.
-        return  ( MSay  nFact mData msBy msObs msUse msNum
+        return  ( MSay  nFact mData' msBy msObs msUse msNum
                 , TSets TFACT)
 
 checkTerm _a _ m
@@ -79,7 +110,24 @@ checkTerm _a _ m
         [ "checkTerm: malformed term"
         , show m ]
 
+
+-- | Check a term, expecting it to have a prior known type.
+checkTermIs :: RL -> Type RL -> Context RL
+            -> Term RL -> IO (Term RL)
+
+checkTermIs a tExpected ctx m
+ = do   (m', tActual) <- checkTerm a ctx m
+
+        when (not $ checkEq tActual tExpected) $ nope a
+         $ [ text "actual type " <> squotes (ppType tActual)
+           , text "does not match"
+           , text "expect type " <> squotes (ppType tExpected) ]
+
+        return m'
+
+
 ---------------------------------------------------------------------------------------- TermArg --
+-- | Check a temr argument.
 checkTermArg
         :: RL -> Context RL
         -> TermArg RL -> IO (TermArg RL, Type RL)
@@ -95,6 +143,7 @@ checkTermArg _ _ MGTerms{}
  = error "checkTermArg: arity mismatch"
 
 
+-- | Check a term argument, expecting it to have a prior known type.
 checkTermArgIs
         :: RL -> Context RL
         -> TermArg RL -> Type RL
@@ -105,11 +154,9 @@ checkTermArgIs a ctx mg tExpected
          <- checkTermArg a ctx mg
 
         when (not $ checkEq tActual tExpected) $ nope a
-         $ [ text "actual type " <> text (show tActual)
---         squotes (ppType tActual)
+         $ [ text "actual type " <> squotes (ppType tActual)
            , text "does not match"
-           , text "expect type " <> text (show tExpected) ]
---           squotes (ppType tExpected) ]
+           , text "expect type " <> squotes (ppType tExpected) ]
 
         return mg'
 

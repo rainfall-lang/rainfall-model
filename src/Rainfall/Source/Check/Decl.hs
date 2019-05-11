@@ -9,9 +9,6 @@ import Text.PrettyPrint.Leijen  hiding ((<$>))
 import qualified Data.Map       as Map
 
 
-sname n = text "'" <> text (takeName n) <> text "'"
-
-
 ------------------------------------------------------------------------------------------- Decl --
 -- | Check a list of top level declarations.
 checkDecls :: [Decl RL] -> IO [Decl RL]
@@ -41,13 +38,12 @@ checkRule a facts (Rule nRule hsMatch mBody)
  = do   -- Initial context.
         let ctx     = Context facts []
 
-        -- Check all the matches, producing an output context with pattern bindings.
-        (ctx', hsMatch')   <- checkMatches a ctx hsMatch
+        -- Check all the matches, producing an output context
+        -- containing any field binders.
+        (ctx', hsMatch') <- checkMatches a ctx hsMatch
 
-        -- Check the body in the new context.
-        (mBody', _tBody')  <- checkTerm a ctx' mBody
-
-        -- TODO: check body type
+        -- Check the rule body in the new context.
+        mBody' <- checkTermIs a (TSets TFACT) ctx' mBody
 
         return (Rule nRule hsMatch' mBody')
 
@@ -101,7 +97,7 @@ checkGather a ctx (GatherPat nFact ngps mmPred)
         -- Lookup types of the fields of this fact.
         ntsFactPayload
          <- case Map.lookup nFact (contextFacts ctx) of
-                Nothing  -> error "no fact"
+                Nothing  -> nope a [text "unknown fact " <+> squotes (ppName nFact) ]
                 Just nts -> return nts
 
         -- Check the per-field pattern matches.
@@ -168,9 +164,9 @@ checkGatherField a nFact ntsFactPayload ctx (nField, gatherPat)
 
 -- | Check the pattern match of a single field.
 checkGatherPat
-        :: RL
+        :: RL                   -- ^ Annotation for error messages.
         -> Name                 -- ^ Name of the current field.
-        -> Type RL               -- ^ Type of the current field of the fact.
+        -> Type RL              -- ^ Type of the current field of the fact.
         -> Context RL -> GatherPat RL
         -> IO (Context RL, GatherPat RL)
 
