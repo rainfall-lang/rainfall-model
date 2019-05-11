@@ -43,7 +43,7 @@ await Order     [desc  = ?d, limit = ?l]
      #factoids'union
       (say Budget [total = t, remain = #nat'sub m a]
        by {!Brendan} use {'reserve})
-      (say Bid    [lot   = o, price = b]
+      (say Bid    [lot   = o, offer = b]
        by {!Brendan, !Alice} obs {!Mark} use {'bid})
 
 
@@ -52,7 +52,7 @@ await Order     [desc  = ?d, limit = ?l]
 --  If the bid price is less than the asking price it is converted
 --  to a resting offer on the book.
 rule  bid
-await Bid       [lot = ?o, price = ?b]
+await Bid       [lot = ?o, offer = ?b]
       gain {!Brendan}
   and Item      [lot = o,  ask   = ?a]
       where  #nat'lt b a

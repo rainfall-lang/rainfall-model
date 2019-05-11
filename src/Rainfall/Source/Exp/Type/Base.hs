@@ -9,26 +9,14 @@ data Type a
         = TAnn a (Type a)                       -- ^ Annotated type.
         | TRef (TypeRef a)                      -- ^ Type reference.
         | TVar Bound                            -- ^ Type variable.
-        | TAbs (TypeParam a) (Type a)           -- ^ Type abstraction.
         | TKey TypeKey [Type a]                 -- ^ Type keyword application.
         deriving (Show, Eq, Ord)
-
-
--- | Kinds are represented the same way as types.
-type Kind a = Type a
 
 
 -- | Type Reference.
 data TypeRef a
         = TRPrm Name                    -- ^ Primitive type constructor.
         | TRCon Name                    -- ^ User defined type synonym or constructor.
-        deriving (Show, Eq, Ord)
-
-
--- | Type Parameter.
-data TypeParam a
-        = TPAnn a (TypeParam a)
-        | TPType (Bind, Type a)         -- ^ Type parameter.
         deriving (Show, Eq, Ord)
 
 

@@ -2,19 +2,22 @@
 module Rainfall.Source.Check.Decl where
 import Rainfall.Source.Check.Term
 import Rainfall.Source.Check.Base
-import qualified Data.Map               as Map
+import qualified Data.Map                               as Map
+
+
+sname n = "'" ++ takeName n ++ "'"
 
 
 ------------------------------------------------------------------------------------------- Decl --
 -- | Check a list of top level declarations.
-checkDecls :: Show a => [Decl a] -> IO [Decl a]
+checkDecls :: [Decl RL] -> IO [Decl RL]
 checkDecls ds
  = do   let facts   = Map.fromList [(nFact, ntsField) | DeclFact nFact ntsField <- ds]
         mapM (checkDecl facts) ds
 
 
 -- | Check a single declaration.
-checkDecl :: Show a => Facts a -> Decl a -> IO (Decl a)
+checkDecl :: Facts RL -> Decl RL -> IO (Decl RL)
 checkDecl facts dd
  = case dd of
         DeclFact{}       -> return dd
@@ -29,13 +32,13 @@ checkDecl facts dd
 ------------------------------------------------------------------------------------------- Rule --
 -- | Check a source rule.
 --   Type errors are thrown as exceptions in the IO monad.
-checkRule :: Show a => a -> Facts a -> Rule a -> IO (Rule a)
-checkRule _a facts (Rule nRule hsMatch mBody)
+checkRule :: RL -> Facts RL -> Rule RL -> IO (Rule RL)
+checkRule a facts (Rule nRule hsMatch mBody)
  = do   -- Initial context.
         let ctx     = Context facts []
 
         -- Check all the matches, producing an output context with pattern bindings.
-        (ctx', hsMatch') <- checkMatches ctx hsMatch
+        (ctx', hsMatch')   <- checkMatches a ctx hsMatch
 
         -- Check the body in the new context.
         (mBody', _tBody')  <- checkTerm ctx' mBody
@@ -48,35 +51,48 @@ checkRule _a facts (Rule nRule hsMatch mBody)
 ------------------------------------------------------------------------------------------ Match --
 -- | Check a sequence of matches,
 --   where variables bound in earlier ones are in scope in later ones.
-checkMatches :: Show a => Context a -> [Match a] -> IO (Context a, [Match a])
-checkMatches ctx []
+checkMatches
+        :: RL -> Context RL
+        -> [Match RL] -> IO (Context RL, [Match RL])
+checkMatches _a ctx []
  = return (ctx, [])
 
-checkMatches ctx (h: hs)
- = do   (ctx', h')   <- checkMatch   ctx  h
-        (ctx'', hs') <- checkMatches ctx' hs
+checkMatches a ctx (h: hs)
+ = do   (ctx', h')   <- checkMatch   a ctx  h
+        (ctx'', hs') <- checkMatches a ctx' hs
         return (ctx'', h' : hs')
 
 
 -- | Check a single match clause.
-checkMatch :: Show a => Context a -> Match a -> IO (Context a, Match a)
-checkMatch ctx (MatchAnn a h)
- = do   (ctx', h') <- checkMatch ctx h
+checkMatch
+        :: RL -> Context RL
+        -> Match RL -> IO (Context RL, Match RL)
+
+checkMatch _a ctx (MatchAnn a h)
+ = do   (ctx', h') <- checkMatch a ctx h
         return $ (ctx', MatchAnn a h')
 
-checkMatch ctx (Match gather select consume gain)
+checkMatch a ctx (Match gather select consume gain)
  = do
-        return (ctx, Match gather select consume gain)
+        (ctx', gather') <- checkGather a ctx gather
+        -- TODO: check select
+        -- TODO: check consume
+        -- TODO: check gain
+
+        return (ctx', Match gather' select consume gain)
 
 
 ----------------------------------------------------------------------------------------- Gather --
 -- | Check a fact gather, adding pattern bound variables
-checkGather :: Show a => Context a -> Gather a -> IO (Context a, Gather a)
-checkGather ctx (GatherAnn a gg)
- = do   (ctx', gg') <- checkGather ctx gg
+checkGather
+        :: RL -> Context RL
+        -> Gather RL -> IO (Context RL, Gather RL)
+
+checkGather _a ctx (GatherAnn a gg)
+ = do   (ctx', gg') <- checkGather a ctx gg
         return (ctx', GatherAnn a gg')
 
-checkGather ctx (GatherPat nFact ngps mmPred)
+checkGather a ctx (GatherPat nFact ngps mmPred)
  = do
         -- Lookup types of the fields of this fact.
         ntsFactPayload
@@ -86,7 +102,7 @@ checkGather ctx (GatherPat nFact ngps mmPred)
 
         -- Check the per-field pattern matches.
         (ctx', ngps')
-         <- checkGatherFields ntsFactPayload ctx ngps
+         <- checkGatherFields a nFact ntsFactPayload ctx ngps
 
         -- Check the 'where' clause, if there is one.
         mmPred'
@@ -103,32 +119,35 @@ checkGather ctx (GatherPat nFact ngps mmPred)
 -- | Check the fields of a gather pattern match.
 --   Match variables bound in earlier fields are in scope in latter ones.
 checkGatherFields
-        :: Show a
-        => [(Name, Type a)]     -- ^ Types of fields of the fact being matched.
-        -> Context a -> [(Name, GatherPat a)]
-        -> IO (Context a, [(Name, GatherPat a)])
+        :: RL                   -- ^ Annotation for error messages.
+        -> Name                 -- ^ Name of matched fact.
+        -> [(Name, Type RL)]    -- ^ Types of fields of the fact being matched.
+        -> Context RL -> [(Name, GatherPat RL)]
+        -> IO (Context RL, [(Name, GatherPat RL)])
 
-checkGatherFields _ntsFactPayload ctx []
+checkGatherFields _a _nFact _ntsFactPayload ctx []
  =      return (ctx, [])
 
-checkGatherFields ntsFactPayload ctx (ngp : ngps)
- = do   (ctx', ngp')   <- checkGatherField  ntsFactPayload ctx  ngp
-        (ctx'', ngps') <- checkGatherFields ntsFactPayload ctx' ngps
+checkGatherFields a nFact ntsFactPayload ctx (ngp : ngps)
+ = do   (ctx', ngp')   <- checkGatherField  a nFact ntsFactPayload ctx  ngp
+        (ctx'', ngps') <- checkGatherFields a nFact ntsFactPayload ctx' ngps
         return  (ctx'', ngp' : ngps')
 
 
 -- | Check a single field of a gather pattern match.
 checkGatherField
-        :: Show a
-        => [(Name, Type a)]     -- ^ Types of fields of the fact being matched.
-        -> Context a -> (Name, GatherPat a)
-        -> IO (Context a, (Name, GatherPat a))
+        :: RL                   -- ^ Annotation for error messages.
+        -> Name                 -- ^ Name of matched fact.
+        -> [(Name, Type RL)]     -- ^ Types of fields of the fact being matched.
+        -> Context RL ->   (Name, GatherPat RL)
+        -> IO (Context RL, (Name, GatherPat RL))
 
-checkGatherField ntsFactPayload ctx (nField, gatherPat)
+checkGatherField a nFact ntsFactPayload ctx (nField, gatherPat)
  = do
         tField
          <- case lookup nField ntsFactPayload of
-                Nothing -> error $ "no field" ++ show nField
+                Nothing -> nope a [ "Fact " ++ sname nFact
+                                            ++ " does not have field " ++ sname nField ++ "."]
                 Just t  -> return t
 
         (ctx', gatherPat')

@@ -1,6 +1,7 @@
 
 module Rainfall.Source.Codec.Text.Token
         ( Location (..)
+        , Range    (..)
         , Token    (..)
         , At       (..)
         , isKCOMMENT)

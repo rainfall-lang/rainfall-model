@@ -52,7 +52,7 @@ pDecl
 -- | @Name '[' (Label '=' Pattern),* ']'@
 pMatch :: Parser (Match RL)
 pMatch
- = do   nFact   <- pCon
+ = do   (rl, nFact) <- pCon'
         pPunc "["
         ps      <- flip P.sepBy (pPunc ",")
                 $  do   l       <- pLbl
@@ -65,7 +65,7 @@ pMatch
         consume <- pConsume
         gain    <- pGain
         return  $ Match
-                { matchGather   = GatherPat nFact ps mPred
+                { matchGather   = GatherAnn rl $ GatherPat nFact ps mPred
                 , matchSelect   = select
                 , matchConsume  = consume
                 , matchGain     = gain }

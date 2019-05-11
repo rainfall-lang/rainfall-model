@@ -1,7 +1,7 @@
 
 module Rainfall.Core.Exp.Base
         ( Set, Map
-        , Name (..)
+        , Name (..), takeName
         , Bind (..)
         , Bound (..)
         , Auth, Rules
@@ -14,6 +14,9 @@ import Data.String
 data Name
         = Name String
         deriving (Show, Eq, Ord)
+
+takeName :: Name -> String
+takeName (Name n) = n
 
 data Bind
         = BindName Name

@@ -4,8 +4,8 @@ import Rainfall.Source.Exp.Type.Base
 
 
 -- Type refs.
-pattern TCon n          = TRef (TRCon n)
 pattern TPrm n          = TRef (TRPrm n)
+pattern TCon n          = TRef (TRCon n)
 
 
 -- Type keywords.

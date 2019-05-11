@@ -37,8 +37,7 @@ pTok tMatch
 -- | Parse the given token, with source location.
 pTok' :: Token -> Parser RL
 pTok' tMatch
- = fmap snd
- $ pTokOf' $ \tNext -> if tNext == tMatch then Just () else Nothing
+ = fmap fst $ pTokOf' $ \tNext -> if tNext == tMatch then Just () else Nothing
 
 
 -- | Parse a token that matches the given function.
@@ -48,24 +47,24 @@ pTokOf fMatch  = pTokOfInput fMatch
 
 -- | Parse a token that matches the given function,
 --   with source location.
-pTokOf' :: (Token -> Maybe a) -> Parser (a, RL)
+pTokOf' :: (Token -> Maybe a) -> Parser (RL, a)
 pTokOf' fMatch = pTokOfInput' fMatch
 
 
 -- | Parse a token from the input stream.
 pTokOfInput :: (Token -> Maybe a) -> Parser a
 pTokOfInput fMatch
- = fmap fst $ pTokOfInput' fMatch
+ = fmap snd $ pTokOfInput' fMatch
 
 
 -- | Parse a token from the input stream,
 --   also producing its source location.
-pTokOfInput' :: (Token -> Maybe a) -> Parser (a, RL)
+pTokOfInput' :: (Token -> Maybe a) -> Parser (RL, a)
 pTokOfInput' fMatch
  = P.token show locOfTok $ \(At rl tok)
     -> case fMatch tok of
         Nothing -> Nothing
-        Just x  -> Just (x, rl)
+        Just x  -> Just (rl, x)
 
 
 ----------------------------------------------------------------------------------- Name Parsers --
@@ -87,6 +86,10 @@ pVar    = pTokOf $ \case { KVar s -> Just (Name s); _ -> Nothing }
 -- | Parser for a constructor name.
 pCon :: Parser Name
 pCon    = pTokOf $ \case { KCon s -> Just (Name s); _ -> Nothing }
+
+-- | Parser for a constructor name, with source annotation.
+pCon' :: Parser (RL, Name)
+pCon'    = pTokOf' $ \case { KCon s -> Just (Name s); _ -> Nothing }
 
 -- | Parser for a symbol name.
 pSym :: Parser Name
