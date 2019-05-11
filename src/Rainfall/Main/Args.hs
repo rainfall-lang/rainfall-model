@@ -4,6 +4,7 @@ import Rainfall.Main.Config
 import qualified System.Exit    as System
 
 
+-- | Parse command line arguments.
 parseArgs :: [String] -> Config -> IO Config
 parseArgs ("-lex" : filePath : rest) config
  = parseArgs rest
@@ -16,6 +17,10 @@ parseArgs ("-parse" : filePath : rest) config
 parseArgs ("-lower" : filePath : rest) config
  = parseArgs rest
  $ config { configMode = ModeLower filePath }
+
+parseArgs ("-check" : filePath : rest) config
+ = parseArgs rest
+ $ config { configMode = ModeCheck filePath }
 
 parseArgs ("-run"   : filePath : rest) config
  = parseArgs rest
@@ -34,9 +39,10 @@ parseArgs _args _
 
 usage
  = unlines
- [ "rainfall -lex   FILE.rain     lex a file and print tokens"
- , "rainfall -parse FILE.rain     parse a file and print tokens"
- , "rainfall -lower FILE.rain     lower a source file to core"
- , "rainfall [-run] FILE.rain     run scenarios in a source file"
+ [ "rainfall -lex   FILE.rain     lex a file and print tokens."
+ , "rainfall -parse FILE.rain     parse a file and print tokens."
+ , "rainfall -lower FILE.rain     lower a source file to core."
+ , "rainfall -check FILE.rain     check a source file."
+ , "rainfall [-run] FILE.rain     run all scenarios in a source file."
  ]
 

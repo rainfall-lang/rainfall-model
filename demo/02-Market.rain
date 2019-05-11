@@ -24,8 +24,8 @@ fact Reserve [lot:   Nat, bid:    Nat]
 
 
 ---------------------------------------------------------------------------------------------------
--- Brendan reserves a portion of the client's budget,
--- and sends a bid to the market for one of the items the client has ordered.
+-- Brendan reserves a portion of Alice's budget,
+-- and sends a bid to the market for one of the items Alice has ordered.
 --
 -- By placing the order Alice delegates her authority to Brendan for
 -- the purpose of bidding on orders.
@@ -39,8 +39,8 @@ await Order     [desc  = ?d, limit = ?l]
  and  Reserve   [lot   = o,  bid    = ?b]
       where #bool'and (#nat'le b l) (#bool'and (#nat'le b a) (#nat'le b m))
       check {!Brendan}
-
- to #factoids'union
+ to
+     #factoids'union
       (say Budget [total = t, remain = #nat'sub m a]
        by {!Brendan} use {'reserve})
       (say Bid    [lot   = o, price = b]
@@ -56,7 +56,7 @@ await Bid       [lot = ?o, price = ?b]
       gain {!Brendan}
   and Item      [lot = o,  ask   = ?a]
       where  #nat'lt b a
-      consume none gain {!Mark}
+      consume none  gain {!Mark}
  to
       say Offer [lot = o, price = b]
       by {!Brendan, !Mark} use {'accept}
@@ -95,7 +95,6 @@ scenario test do
 
  add    say Item        [lot = 1003, desc = "Bikini Whale", ask = 645]
         by {!Mark} obs {!Brendan, !Brett} use {'bid, 'accept}
-
  dump
 
         -- Brendan enters a bid of 22 for the first lobster,
@@ -112,8 +111,8 @@ scenario test do
         -- Mark accepts Brendan's lower offer.
  add    say Accept      [lot = 1001, price = 22]
         by {!Mark} use {'accept}
-
  dump
+
         -- Rock lobster is sold.
  fire   by {!Mark} rules {'accept}
 

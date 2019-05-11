@@ -9,6 +9,7 @@ import qualified Rainfall.Source.Exp                    as S
 import qualified Rainfall.Source.Codec.Text.Token       as Token
 import qualified Rainfall.Source.Codec.Text.Lexer       as Lexer
 import qualified Rainfall.Source.Codec.Text.Parser      as Parser
+import qualified Rainfall.Source.Check                  as Check
 import qualified Rainfall.Source.Transform.Lower        as Lower
 
 import qualified Rainfall.Core.Exp                      as C
@@ -29,6 +30,7 @@ main
          Main.ModeParse filePath -> mainParse config filePath
          Main.ModeLower filePath -> mainLower config filePath
          Main.ModeRun   filePath -> mainRun   config filePath
+         Main.ModeCheck filePath -> mainCheck config filePath
 
          Main.ModeNone
           -> do putStrLn $ Main.usage
@@ -79,11 +81,25 @@ mainParse config filePath
         putStrLn $ Pretty.ppShow ds
 
 
+------------------------------------------------------------------------------------------ Check --
+-- | Parse and check a source file,
+--   returning a list of checked top-level declarations.
+runCheck :: Main.Config -> FilePath -> IO [S.Decl Parser.RL]
+runCheck config filePath
+ = do   dsSource  <- runParse config filePath
+        dsChecked <- Check.checkDecls dsSource
+        return dsChecked
+
+mainCheck config filePath
+ = do   _ds      <- runCheck config filePath
+        return ()
+
+
 ------------------------------------------------------------------------------------------ Lower --
 -- | Parse a source file, lower it to core, then print the core AST to console.
 runLower :: Main.Config -> FilePath -> IO [C.Decl Parser.RL]
 runLower config filePath
- = do   dsSource   <- runParse config filePath
+ = do   dsSource   <- runCheck config filePath
         let dsCore =  Lower.runState "w" $ Lower.lowerDecls dsSource
         return dsCore
 

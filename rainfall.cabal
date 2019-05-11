@@ -65,7 +65,6 @@ executable rainfall
         Rainfall.Source.Exp.Type
         Rainfall.Source.Exp.Type.Patterns
         Rainfall.Source.Exp.Name
-        Rainfall.Source.Transform.Lower
         Rainfall.Source.Exp
 
         Rainfall.Source.Codec.Text.Token
@@ -75,6 +74,13 @@ executable rainfall
         Rainfall.Source.Codec.Text.Parser.Term
         Rainfall.Source.Codec.Text.Parser.Base
         Rainfall.Source.Codec.Text.Parser
+
+        Rainfall.Source.Check.Base
+        Rainfall.Source.Check.Error
+        Rainfall.Source.Check.Decl
+        Rainfall.Source.Check
+
+        Rainfall.Source.Transform.Lower
 
         Rainfall.EDSL
 
