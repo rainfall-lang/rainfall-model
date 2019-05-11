@@ -17,7 +17,7 @@ fact Offer   [lot:  Nat,  price:  Nat]
 fact Bid     [lot:   Nat, offer:  Nat]
 
 -- Local tracking of remaining budget by a broker.
-fact Budget  [total: Nat, remain: Nat]
+fact Budget  [desc: Text, total: Nat, remain: Nat]
 
 -- Local tracking of reserved portion of a budget by a broker.
 fact Reserve [lot:   Nat, bid:    Nat]
@@ -38,13 +38,13 @@ await Order     [desc  = ?d, limit = ?l]
       consume none                        gain  {!Alice}
  and  Item      [lot   = ?o, desc = d, ask = ?a]
       select first a  consume none        check {!Mark}
- and  Budget    [total = ?t, remain = ?m] gain  {!Brendan}
+ and  Budget    [desc  = ?d, total = ?t, remain = ?m] gain  {!Brendan}
  and  Reserve   [lot   = o,  bid    = ?b]
       where #bool'and (#nat'le b l) (#bool'and (#nat'le b a) (#nat'le b m))
       check {!Brendan}
  to
      #sets'union
-      (say Budget [total = t, remain = #nat'sub m a]
+      (say Budget [desc = d, total = t, remain = #nat'sub m a]
        by {!Brendan} use {'reserve})
       (say Bid    [lot   = o, offer = b]
        by {!Brendan, !Alice} obs {!Mark} use {'bid})
@@ -81,7 +81,7 @@ await Accept    [lot = ?o, price = ?p]  gain {!Mark}
 scenario test do
         -- Alice tells Brendan she wants Rock Lobsters,
         --  for less than 28 each, with a total budget of 100.
- add    say Order       [desc = "Rock Lobster", limit = 28, total = 100]
+ add    say Order       [desc = "Rock Lobster", limit = 28, budget = 100]
         by  {!Alice}    obs {!Brendan}  use {'reserve}
 
         -- Brendan initializes a local budget fact to track outstanding bids

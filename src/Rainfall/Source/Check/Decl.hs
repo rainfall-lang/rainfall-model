@@ -28,7 +28,7 @@ checkDecl facts dd
          -> DeclRule a     <$> checkRule a facts rule
 
         DeclScenario a scn
-         -> DeclScenario a <$> checkScenario facts scn
+         -> DeclScenario a <$> checkScenario a facts scn
 
 
 ------------------------------------------------------------------------------------------- Rule --
@@ -223,6 +223,7 @@ checkConsume a ctx (ConsumeWeight mWeight)
 
 
 ------------------------------------------------------------------------------------------- Gain --
+-- | Check a gain clause.
 checkGain :: RL -> Context RL -> Gain RL -> IO (Gain RL)
 checkGain _a ctx (GainAnn a gain)
  = do   gain' <- checkGain a ctx gain
@@ -241,11 +242,31 @@ checkGain a ctx (GainTerm mParties)
 
 
 --------------------------------------------------------------------------------------- Scenario --
-checkScenario
-        :: Show a
-        => Facts a -> Scenario a -> IO (Scenario a)
-checkScenario _facts s@(Scenario _name _actions)
- = return s
+-- | Check a scenario
+checkScenario :: RL -> Facts RL -> Scenario RL -> IO (Scenario RL)
+checkScenario a facts (Scenario name actions)
+ = do   actions' <- mapM (checkAction a facts) actions
+        return $ Scenario name actions'
+
+
+-- | Check a scenario action.
+checkAction :: RL -> Facts RL -> Action RL -> IO (Action RL)
+checkAction a facts (ActionAdd mFoids)
+ = do   let ctx = Context facts []
+        mFoids' <- checkTermIs a (TSets TFACT) ctx mFoids
+        return  $ ActionAdd mFoids'
+
+checkAction a facts (ActionFire mAuth mRules)
+ = do   let ctx = Context facts []
+        mAuth'  <- checkTermIs a (TSet TParty)  ctx mAuth
+        mRules' <- checkTermIs a (TSet TSymbol) ctx mRules
+        return $ ActionFire mAuth' mRules'
+
+checkAction _a _facts aa@ActionDump
+ = do   return aa
+
+
+
 
 
 
