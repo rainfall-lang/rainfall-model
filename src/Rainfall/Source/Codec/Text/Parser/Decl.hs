@@ -65,8 +65,7 @@ pMatch
         consume <- pConsume
         gain    <- pGain
         return  $ Match
-                { matchBind     = Nothing
-                , matchGather   = GatherPat nFact ps mPred
+                { matchGather   = GatherPat nFact ps mPred
                 , matchSelect   = select
                 , matchConsume  = consume
                 , matchGain     = gain }

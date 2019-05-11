@@ -19,6 +19,6 @@ data Context a
           contextFacts  :: Facts a
 
           -- | Local environment when checking a rule.
-        , contextEnv    :: [(Name, Type a)]
+        , contextLocal  :: [(Name, Type a)]
         }
         deriving (Show)

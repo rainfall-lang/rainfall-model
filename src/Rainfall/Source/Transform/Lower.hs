@@ -95,13 +95,9 @@ lowerMatch dsFact nmsMatch (E.MatchAnn a m)
 
         return  (nmsMatch', C.MatchAnn a m')
 
-lowerMatch dsFact nmsMatch (E.Match mbBind gather select consume gain)
+lowerMatch dsFact nmsMatch (E.Match gather select consume gain)
  = do
-        nBindFact
-          <- case mbBind of
-                Just (BindName n)  -> pure n
-                Just BindNone      -> fresh
-                Nothing            -> fresh
+        nBindFact <- fresh
 
         (nmsMatch', gather')
          <- lowerGather dsFact nmsMatch nBindFact gather
@@ -151,9 +147,6 @@ lowerGather dsFact nmsMatch nBindFact (E.GatherPat nFact fsMatch mmPred)
 
         return  ( nmsMatch'
                 , C.GatherWhere nFact (maybeToList mmPred' ++ reverse msPred))
-
-lowerGather _dsFact _nmsMatch _nBind _
- = error "lowerGather: not finished"
 
 
 -- | Lower a list of fields in a gather clause.

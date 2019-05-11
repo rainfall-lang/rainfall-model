@@ -34,8 +34,7 @@ data Match a
         = MatchAnn    a (Match a)
 
         | Match
-        { matchBind     :: Maybe Bind   -- ^ Binder for facts in the following clauses.
-        , matchGather   :: Gather a     -- ^ How to gather facts from the store.
+        { matchGather   :: Gather a     -- ^ How to gather facts from the store.
         , matchSelect   :: Select a     -- ^ How to select result from the gathered facts.
         , matchConsume  :: Consume a    -- ^ How to consume the gathered facts.
         , matchGain     :: Gain a       -- ^ Authority to gain from raked fact.
@@ -50,8 +49,6 @@ data Gather a
         { gatherName    :: Name
         , gatherFields  :: [(Name, GatherPat a)]
         , gatherPred    :: Maybe (Term a) }
-
-        | GatherWhere   Name [Term a]   -- ^ Gather facts where the predicates are all true.
         deriving Show
 
 
