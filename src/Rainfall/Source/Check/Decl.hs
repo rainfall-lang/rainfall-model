@@ -7,14 +7,14 @@ import qualified Data.Map               as Map
 
 ------------------------------------------------------------------------------------------- Decl --
 -- | Check a list of top level declarations.
-checkDecls :: [Decl a] -> IO [Decl a]
+checkDecls :: Show a => [Decl a] -> IO [Decl a]
 checkDecls ds
  = do   let facts   = Map.fromList [(nFact, ntsField) | DeclFact nFact ntsField <- ds]
         mapM (checkDecl facts) ds
 
 
 -- | Check a single declaration.
-checkDecl :: Facts a -> Decl a -> IO (Decl a)
+checkDecl :: Show a => Facts a -> Decl a -> IO (Decl a)
 checkDecl facts dd
  = case dd of
         DeclFact{}       -> return dd
@@ -25,7 +25,7 @@ checkDecl facts dd
 ------------------------------------------------------------------------------------------- Rule --
 -- | Check a source rule.
 --   Type errors are thrown as exceptions in the IO monad.
-checkRule :: Facts a -> Rule a -> IO (Rule a)
+checkRule :: Show a => Facts a -> Rule a -> IO (Rule a)
 checkRule facts (Rule nRule hsMatch mBody)
  = do   -- Initial context.
         let ctx     = Context facts []
@@ -44,7 +44,7 @@ checkRule facts (Rule nRule hsMatch mBody)
 ------------------------------------------------------------------------------------------ Match --
 -- | Check a sequence of matches,
 --   where variables bound in earlier ones are in scope in later ones.
-checkMatches :: Context a -> [Match a] -> IO (Context a, [Match a])
+checkMatches :: Show a => Context a -> [Match a] -> IO (Context a, [Match a])
 checkMatches ctx []
  = return (ctx, [])
 
@@ -55,7 +55,7 @@ checkMatches ctx (h: hs)
 
 
 -- | Check a single match clause.
-checkMatch :: Context a -> Match a -> IO (Context a, Match a)
+checkMatch :: Show a => Context a -> Match a -> IO (Context a, Match a)
 checkMatch ctx (MatchAnn a h)
  = do   (ctx', h') <- checkMatch ctx h
         return $ (ctx', MatchAnn a h')
@@ -67,7 +67,7 @@ checkMatch ctx (Match gather select consume gain)
 
 ----------------------------------------------------------------------------------------- Gather --
 -- | Check a fact gather, adding pattern bound variables
-checkGather :: Context a -> Gather a -> IO (Context a, Gather a)
+checkGather :: Show a => Context a -> Gather a -> IO (Context a, Gather a)
 checkGather ctx (GatherAnn a gg)
  = do   (ctx', gg') <- checkGather ctx gg
         return (ctx', GatherAnn a gg')
@@ -99,7 +99,8 @@ checkGather ctx (GatherPat nFact ngps mmPred)
 -- | Check the fields of a gather pattern match.
 --   Match variables bound in earlier fields are in scope in latter ones.
 checkGatherFields
-        :: [(Name, Type a)]     -- ^ Types of fields of the fact being matched.
+        :: Show a
+        => [(Name, Type a)]     -- ^ Types of fields of the fact being matched.
         -> Context a -> [(Name, GatherPat a)]
         -> IO (Context a, [(Name, GatherPat a)])
 
@@ -114,7 +115,8 @@ checkGatherFields ntsFactPayload ctx (ngp : ngps)
 
 -- | Check a single field of a gather pattern match.
 checkGatherField
-        :: [(Name, Type a)]     -- ^ Types of fields of the fact being matched.
+        :: Show a
+        => [(Name, Type a)]     -- ^ Types of fields of the fact being matched.
         -> Context a -> (Name, GatherPat a)
         -> IO (Context a, (Name, GatherPat a))
 
@@ -133,7 +135,8 @@ checkGatherField ntsFactPayload ctx (nField, gatherPat)
 
 -- | Check the pattern match of a single field.
 checkGatherPat
-        :: Type a               -- ^ Type of the current field of the fact.
+        :: Show a
+        => Type a               -- ^ Type of the current field of the fact.
         -> Context a -> GatherPat a
         -> IO (Context a, GatherPat a)
 
@@ -150,7 +153,9 @@ checkGatherPat _tField ctx (GatherPatEq mMatch)
 
 
 --------------------------------------------------------------------------------------- Scenario --
-checkScenario :: Facts a -> Scenario a -> IO (Scenario a)
+checkScenario
+        :: Show a
+        => Facts a -> Scenario a -> IO (Scenario a)
 checkScenario _facts s@(Scenario _name _actions)
  = return s
 

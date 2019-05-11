@@ -12,12 +12,12 @@ pattern MApp mFun mgsArg        = MKey   MKApp  [MGTerm  mFun, mgsArg]
 pattern MApv mFun mArg          = MKey   MKApp  [MGTerm  mFun, MGTerm  mArg]
 pattern MApm mFun msArg         = MKey   MKApp  [MGTerm  mFun, MGTerms msArg]
 
-pattern MRecord ns ms           = MKey  (MKRecord ns)   [MGTerms ms]
-pattern MProject m n            = MKey  (MKProject n)   [MGTerm m]
-pattern MSet ms                 = MKey  MKSet           [MGTerms ms]
+pattern MRcd ns ms              = MKey  (MKRcd ns) [MGTerms ms]
+pattern MPrj m n                = MKey  (MKPrj n)  [MGTerm m]
+pattern MSet ms                 = MKey  MKSet      [MGTerms ms]
 
-pattern MSay n mData msBy msObs msUse msNum
- = MKey (MKSay n) [MGTerm mData, MGTerms msBy, MGTerms msObs, MGTerms msUse, MGTerms msNum]
+pattern MSay nFact mData msBy msObs msUse msNum
+ = MKey (MKSay nFact) [MGTerm mData, MGTerms msBy, MGTerms msObs, MGTerms msUse, MGTerms msNum]
 
 ------------------------------------------------------------------------------------------ Value --
 pattern MSym n                  = MRef  (MRVal (VSym n))

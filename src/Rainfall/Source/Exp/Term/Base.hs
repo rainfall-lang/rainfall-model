@@ -16,7 +16,7 @@ data Term a
 
 -- | Term Reference.
 data TermRef a
-        = MRVal (Value a)               -- ^ Value reference.
+        = MRVal Value                   -- ^ Value reference.
         deriving (Show, Eq, Ord)
 
 
@@ -39,18 +39,17 @@ data TermArg a
 -- | Term Keyword.
 data TermKey
         -- | Term formers.
-        = MKPrm     Name                -- ^ Primitive application.
+        = MKPrm  Name                   -- ^ Primitive application.
         | MKApp                         -- ^ Term application.
-        | MKRecord  [Name]              -- ^ Record former.
-        | MKProject Name                -- ^ Record field projection.
+        | MKRcd  [Name]                 -- ^ Record former.
+        | MKPrj  Name                   -- ^ Record field projection.
         | MKSet                         -- ^ Set constructor.
-        | MKSay     Name                -- ^ Say constructor.
+        | MKSay  Name                   -- ^ Say constructor.
         deriving (Show, Eq, Ord)
 
 
 -- | Term Value.
-data Value a
-        -- Values that are also literals in the source program.
+data Value
         = VUnit                         -- ^ Unit value.
         | VBool     Bool                -- ^ Boolean value.
         | VNat      Integer             -- ^ Natural value.

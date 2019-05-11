@@ -343,11 +343,11 @@ lowerTerm nmsMatch (E.MPrm nPrm mgsArg)
  = do   mgsArg' <- fmap concat $ mapM (lowerTermArg nmsMatch) mgsArg
         return  $ C.MPrm nPrm mgsArg'
 
-lowerTerm nmsMatch (E.MRecord ns ms)
+lowerTerm nmsMatch (E.MRcd ns ms)
  = do   ms'     <- mapM (lowerTerm nmsMatch) ms
         return  $  C.MRcd ns ms'
 
-lowerTerm nmsMatch (E.MProject m n)
+lowerTerm nmsMatch (E.MPrj m n)
  = do   m'      <- lowerTerm nmsMatch m
         return  $ C.MPrj m' n
 
@@ -407,7 +407,7 @@ lowerTermArg nmsMatch tg
 
 ------------------------------------------------------------------------------------------ Value --
 -- | Lower a source value to core.
-lowerValue :: E.Value a -> S C.Value
+lowerValue :: E.Value -> S C.Value
 lowerValue vv
  = case vv of
         E.VUnit         -> pure $ C.VUnit

@@ -86,4 +86,4 @@ pTermRecord
                         m       <- pTerm
                         return  (l, m)
         pPunc "]"
-        return  $ MRecord ls ms
+        return  $ MRcd ls ms
