@@ -1,4 +1,5 @@
 
+-- | Partial EDSL for Rainfall Core, used to help build ASTs.
 module Rainfall.EDSL
         ( module Rainfall.Core.Exp
         , rule
@@ -22,7 +23,6 @@ module Rainfall.EDSL
 
         , runScenario
         , printStoreS
---        , sayS, sayS'
         , fireS, fireIO)
 where
 import Rainfall.Core.Exp
@@ -118,6 +118,7 @@ data World
 type ScenarioS a = S.StateT World IO a
 
 
+-- | Run a scenario.
 runScenario :: [Name] -> [Rule ()] -> ScenarioS a -> IO a
 runScenario nsParty rules scenario
  = do   S.evalStateT scenario
@@ -125,34 +126,6 @@ runScenario nsParty rules scenario
          { worldParties = nsParty
          , worldStore   = storeEmpty
          , worldRules   = Map.fromList [ (ruleName r, r) | r <- rules] }
-
-
----- | Add a fact to the store with authority of a single party.
---sayS :: Name -> Name -> [(Name, Term ())] -> [(Name, Term ())] -> Scenario ()
---sayS _nParty nFact nmsFields nmsMeta
--- = do
---        let (_, [(fact, num)])
---                = evalTerm []
---                $ say nFact nmsFields nmsMeta
---
---        -- TODO: check by is covered by nParty
---        store <- S.gets worldStore
---        S.modify' $ \s -> s { worldStore = Map.insertWith (+) fact num store }
-
-
----- | Wrapper for `sayS` to help fill in some of the fields.
---sayS'   :: Name                 -- ^ Name of submitting party.
---        -> [Name]               -- ^ Names of observing parties.
---        -> Name                 -- ^ Name of fact to add.
---        -> [(Name, Term ())]    -- ^ Terms for fields.
---        -> [Name]               -- ^ Names of useable rules.
---        -> Weight               -- ^ Weight of fact.
---        -> Scenario ()
---
---sayS' nSub nsObs nFact nvsEnv nsUse weight
--- = sayS nSub nFact
---        nvsEnv
---        [ "by" := auth [nSub], "obs" := auth nsObs, "use" := rules nsUse, "num" := nat weight ]
 
 
 -- | Try to fire a single rule in the scenario monad,
@@ -173,6 +146,8 @@ fireS nsSub nRule
                   -> do S.modify' $ \s -> s { worldStore = store'}
                         return ()
 
+
+-- | Print a description of the store to stdout.
 printStoreS :: ScenarioS ()
 printStoreS
  = do   store   <- S.gets worldStore
