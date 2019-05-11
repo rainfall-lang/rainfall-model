@@ -1,0 +1,65 @@
+
+---------------------------------------------------------------------------------------------------
+-- In the paper "Smart Contracts as Authorized Production Rules"
+-- this example appears in Section 3.4: Nested Transactions.
+
+
+---------------------------------------------------------------------------------------------------
+-- Offer by a giving party to give a coin to a receiving party.
+fact Offer   [id: Symbol, terms: Text, giver: Party, receiver: Party]
+
+-- Statement by the receiving party that they accept the offer.
+fact Accept  [id: Symbol, accepter: Party]
+
+-- Fact that indicates that the giver and receiver have agreed,
+-- and which carries the authority of both. This can be given
+-- to Isabelle as a witness of the agreement, without needing to
+-- include the 'terms' field from the original offer.
+fact Agreed  [giver: Party, receiver: Party]
+
+-- Coin currency fact.
+fact Coin    [issuer: Party, holder: Party]
+
+
+---------------------------------------------------------------------------------------------------
+-- A giver and receiver agree on an offer, and build a
+-- joint Agree fact that witnesses the agreement.
+rule  agreeOnOffer
+await Offer  [id = ?i, giver = ?g, receiver = ?r] gain {g}
+  and Accept [id = i,  accepter = r]              gain {r}
+to
+  say Agreed [giver = g, receiver = r]
+   by {g,r}  obs {!Mona,!Isabelle} use {'performTheTransfer}
+
+-- Given an agreement to perform a transfer,
+-- and a coin that can be transferred,
+-- perform the actual transfer.
+rule  performTheTransfer
+await Agreed [giver = ?g, receiver = ?r]        gain {g,r}
+ and  Coin   [issuer = !Isabelle, holder = g]
+      gain {!Isabelle,g}
+to
+  say Coin   [issuer = !Isabelle, holder = r]
+   by {!Isabelle,r} obs {!Mona}
+
+
+---------------------------------------------------------------------------------------------------
+scenario test do
+ add    say Coin  [ issuer = !Isabelle, holder = !Alice]
+        by {!Isabelle, !Alice}
+        use {'performTheTransfer} num 100
+
+ add    say Offer [ id = '1234, terms = "To purchase a Guitar"
+                  , giver = !Alice, receiver = !Bob ]
+        by {!Alice} obs {!Bob} use {'agreeOnOffer}
+
+ add    say Accept [id = '1234, accepter = !Bob ]
+        by {!Bob} obs {!Alice} use {'agreeOnOffer}
+
+ dump
+
+ -- Alice can fire both rules in one go.
+ -- In a concrete implementation both firings would be bundled
+ -- into a nested transaction that describes both.
+ fire   by {!Alice} rules {'agreeOnOffer, 'performTheTransfer}
+
