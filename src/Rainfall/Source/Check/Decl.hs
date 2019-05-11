@@ -18,15 +18,19 @@ checkDecl :: Show a => Facts a -> Decl a -> IO (Decl a)
 checkDecl facts dd
  = case dd of
         DeclFact{}       -> return dd
-        DeclRule rule    -> DeclRule     <$> checkRule facts rule
-        DeclScenario scn -> DeclScenario <$> checkScenario facts scn
+
+        DeclRule a rule
+         -> DeclRule a     <$> checkRule a facts rule
+
+        DeclScenario a scn
+         -> DeclScenario a <$> checkScenario facts scn
 
 
 ------------------------------------------------------------------------------------------- Rule --
 -- | Check a source rule.
 --   Type errors are thrown as exceptions in the IO monad.
-checkRule :: Show a => Facts a -> Rule a -> IO (Rule a)
-checkRule facts (Rule nRule hsMatch mBody)
+checkRule :: Show a => a -> Facts a -> Rule a -> IO (Rule a)
+checkRule _a facts (Rule nRule hsMatch mBody)
  = do   -- Initial context.
         let ctx     = Context facts []
 

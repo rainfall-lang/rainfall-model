@@ -28,27 +28,27 @@ pDecl
         pPunc "]"
         return $ DeclFact n fs
 
- , do   -- Rule
-        DeclRule <$> pRule
-
- , do   -- Scenario
-        DeclScenario <$> pScenario
- ]
-
-
-------------------------------------------------------------------------------------------- Rule --
--- 'rule' Var 'await' Pattern{'and'+} 'to' Term
-pRule  :: Parser (Rule RL)
-pRule
- = do   pKey "rule"
+ , do   -- 'rule' Var 'await' Pattern{'and'+} 'to' Term
+        rl      <- pKey' "rule"
         nRule   <- pVar
         pKey "await"
         ps      <- flip P.sepBy1 (pKey "and") pMatch
         pKey "to"
         mBody   <- pTerm
-        return  $  Rule nRule ps mBody
+        return  $  DeclRule rl
+                $ Rule nRule ps mBody
+
+ , do   -- 'scenario' Var 'to' Action+
+        rl      <- pKey' "scenario"
+        nScn    <- pVar
+        pKey "do"
+        actions <- P.many pAction
+        return  $ DeclScenario rl
+                $ Scenario nScn actions
+ ]
 
 
+------------------------------------------------------------------------------------------- Rule --
 -- | @Name '[' (Label '=' Pattern),* ']'@
 pMatch :: Parser (Match RL)
 pMatch
@@ -146,16 +146,6 @@ pGain
 
 
 --------------------------------------------------------------------------------------- Scenario --
--- 'scenario' Var 'to' Action+
-pScenario :: Parser (Scenario RL)
-pScenario
- = do   pKey "scenario"
-        nScn    <- pVar
-        pKey "do"
-        actions <- P.many pAction
-        return  $ Scenario nScn actions
-
-
 pAction :: Parser (Action RL)
 pAction
  = P.choice

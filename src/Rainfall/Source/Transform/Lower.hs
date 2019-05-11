@@ -42,9 +42,13 @@ lowerDecl
 
 lowerDecl dsFact d
  = case d of
-        E.DeclFact{}      -> pure Nothing
-        E.DeclRule rule   -> Just . C.DeclRule     <$> lowerRule dsFact rule
-        E.DeclScenario sc -> Just . C.DeclScenario <$> lowerScenario sc
+        E.DeclFact{}       -> pure Nothing
+
+        E.DeclRule _a rule
+         -> Just . C.DeclRule     <$> lowerRule dsFact rule
+
+        E.DeclScenario _a sc
+         -> Just . C.DeclScenario <$> lowerScenario sc
 
 
 ------------------------------------------------------------------------------------------- Rule --

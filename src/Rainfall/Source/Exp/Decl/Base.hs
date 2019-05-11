@@ -12,10 +12,12 @@ data Decl a
         , declFields    :: [(Name, Type a)] }
 
         | DeclRule
-        { declRule      :: Rule a }
+        { declAnnot     :: a
+        , declRule      :: Rule a }
 
         | DeclScenario
-        { declScenario  :: Scenario a }
+        { declAnnot     :: a
+        , declScenario  :: Scenario a }
         deriving Show
 
 

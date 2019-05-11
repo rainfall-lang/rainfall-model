@@ -2,12 +2,11 @@
 module Rainfall.Source.Codec.Text.Parser.Term where
 import Rainfall.Source.Codec.Text.Parser.Base
 import Rainfall.Source.Exp.Term
-
--- import Text.Parsec                      ((<?>))
 import qualified Text.Parsec            as P
 import Data.Maybe
 
 
+-- | Parser for a term.
 pTerm :: Parser (Term RL)
 pTerm
  = P.choice
@@ -28,6 +27,7 @@ pTerm
  , do   pTermApp ]
 
 
+-- | Parser for an application term.
 pTermApp :: Parser (Term RL)
 pTermApp
  = P.choice
@@ -37,6 +37,7 @@ pTermApp
 
  , do   pTermArg
  ]
+
 
 -- | Parser for a term argument.
 pTermArg :: Parser (Term RL)

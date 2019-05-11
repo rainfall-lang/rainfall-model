@@ -34,28 +34,47 @@ pTok tMatch
  = pTokOf $ \tNext -> if tNext == tMatch then Just () else Nothing
 
 
+-- | Parse the given token, with source location.
+pTok' :: Token -> Parser RL
+pTok' tMatch
+ = fmap snd
+ $ pTokOf' $ \tNext -> if tNext == tMatch then Just () else Nothing
+
+
 -- | Parse a token that matches the given function.
 pTokOf :: (Token -> Maybe a) -> Parser a
-pTokOf fMatch
- = do   pTokOfInput fMatch
+pTokOf fMatch  = pTokOfInput fMatch
+
+
+-- | Parse a token that matches the given function,
+--   with source location.
+pTokOf' :: (Token -> Maybe a) -> Parser (a, RL)
+pTokOf' fMatch = pTokOfInput' fMatch
 
 
 -- | Parse a token from the input stream.
 pTokOfInput :: (Token -> Maybe a) -> Parser a
 pTokOfInput fMatch
- = do   (_aTok, x)
-         <- P.token show locOfTok $ \aTok@(At _r tok)
-         -> case fMatch tok of
-               Nothing -> Nothing
-               Just x  -> Just (aTok, x)
+ = fmap fst $ pTokOfInput' fMatch
 
-        return x
+
+-- | Parse a token from the input stream,
+--   also producing its source location.
+pTokOfInput' :: (Token -> Maybe a) -> Parser (a, RL)
+pTokOfInput' fMatch
+ = P.token show locOfTok $ \(At rl tok)
+    -> case fMatch tok of
+        Nothing -> Nothing
+        Just x  -> Just (x, rl)
 
 
 ----------------------------------------------------------------------------------- Name Parsers --
 -- | Parser for a keyword.
 pKey :: String -> Parser ()
 pKey s = pTok (KKey s)
+
+pKey' :: String -> Parser RL
+pKey' s = pTok' (KKey s)
 
 -- | Parser for punctuation.
 pPunc :: String -> Parser ()
