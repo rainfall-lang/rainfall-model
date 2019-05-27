@@ -2,7 +2,7 @@
 module Rainfall.Source.Exp.Term.Patterns where
 import Rainfall.Source.Exp.Term.Base
 
-------------------------------------------------------------------------------------------- Term --
+----------------------------------------------------------------------- Term --
 pattern MVal v                  = MRef  (MRVal v)
 
 pattern MPrm n ms               = MKey  (MKPrm n) ms
@@ -17,11 +17,14 @@ pattern MPrj m n                = MKey  (MKPrj n)  [MGTerm m]
 pattern MSet ms                 = MKey  MKSet      [MGTerms ms]
 
 pattern MSay nFact mData msBy msObs msUse msNum
- = MKey (MKSay nFact) [MGTerm mData, MGTerms msBy, MGTerms msObs, MGTerms msUse, MGTerms msNum]
+ = MKey (MKSay nFact)
+        [ MGTerm mData
+        , MGTerms msBy, MGTerms msObs, MGTerms msUse, MGTerms msNum]
 
 pattern MInfix n m1 m2          = MKey  (MKInfix n) [MGTerm m1, MGTerm m2]
 
------------------------------------------------------------------------------------------- Value --
+
+---------------------------------------------------------------------- Value --
 pattern MSym n                  = MRef  (MRVal (VSym n))
 pattern MParty n                = MRef  (MRVal (VParty n))
 pattern MUnit                   = MRef  (MRVal VUnit)

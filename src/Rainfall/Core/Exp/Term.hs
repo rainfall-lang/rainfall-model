@@ -6,7 +6,7 @@ import Data.Set                 (Set)
 import Data.Map                 (Map)
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- | Type expression.
 data Type a
         = TAnn a (Type a)
@@ -24,34 +24,34 @@ data Type a
         deriving (Show, Eq, Ord)
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- | Term expression.
 data Term a
-        = MAnn  a (Term a)                      -- ^ Annotation.
+        = MAnn  a (Term a)                  -- ^ Annotation.
 
-        | MVar  Name                            -- ^ Variable.
-        | MAbs  [Bind] [Type a] (Term a)        -- ^ Function Abstraction.
-        | MApp  (Term a) [Term a]               -- ^ Function Application.
+        | MVar  Name                        -- ^ Variable.
+        | MAbs  [Bind] [Type a] (Term a)    -- ^ Function Abstraction.
+        | MApp  (Term a) [Term a]           -- ^ Function Application.
 
-        | MRef  (TermRef a)                     -- ^ Reference.
+        | MRef  (TermRef a)                 -- ^ Reference.
 
-        | MKey  TermKey [Term a]                -- ^ Keyword application.
+        | MKey  TermKey [Term a]            -- ^ Keyword application.
         deriving (Show, Eq, Ord)
 
 
 -- | Term reference.
 data TermRef a
-        = MRVal Value                           -- ^ Embed a value.
+        = MRVal Value                       -- ^ Embed a value.
         deriving (Show, Eq, Ord)
 
 
 -- | Term keyword.
 data TermKey
-        = MKPrm Name                            -- ^ Primitive application.
-        | MKRcd [Name]                          -- ^ Construct a record.
-        | MKPrj Name                            -- ^ Project a field from a record.
-        | MKSet                                 -- ^ Construct a set.
-        | MKSay Name                            -- ^ Construct a factoid.
+        = MKPrm Name                        -- ^ Primitive application.
+        | MKRcd [Name]                      -- ^ Construct a record.
+        | MKPrj Name                        -- ^ Project a field from a record.
+        | MKSet                             -- ^ Construct a set.
+        | MKSay Name                        -- ^ Construct a factoid.
         deriving (Show, Eq, Ord)
 
 
@@ -59,7 +59,7 @@ instance IsString (Term a) where
  fromString s = MVar (Name s)
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 data Value
         = VLit  Lit                             -- ^ Literal value.
         | VClo  Env [Bind] [Type ()] (Term ())  -- ^ Function closure
@@ -89,7 +89,7 @@ instance IsString Value where
  fromString s = VLit (LText s)
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 data Fact
         = Fact
         { factName      :: Name

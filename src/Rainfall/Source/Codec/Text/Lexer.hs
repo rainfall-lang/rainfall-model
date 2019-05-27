@@ -15,7 +15,8 @@ scanner _fileName
  = skip Char.isSpace
  $ alts [ fmap (stamp KInfix) $ munchPred Nothing
                 (\_ix c -> elem c infixChars)
-                (\str   -> if elem str infixOps then Just str else Nothing)
+                (\str   -> if elem str infixOps
+                                then Just str else Nothing)
 
         , fmap (stamp KPunc)
            $ munchWord (\ix c -> ix == 0 && elem c puncs)
@@ -24,11 +25,13 @@ scanner _fileName
                 (\ix c -> case ix of
                                 0 -> Char.isLower c
                                 _ -> Char.isAlpha c)
-                (\str   -> if not $ elem str keywords then Just str else Nothing)
+                (\str   -> if not $ elem str keywords
+                                then Just str else Nothing)
 
         , fmap (stamp KKey) $ munchPred Nothing
                 (\_ix c -> Char.isLower c)
-                (\str   -> if elem str keywords then Just str else Nothing)
+                (\str   -> if elem str keywords
+                                then Just str else Nothing)
 
 
         , fmap (stamp KCon) $ munchWord $ \ix c
@@ -38,28 +41,28 @@ scanner _fileName
 
         , fmap  (stamp KPrm) $ munchPred Nothing
                 (\ix c -> case ix of
-                                0       -> c == '#'
-                                _       -> Char.isAlphaNum c || c == '\'')
+                                0   -> c == '#'
+                                _   -> Char.isAlphaNum c || c == '\'')
                 (\('#' : rest) -> Just rest)
 
         , fmap  (stamp KSym) $ munchPred Nothing
                 (\ix c -> case ix of
-                                0       -> c == '\''
-                                _       -> Char.isAlphaNum c || c == '\'')
+                                0   -> c == '\''
+                                _   -> Char.isAlphaNum c || c == '\'')
                 (\('\'' : rest) -> Just rest)
 
         , fmap  (stamp KMatch) $ munchPred Nothing
                 (\ix c -> case ix of
-                                0       -> c == '?'
-                                1       -> Char.isLower c
-                                _       -> Char.isAlphaNum c)
+                                0   -> c == '?'
+                                1   -> Char.isLower c
+                                _   -> Char.isAlphaNum c)
                 (\('?' : rest) -> Just rest)
 
         , fmap  (stamp KParty) $ munchPred Nothing
                 (\ix c -> case ix of
-                                0       -> c == '!'
-                                1       -> Char.isUpper c
-                                _       -> Char.isAlphaNum c)
+                                0   -> c == '!'
+                                1   -> Char.isUpper c
+                                _   -> Char.isAlphaNum c)
                 (\('!' : rest) -> Just rest)
 
         , fmap (stamp KNat)     $ scanInteger

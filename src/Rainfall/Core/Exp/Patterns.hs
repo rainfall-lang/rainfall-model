@@ -3,7 +3,7 @@ module Rainfall.Core.Exp.Patterns where
 import Rainfall.Core.Exp.Term
 
 
-------------------------------------------------------------------------------------------- Term --
+----------------------------------------------------------------------- Term --
 pattern MVal v          = MRef (MRVal v)
 pattern MLit l          = MRef (MRVal (VLit l))
 
@@ -25,7 +25,7 @@ pattern MSay n mData mBy mObs mUse mNum
 
 pattern MSet ms         = MKey MKSet ms
 
------------------------------------------------------------------------------------------- Value --
+---------------------------------------------------------------------- Value --
 pattern VUnit           = VLit LUnit
 pattern VBool b         = VLit (LBool b)
 pattern VNat n          = VLit (LNat  n)

@@ -4,7 +4,7 @@ import Rainfall.Source.Exp.Type
 import Rainfall.Source.Exp.Term
 
 
-------------------------------------------------------------------------------------------- Decl --
+----------------------------------------------------------------------- Decl --
 -- | A top-level declaration.
 data Decl a
         = DeclFact
@@ -21,13 +21,13 @@ data Decl a
         deriving Show
 
 
------------------------------------------------------------------------------------------- Rule --
+----------------------------------------------------------------------- Rule --
 -- | A transition rule.
 data Rule a
         = Rule
         { ruleName      :: Name         -- ^ Name of the rule.
         , ruleMatch     :: [Match a]    -- ^ Fact matches.
-        , ruleBody      :: Term a       -- ^ Body of the rule to create new facts.
+        , ruleBody      :: Term a       -- ^ Body of the rule to create facts.
         } deriving Show
 
 
@@ -36,9 +36,9 @@ data Match a
         = MatchAnn    a (Match a)
 
         | Match
-        { matchGather   :: Gather a     -- ^ How to gather facts from the store.
-        , matchSelect   :: Select a     -- ^ How to select result from the gathered facts.
-        , matchConsume  :: Consume a    -- ^ How to consume the gathered facts.
+        { matchGather   :: Gather a     -- ^ Gather facts from the store.
+        , matchSelect   :: Select a     -- ^ Select result from gathered facts.
+        , matchConsume  :: Consume a    -- ^ Consume gathered facts.
         , matchGain     :: Gain a       -- ^ Authority to gain from raked fact.
         } deriving Show
 
@@ -56,38 +56,38 @@ data Gather a
 
 -- | Pattern to select facts to gather.
 data GatherPat a
-        = GatherPatBind Name            -- ^ Bind the value of the field.
-        | GatherPatEq   (Term a)        -- ^ Check the field equals the given value.
+        = GatherPatBind Name        -- ^ Bind the value of the field.
+        | GatherPatEq   (Term a)    -- ^ Check the field equals the value.
         deriving Show
 
 
 -- | Which fact to select from the gathered set.
 data Select a
         = SelectAnn     a (Select a)
-        | SelectAny                     -- ^ Select any fact that matches.
-        | SelectFirst   (Term a)        -- ^ Select the first fact, ordered by this term.
-        | SelectLast    (Term a)        -- ^ Select the last fact, ordered by this term
+        | SelectAny                 -- ^ Select any fact that matches.
+        | SelectFirst   (Term a)    -- ^ Select the first fact.
+        | SelectLast    (Term a)    -- ^ Select the last fact.
         deriving Show
 
 
 -- | Whether to consume the selected fact.
 data Consume a
         = ConsumeAnn    a (Consume a)
-        | ConsumeNone                   -- ^ Match on facts without consuming them.
-        | ConsumeWeight (Term a)        -- ^ Consume the given weight of fact.
+        | ConsumeNone               -- ^ Match on facts without consumption.
+        | ConsumeWeight (Term a)    -- ^ Consume the given weight of fact.
         deriving Show
 
 
 -- | Whether to gain authority from the selected fact.
 data Gain a
         = GainAnn       a (Gain a)
-        | GainNone                      -- ^ Retain the same authority.
-        | GainCheck     (Term a)        -- ^ Check for the given auth, but don't gain it.
-        | GainTerm      (Term a)        -- ^ Gain the given authority.
+        | GainNone                  -- ^ Retain the same authority.
+        | GainCheck     (Term a)    -- ^ Check for auth, but don't gain it.
+        | GainTerm      (Term a)    -- ^ Gain the given authority.
         deriving Show
 
 
---------------------------------------------------------------------------------------- Scenario --
+------------------------------------------------------------------- Scenario --
 -- | A test scenario.
 data Scenario a
         = Scenario

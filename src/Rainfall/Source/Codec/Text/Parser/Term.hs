@@ -75,7 +75,8 @@ pTermInfix1
 pTermApp :: Parser (Term RL)
 pTermApp
  = P.choice
- [ do   -- 'say' TermRecord ('by' Term)? ('obs' Term)? ('use' Term)? ('num' Term)?
+ [ do   -- 'say' TermRecord
+        --      ('by' Term)? ('obs' Term)? ('use' Term)? ('num' Term)?
         pKey "say"
         nFact   <- pCon
         mRecord <- pTermRecord

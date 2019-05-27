@@ -21,7 +21,6 @@ module Rainfall.EDSL
         , set'empty, set'one, set'union, set'unions, set'symbol'eq
         , auth'one, auth'none, auth'union, auth'unions, auth'parties
 
-
         , runScenario
         , printStoreS
         , fireS, fireIO)
@@ -37,7 +36,7 @@ import qualified Data.Set                               as Set
 import qualified Data.Map                               as Map
 
 
--- Rule -------------------------------------------------------------------------------------------
+----------------------------------------------------------------------- Rule --
 rule n ms mBody         = Rule  n ms mBody
 match'any  x n g c i    = Match x (when n []) g c i
 match'when x n ms g c i = Match x (when n ms) g c i
@@ -57,7 +56,7 @@ check m                 = GainCheck m
 gain  m                 = GainTerm m
 
 
--- Term -------------------------------------------------------------------------------------------
+----------------------------------------------------------------------- Term --
 unit                    = MUnit
 bool  b                 = MBool  b
 nat   n                 = MNat   n
@@ -73,7 +72,8 @@ infixl 0 :=
 
 auths ns                = Set.fromList ns
 
--- Prim -------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------- Prim --
 say nFact nmsFields nmsMeta
  = let  (nsFields, vsFields)    = unzip nmsFields
         (nsMeta,   vsMeta)      = unzip nmsMeta
@@ -106,7 +106,7 @@ auth'none               = MSet []
 auth'parties ms         = foldr auth'union auth'none $ map auth'one ms
 
 
------------------------------------------------------------------------------------------- World --
+---------------------------------------------------------------------- World --
 data World
         = World
         { worldParties  :: [Name]
@@ -116,7 +116,7 @@ data World
 
 
 
---------------------------------------------------------------------------------------- Scenario --
+------------------------------------------------------------------- Scenario --
 type ScenarioS a = S.StateT World IO a
 
 
@@ -156,8 +156,9 @@ printStoreS
         S.liftIO $ putStrLn $ (P.displayS $ renderMax $ ppStore store) ""
 
 
---------------------------------------------------------------------------------------------- IO --
--- | Try to fire the given rule, succeding only if there is a single available firing.
+------------------------------------------------------------------------- IO --
+-- | Try to fire the given rule,
+--   succeeding only if there is a single available firing.
 fireIO :: Auth -> Rule () -> Store -> IO (Maybe (Transaction, Store))
 fireIO auth rule store
  = do   let Name sName = ruleName rule
@@ -170,7 +171,9 @@ fireIO auth rule store
          [(trans, store')]
           -> do let dsSpent = Map.toList $ transactionSpent trans
                 let dsNew   = Map.toList $ transactionNew   trans
-                putStrLn $ (P.displayS $ renderMax $ ppFiring dsSpent dsNew store') ""
+                putStrLn
+                 $ (P.displayS $ renderMax
+                               $ ppFiring dsSpent dsNew store') ""
                 return $ Just (trans, store')
 
          _ -> do

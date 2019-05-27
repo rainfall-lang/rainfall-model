@@ -6,29 +6,29 @@ import Data.String
 
 -- | Annotated Type.
 data Type a
-        = TAnn a (Type a)               -- ^ Annotated type.
-        | TRef (TypeRef a)              -- ^ Type reference.
-        | TVar Bound                    -- ^ Type variable.
-        | TKey TypeKey [Type a]         -- ^ Type keyword application.
+        = TAnn a (Type a)       -- ^ Annotated type.
+        | TRef (TypeRef a)      -- ^ Type reference.
+        | TVar Bound            -- ^ Type variable.
+        | TKey TypeKey [Type a] -- ^ Type keyword application.
         deriving (Show, Eq, Ord)
 
 
 -- | Type Reference.
 data TypeRef a
-        = TRPrm Name                    -- ^ Primitive type constructor.
-        | TRCon Name                    -- ^ User defined type synonym or constructor.
+        = TRPrm Na      -- ^ Primitive type constructor.
+        | TRCon Name    -- ^ User defined type synonym or constructor.
         deriving (Show, Eq, Ord)
 
 
 -- | Type Key.
 data TypeKey
-        = TKTop                         -- ^ Used as a placeholder until we implement polymorphism.
-        | TKFun                         -- ^ Function type former.
-        | TKRcd  [Name]                 -- ^ Record type former.
-        | TKSet                         -- ^ Set type former.
-        | TKSets                        -- ^ Multi-set type former.
-        | TKFact                        -- ^ Fact type former.
-        | TKFACT                        -- ^ Opaque fact type former.
+        = TKTop         -- ^ Used as a placeholder until we get polymorphism.
+        | TKFun         -- ^ Function type former.
+        | TKRcd  [Name] -- ^ Record type former.
+        | TKSet         -- ^ Set type former.
+        | TKSets        -- ^ Multi-set type former.
+        | TKFact        -- ^ Fact type former.
+        | TKFACT        -- ^ Opaque fact type former.
         deriving (Show, Eq, Ord)
 
 

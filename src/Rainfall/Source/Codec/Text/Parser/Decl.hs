@@ -2,12 +2,11 @@
 module Rainfall.Source.Codec.Text.Parser.Decl where
 import Rainfall.Source.Codec.Text.Parser.Term
 import Rainfall.Source.Codec.Text.Parser.Base
--- import Rainfall.Source.Codec.Text.Token
 import Rainfall.Source.Exp
 import qualified Text.Parsec            as P
 
 
-------------------------------------------------------------------------------------------- Decl --
+----------------------------------------------------------------------- Decl --
 -- Parser for top-level declarations.
 pDecls :: Parser [Decl RL]
 pDecls = P.many pDecl
@@ -61,7 +60,7 @@ pType
          , do   return $ TCon nFun ]
 
 
-------------------------------------------------------------------------------------------- Rule --
+----------------------------------------------------------------------- Rule --
 -- | @Name '[' (Label '=' Pattern),* ']'@
 pMatch :: Parser (Match RL)
 pMatch
@@ -158,7 +157,7 @@ pGain
  , do   return GainNone ]
 
 
---------------------------------------------------------------------------------------- Scenario --
+------------------------------------------------------------------- Scenario --
 pAction :: Parser (Action RL)
 pAction
  = P.choice

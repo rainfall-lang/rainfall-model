@@ -14,7 +14,7 @@ import qualified Data.Map                               as Map
 import qualified Data.Set                               as Set
 
 
------------------------------------------------------------------------------------------- World --
+---------------------------------------------------------------------- World --
 type S a
         = S.StateT World IO a
 
@@ -25,7 +25,7 @@ data World
         deriving Show
 
 
---------------------------------------------------------------------------------------- Scenario --
+------------------------------------------------------------------- Scenario --
 runScenario
         :: Main.Config
         -> [C.Rule Parser.RL]
@@ -35,15 +35,15 @@ runScenario
 runScenario config rules (C.Scenario _name actions)
  = do
         let world
-                = World
-                { worldStore    = C.storeEmpty
-                , worldRules    = Map.fromList [ (C.ruleName r, r) | r <- rules ] }
+             = World
+             { worldStore = C.storeEmpty
+             , worldRules = Map.fromList [ (C.ruleName r, r) | r <- rules ] }
 
         flip S.evalStateT world
          $ mapM_ (runAction config) actions
 
 
------------------------------------------------------------------------------------------ Action --
+--------------------------------------------------------------------- Action --
 -- | Run a single scenario action.
 runAction
         :: Main.Config
@@ -66,7 +66,7 @@ runAction _config C.ActionDump
         S.liftIO $ putStrLn $ (P.displayS $ renderMax $ C.ppStore store) ""
 
 
-------------------------------------------------------------------------------------------- Fire --
+----------------------------------------------------------------------- Fire --
 -- | Try and fire the given rule, printing the result to stdout.
 fireRuleS :: C.Auth -> C.Name -> S ()
 fireRuleS aSub nRule
@@ -103,7 +103,9 @@ fireRuleIO auth rule store
           -> do putStrLn $ "* Fire: " ++ sName
                 let dsSpent = Map.toList $ C.transactionSpent trans
                 let dsNew   = Map.toList $ C.transactionNew   trans
-                putStrLn $ (P.displayS $ renderMax $ C.ppFiring dsSpent dsNew store') ""
+                putStrLn $ (P.displayS
+                                $ renderMax
+                                $ C.ppFiring dsSpent dsNew store') ""
                 return $ Just (trans, store')
 
          _ -> do

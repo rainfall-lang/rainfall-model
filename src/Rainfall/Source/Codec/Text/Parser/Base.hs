@@ -7,12 +7,12 @@ import qualified Text.Parsec.Pos                as P
 import qualified Text.Lexer.Inchworm.Source     as IW
 
 
------------------------------------------------------------------------------------------- Types --
+---------------------------------------------------------------------- Types --
 type Parser a   = P.Parsec [At Token] () a
 type RL         = IW.Range IW.Location
 
 
------------------------------------------------------------------------------- Location Handling --
+---------------------------------------------------------- Location Handling --
 -- | Get the current position in the source stream.
 locHere :: Parser IW.Location
 locHere
@@ -27,7 +27,7 @@ locOfTok (At (IW.Range (Location l c) _) _)
  = P.newPos "file" l c
 
 
------------------------------------------------------------------------------- Primitive Parsers --
+---------------------------------------------------------- Primitive Parsers --
 -- | Parse the given token.
 pTok :: Token -> Parser ()
 pTok tMatch
@@ -67,7 +67,7 @@ pTokOfInput' fMatch
         Just x  -> Just (rl, x)
 
 
------------------------------------------------------------------------------------ Name Parsers --
+--------------------------------------------------------------- Name Parsers --
 -- | Parser for a keyword.
 pKey :: String -> Parser ()
 pKey s = pTok (KKey s)
@@ -77,11 +77,13 @@ pKey' s = pTok' (KKey s)
 
 -- | Parser for infix op.
 pInfix :: Parser Name
-pInfix  = pTokOf $ \case { KInfix s -> Just (Name s); _ -> Nothing }
+pInfix
+ = pTokOf $ \case { KInfix s -> Just (Name s); _ -> Nothing }
 
 -- | Parser for one of a specified infix op.
 pInfixOf :: [String] -> Parser Name
-pInfixOf ops = pTokOf $ \case { KInfix s | elem s ops -> Just (Name s); _ -> Nothing }
+pInfixOf ops
+ = pTokOf $ \case { KInfix s | elem s ops -> Just (Name s); _ -> Nothing }
 
 -- | Parser for punctuation.
 pPunc :: String -> Parser ()

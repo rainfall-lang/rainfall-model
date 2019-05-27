@@ -32,7 +32,7 @@ data TermParam a
 data TermArg a
         = MGAnn  a  (TermArg a)
         | MGTerm    (Term a)            -- ^ Term argument for a term.
-        | MGTerms   [Term a]            -- ^ Multiple term arguments for a term.
+        | MGTerms   [Term a]            -- ^ Multiple term arguments for term.
         deriving (Show, Eq, Ord)
 
 

@@ -6,38 +6,39 @@ import Text.PrettyPrint.Leijen
 import qualified Data.Set       as Set
 import qualified Data.Map       as Map
 
-------------------------------------------------------------------------------------------- Name --
+----------------------------------------------------------------------- Name --
 ppName :: Name -> Doc
 ppName (Name s) = text s
 
 
------------------------------------------------------------------------------------------- Value --
+---------------------------------------------------------------------- Value --
 ppValue :: Value -> Doc
 ppValue val
  = case val of
-        VLit lit        -> ppLit lit
-        VClo{}          -> text "#CLO"
-        VRcd ns vs      -> list [tupled [ppName n, ppValue v] | (n, v) <- zip ns vs ]
+        VLit lit    -> ppLit lit
+        VClo{}      -> text "#CLO"
+        VRcd ns vs  -> list [tupled [ppName n, ppValue v]
+                            | (n, v) <- zip ns vs ]
 
-        VSet vs         -> encloseSep (char '{') (char '}') (char ',')
-                        $  map ppValue $ Set.toList vs
+        VSet vs     -> encloseSep (char '{') (char '}') (char ',')
+                    $  map ppValue $ Set.toList vs
 
-        VMap mp         -> encloseSep (text "{|") (text "|}") (char ',')
-                        $  [ ppValue k <+> text ":=" <+> ppValue v
-                           | (k, v) <- Map.toList mp ]
+        VMap mp     -> encloseSep (text "{|") (text "|}") (char ',')
+                    $  [ ppValue k <+> text ":=" <+> ppValue v
+                       | (k, v) <- Map.toList mp ]
 
-        VFact{}         -> text "#FACT"
+        VFact{}     -> text "#FACT"
 
 
 ppLit :: Lit -> Doc
 ppLit lit
  = case lit of
-        LUnit           -> text "#unit"
-        LBool b         -> if b then text "#true" else text "#false"
-        LNat i          -> integer i
-        LText s         -> text (show s)
-        LParty n        -> text "!" <> ppName n
-        LSym n          -> text "'" <> ppName n
+        LUnit       -> text "#unit"
+        LBool b     -> if b then text "#true" else text "#false"
+        LNat i      -> integer i
+        LText s     -> text (show s)
+        LParty n    -> text "!" <> ppName n
+        LSym n      -> text "'" <> ppName n
 
 
 ppEnv :: Env -> Doc
@@ -58,7 +59,7 @@ ppRules rs
  $ [ppLit (LSym n) | n <- Set.toList rs ]
 
 
-------------------------------------------------------------------------------------------- Fact --
+----------------------------------------------------------------------- Fact --
 ppFact :: Fact -> Doc
 ppFact (Fact n env aBy aObs rsUse)
  = nest 10
@@ -74,7 +75,7 @@ ppFactoid (Fact n env aBy aObs rsUse, nWeight)
         , text "use" <+> ppRules rsUse <+> text "num" <+> integer nWeight ]
 
 
------------------------------------------------------------------------------------------- Store --
+---------------------------------------------------------------------- Store --
 ppStore :: Store -> Doc
 ppStore store
  = vcat
@@ -82,7 +83,7 @@ ppStore store
  , indent 2 $ vcat $ map (\d -> vcat [ppFactoid d, empty]) $ Map.toList store ]
 
 
------------------------------------------------------------------------------------------ Firing --
+--------------------------------------------------------------------- Firing --
 ppFiring :: [Factoid] -> [Factoid] -> Store -> Doc
 ppFiring dsSpent dsNew store
  = vcat

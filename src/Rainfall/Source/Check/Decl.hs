@@ -9,11 +9,12 @@ import Text.PrettyPrint.Leijen  hiding ((<$>))
 import qualified Data.Map       as Map
 
 
-------------------------------------------------------------------------------------------- Decl --
+----------------------------------------------------------------------- Decl --
 -- | Check a list of top level declarations.
 checkDecls :: [Decl RL] -> IO [Decl RL]
 checkDecls ds
- = do   let facts   = Map.fromList [(nFact, ntsField) | DeclFact nFact ntsField <- ds]
+ = do   let facts = Map.fromList
+                  [ (nFact, ntsField) | DeclFact nFact ntsField <- ds]
         mapM (checkDecl facts) ds
 
 
@@ -31,7 +32,7 @@ checkDecl facts dd
          -> DeclScenario a <$> checkScenario a facts scn
 
 
-------------------------------------------------------------------------------------------- Rule --
+----------------------------------------------------------------------- Rule --
 -- | Check a source rule.
 --   Type errors are thrown as exceptions in the IO monad.
 checkRule :: RL -> Facts RL -> Rule RL -> IO (Rule RL)
@@ -49,7 +50,7 @@ checkRule a facts (Rule nRule hsMatch mBody)
         return (Rule nRule hsMatch' mBody')
 
 
------------------------------------------------------------------------------------------- Match --
+---------------------------------------------------------------------- Match --
 -- | Check a sequence of matches,
 --   where variables bound in earlier ones are in scope in later ones.
 checkMatches
@@ -83,7 +84,7 @@ checkMatch a ctx (Match gather select consume gain)
         return (ctx', Match gather' select' consume' gain')
 
 
------------------------------------------------------------------------------------------ Gather --
+--------------------------------------------------------------------- Gather --
 -- | Check a fact gather, adding pattern bound variables
 checkGather
         :: RL -> Context RL
@@ -98,7 +99,8 @@ checkGather a ctx (GatherPat nFact ngps mmPred)
         -- Lookup types of the fields of this fact.
         ntsFactPayload
          <- case Map.lookup nFact (contextFacts ctx) of
-                Nothing  -> nope a [text "unknown fact " <+> squotes (ppName nFact) ]
+                Nothing
+                 -> nope a [text "unknown fact " <+> squotes (ppName nFact) ]
                 Just nts -> return nts
 
         -- Check the per-field pattern matches.
@@ -125,9 +127,9 @@ checkGather a ctx (GatherPat nFact ngps mmPred)
 -- | Check the fields of a gather pattern match.
 --   Match variables bound in earlier fields are in scope in latter ones.
 checkGatherFields
-        :: RL                   -- ^ Annotation for error messages.
-        -> Name                 -- ^ Name of matched fact.
-        -> [(Name, Type RL)]    -- ^ Types of fields of the fact being matched.
+        :: RL                -- ^ Annotation for error messages.
+        -> Name              -- ^ Name of matched fact.
+        -> [(Name, Type RL)] -- ^ Types of fields of the fact being matched.
         -> Context RL -> [(Name, GatherPat RL)]
         -> IO (Context RL, [(Name, GatherPat RL)])
 
@@ -142,9 +144,9 @@ checkGatherFields a nFact ntsFactPayload ctx (ngp : ngps)
 
 -- | Check a single field of a gather pattern match.
 checkGatherField
-        :: RL                   -- ^ Annotation for error messages.
-        -> Name                 -- ^ Name of matched fact.
-        -> [(Name, Type RL)]    -- ^ Types of fields of the fact being matched.
+        :: RL                -- ^ Annotation for error messages.
+        -> Name              -- ^ Name of matched fact.
+        -> [(Name, Type RL)] -- ^ Types of fields of the fact being matched.
         -> Context RL ->   (Name, GatherPat RL)
         -> IO (Context RL, (Name, GatherPat RL))
 
@@ -166,9 +168,9 @@ checkGatherField a nFact ntsFactPayload ctx (nField, gatherPat)
 
 -- | Check the pattern match of a single field.
 checkGatherPat
-        :: RL                   -- ^ Annotation for error messages.
-        -> Name                 -- ^ Name of the current field.
-        -> Type RL              -- ^ Type of the current field of the fact.
+        :: RL               -- ^ Annotation for error messages.
+        -> Name             -- ^ Name of the current field.
+        -> Type RL          -- ^ Type of the current field of the fact.
         -> Context RL -> GatherPat RL
         -> IO (Context RL, GatherPat RL)
 
@@ -188,7 +190,7 @@ checkGatherPat a nField tField ctx (GatherPatEq mMatch)
         return (ctx, GatherPatEq mMatch')
 
 
------------------------------------------------------------------------------------------ Select --
+--------------------------------------------------------------------- Select --
 -- | Check a select clause.
 checkSelect :: RL -> Context RL -> Select RL -> IO (Select RL)
 checkSelect _a ctx (SelectAnn a select)
@@ -207,7 +209,7 @@ checkSelect a ctx (SelectLast mKey)
         return $ SelectLast mKey'
 
 
----------------------------------------------------------------------------------------- Consume --
+-------------------------------------------------------------------- Consume --
 -- | Check a consume clause.
 checkConsume :: RL -> Context RL -> Consume RL -> IO (Consume RL)
 checkConsume _a ctx (ConsumeAnn a consume)
@@ -222,7 +224,7 @@ checkConsume a ctx (ConsumeWeight mWeight)
         return  $ ConsumeWeight mWeight'
 
 
-------------------------------------------------------------------------------------------- Gain --
+----------------------------------------------------------------------- Gain --
 -- | Check a gain clause.
 checkGain :: RL -> Context RL -> Gain RL -> IO (Gain RL)
 checkGain _a ctx (GainAnn a gain)
@@ -241,7 +243,7 @@ checkGain a ctx (GainTerm mParties)
         return $ GainTerm mParties'
 
 
---------------------------------------------------------------------------------------- Scenario --
+------------------------------------------------------------------- Scenario --
 -- | Check a scenario
 checkScenario :: RL -> Facts RL -> Scenario RL -> IO (Scenario RL)
 checkScenario a facts (Scenario name actions)

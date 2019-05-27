@@ -57,7 +57,8 @@ takeMapOfValue vv
 takeAuthOfValue :: Value -> Maybe (Set Name)
 takeAuthOfValue vv
  = case vv of
-        VSet vs -> fmap Set.fromList $ sequence $ map takePartyOfValue $ Set.toList vs
+        VSet vs -> fmap Set.fromList
+                $  sequence $ map takePartyOfValue $ Set.toList vs
         _       -> Nothing
 
 
@@ -65,7 +66,8 @@ takeAuthOfValue vv
 takeRulesOfValue :: Value -> Maybe (Set Name)
 takeRulesOfValue vv
  = case vv of
-        VSet vs -> fmap Set.fromList $ sequence $ map takeSymOfValue $ Set.toList vs
+        VSet vs -> fmap Set.fromList
+                $ sequence $ map takeSymOfValue $ Set.toList vs
         _       -> Nothing
 
 

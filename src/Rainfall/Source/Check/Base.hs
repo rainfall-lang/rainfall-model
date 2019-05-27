@@ -8,13 +8,13 @@ module Rainfall.Source.Check.Base
         , nope)
 where
 import Rainfall.Source.Exp
-import qualified Rainfall.Source.Codec.Text.Token       as Token
-import qualified System.Exit                            as System
-import qualified Data.Map.Strict                        as Map
-import qualified Text.PrettyPrint.Leijen                as P
+import qualified Rainfall.Source.Codec.Text.Token   as Token
+import qualified System.Exit                        as System
+import qualified Data.Map.Strict                    as Map
+import qualified Text.PrettyPrint.Leijen            as P
 
 
----------------------------------------------------------------------------------------- Context --
+-------------------------------------------------------------------- Context --
 -- | Map of fact names to their payload types.
 type Facts a = Map Name [(Name, Type a)]
 
@@ -35,7 +35,7 @@ data Context a
 type RL = Token.Range Token.Location
 
 
---------------------------------------------------------------------------------------------- Eq --
+------------------------------------------------------------------------- Eq --
 -- | Check whether the given types are equivalent.
 checkEq :: Type a -> Type a -> Bool
 
@@ -69,7 +69,8 @@ checkEq TFACT TFACT             = True
 checkEq _ _                     = False
 
 
------------------------------------------------------------------------------------------- Error --
+---------------------------------------------------------------------- Error --
+-- | Fail with a type error message.
 nope :: RL -> [P.Doc] -> IO a
 nope a docs
  = do   let doc = P.vcat
