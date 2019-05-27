@@ -1,11 +1,11 @@
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- In the paper "Smart Contracts as Authorized Production Rules"
 -- this example appears in Section 3.7: Upgrade.
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Standard coin fact.
 fact Coin        [issuer: Party, holder: Party]
 
@@ -14,7 +14,7 @@ fact Coin        [issuer: Party, holder: Party]
 fact LetsUpgrade [party: Party, new: Set Symbol]
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Upgrade rule will rewrite the use-set of a coin,
 -- provided both the issuer and the holder agree.
 rule upgrade
@@ -26,7 +26,7 @@ to
   by {s, h} use rs
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Original transfer workflow for the coin.
 fact  Offer  [id:     Symbol, terms:    Text,
               giver:  Party,  receiver: Party]
@@ -41,7 +41,8 @@ to
    by {!Isabelle,r} obs {!Mona} use {'transfer}
 
 
--- New version of the transfer rule also makes Monica an observer of result coins.
+-- New version of the transfer rule also makes
+-- Monica an observer of result coins.
 rule  newTransfer
 await Offer  [id = ?i, giver = ?g, receiver = ?r] gain {g}
   and Accept [id = i,  accepter = r]              gain {r}
@@ -51,7 +52,7 @@ to
    by {!Isabelle,r} obs {!Mona, !Monica} use {'transfer}
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 scenario test do
  add    say Coin [issuer = !Isabelle, holder = !Alice]
         by {!Isabelle, !Alice} use {'transfer, 'upgrade} num 1

@@ -1,5 +1,5 @@
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- In the paper "Smart Contracts as Authorized Production Rules",
 -- the rule 'reserve' that appears in Section 3.6 is taken from
 -- this example. This version has been specialized so that Brendan
@@ -7,7 +7,7 @@
 -- version is provided in the 03-Market-General example.
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Client order for a particular item.
 fact Order   [desc:  Text, limit: Nat,  budget: Nat]
 
@@ -33,7 +33,7 @@ fact Reserve [lot:   Nat, bid:    Nat]
 fact Invoice [seller: Party, buyer: Party, desc: Text, amount: Nat]
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Brendan reserves a portion of Alice's budget,
 -- and sends a bid to the market for one of the items Alice has ordered.
 --
@@ -87,7 +87,7 @@ await Accept    [lot = ?o, price = ?p]  gain {!Mark}
       by  {!Mark, !Brendan}
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 scenario test do
         -- Alice tells Brendan she wants Rock Lobsters,
         --  for less than 28 each, with a total budget of 100.

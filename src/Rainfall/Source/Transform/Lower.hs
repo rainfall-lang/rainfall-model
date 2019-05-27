@@ -10,7 +10,7 @@ import qualified Data.Map.Strict                        as Map
 import Data.Map                                         (Map)
 
 
------------------------------------------------------------------------------------------- Fresh --
+---------------------------------------------------------------------- Fresh --
 type S a = S.State (String, Int) a
 
 runState :: String -> S a -> a
@@ -26,7 +26,7 @@ fresh
 type Facts a = Map Name [(Name, E.Type a)]
 
 
-------------------------------------------------------------------------------------------- Decl --
+----------------------------------------------------------------------- Decl --
 -- | Lower a list of source decls to core.
 lowerDecls :: Show a => [E.Decl a] -> S [C.Decl a]
 lowerDecls ds
@@ -51,7 +51,7 @@ lowerDecl dsFact d
          -> Just . C.DeclScenario <$> lowerScenario sc
 
 
-------------------------------------------------------------------------------------------- Rule --
+----------------------------------------------------------------------- Rule --
 -- | Lower a source rule to core.
 lowerRule
         :: Show a
@@ -67,12 +67,12 @@ lowerRule dsFact (E.Rule nRule hsMatch mBody)
         pure $ C.Rule nRule hsMatch' mBody'
 
 
------------------------------------------------------------------------------------------- Match --
+---------------------------------------------------------------------- Match --
 -- | Lower a sequence of matches to core.
 lowerMatches
         :: Show a
-        => Facts a                      -- ^ Map of fact names to their payload types.
-        -> [(Name, C.Term a)]           -- ^ Definition of match variables in scope.
+        => Facts a              -- ^ Map of fact names to their payload types.
+        -> [(Name, C.Term a)]   -- ^ Definition of match variables in scope.
         -> [E.Match a]
         -> S ([(Name, C.Term a)], [C.Match a])
 
@@ -88,9 +88,9 @@ lowerMatches dsFact  nmsMatch (m : ms)
 -- | Lower a source fact matcher to core.
 lowerMatch
         :: Show a
-        => Facts a                      -- ^ Map of fact names to their payload types.
-        -> [(Name, C.Term a)]           -- ^ Definitions of match variable in scope.
-        -> E.Match a                    -- ^ Match to desugar.
+        => Facts a              -- ^ Map of fact names to their payload types.
+        -> [(Name, C.Term a)]   -- ^ Definitions of match variable in scope.
+        -> E.Match a            -- ^ Match to desugar.
         -> S ([(Name, C.Term a)], C.Match a)
 
 lowerMatch dsFact nmsMatch (E.MatchAnn a m)
@@ -114,7 +114,7 @@ lowerMatch dsFact nmsMatch (E.Match gather select consume gain)
                 , C.Match (BindName nBindFact) gather' select' consume' gain')
 
 
------------------------------------------------------------------------------------------ Gather --
+--------------------------------------------------------------------- Gather --
 -- | Lower a gather clause to core.
 --
 --   We take a list of definitions for enclosing match variables (like ?foo),
@@ -125,10 +125,10 @@ lowerMatch dsFact nmsMatch (E.Match gather select consume gain)
 --
 lowerGather
         :: Show a
-        => Facts a                      -- ^ Map of fact names to their payload types.
-        -> [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
-        -> Name                         -- ^ Variable bound to the fact being considered.
-        -> E.Gather a                   -- ^ Gather to desugar.
+        => Facts a            -- ^ Map of fact names to their payload types.
+        -> [(Name, C.Term a)] -- ^ Definitions of match variables in scope.
+        -> Name               -- ^ Variable bound to the fact being considered.
+        -> E.Gather a         -- ^ Gather to desugar.
         -> S ([(Name, C.Term a)], C.Gather a)
 
 lowerGather dsFact nmsMatch nBindFact (E.GatherAnn a g)
@@ -157,11 +157,11 @@ lowerGather dsFact nmsMatch nBindFact (E.GatherPat nFact fsMatch mmPred)
 --   Match variables defined in earlier fields are in-scope in latter fields.
 lowerGatherFields
         :: Show a
-        => [(Name, E.Type a)]           -- ^ Types of fields for this fact.
-        -> [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
-        -> [C.Term a]                   -- ^ Predicate terms so far.
-        -> Name                         -- ^ Variable bound to the fact being gathered.
-        -> [(Name, E.GatherPat a)]      -- ^ More field matchings to desugar.
+        => [(Name, E.Type a)]   -- ^ Types of fields for this fact.
+        -> [(Name, C.Term a)]   -- ^ Definitions of match variables in scope.
+        -> [C.Term a]           -- ^ Predicate terms so far.
+        -> Name                 -- ^ Variable bound to the fact being gathered.
+        -> [(Name, E.GatherPat a)] -- ^ More field matchings to desugar.
         -> S ([(Name, C.Term a)], [C.Term a])
 
 lowerGatherFields _ntsField nmsMatch msPred
@@ -183,11 +183,11 @@ lowerGatherFields ntsField nmsMatch msPred
 -- | Lower a gather pattern.
 lowerGatherPat
         :: Show a
-        => [(Name, E.Type a)]           -- ^ Types of fields for thie fact.
-        -> [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
-        -> Name                         -- ^ Variable bound to the fact being considered.
-        -> Name                         -- ^ Name of the current field.
-        -> E.GatherPat a                -- ^ Pattern to desguar.
+        => [(Name, E.Type a)] -- ^ Types of fields for thie fact.
+        -> [(Name, C.Term a)] -- ^ Definitions of match variables in scope.
+        -> Name               -- ^ Variable bound to the fact being considered.
+        -> Name               -- ^ Name of the current field.
+        -> E.GatherPat a      -- ^ Pattern to desguar.
         -> S ( Maybe (Name, (C.Term a)) -- Match variable to bind in the body.
              , Maybe (C.Term a))        -- Match predicate to check.
 
@@ -208,13 +208,13 @@ lowerGatherPat ntsField nmsMatch nBindFact nField
         -- for a produnction implementation we'd need to handle equality
         -- more generally.
         let fEq = case lookup nField ntsField of
-                        Just (E.TCon "Bool")   -> CC.bool'eq
-                        Just (E.TCon "Nat")    -> CC.nat'eq
-                        Just (E.TCon "Text")   -> CC.text'eq
-                        Just (E.TCon "Symbol") -> CC.symbol'eq
-                        Just (E.TCon "Party")  -> CC.party'eq
-                        Just (E.TSet (E.TCon "Symbol")) -> CC.set'symbol'eq
-                        t -> error $ "lowerGatherPat: no comparison for " ++ show t
+                   Just (E.TCon "Bool")   -> CC.bool'eq
+                   Just (E.TCon "Nat")    -> CC.nat'eq
+                   Just (E.TCon "Text")   -> CC.text'eq
+                   Just (E.TCon "Symbol") -> CC.symbol'eq
+                   Just (E.TCon "Party")  -> CC.party'eq
+                   Just (E.TSet (E.TCon "Symbol")) -> CC.set'symbol'eq
+                   t -> error $ "lowerGatherPat: no comparison for " ++ show t
 
         -- Buila a term to do the comparison.
         let mPred' = fEq (C.MVar nBindFact CC.! nField) mTerm'
@@ -222,11 +222,11 @@ lowerGatherPat ntsField nmsMatch nBindFact nField
         return  (Nothing, Just mPred')
 
 
------------------------------------------------------------------------------------------ Select --
+--------------------------------------------------------------------- Select --
 -- | Lower a select clause to core.
 lowerSelect
         :: Show a
-        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        => [(Name, C.Term a)]   -- ^ Definitions of match variables in scope.
         -> E.Select a -> S (C.Select a)
 
 lowerSelect nmsMatch (E.SelectAnn a cc)
@@ -245,11 +245,11 @@ lowerSelect nmsMatch (E.SelectLast m)
         return  $ C.SelectLast m'
 
 
----------------------------------------------------------------------------------------- Consume --
+-------------------------------------------------------------------- Consume --
 -- | Lower a consume clause to core.
 lowerConsume
         :: Show a
-        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        => [(Name, C.Term a)]   -- ^ Definitions of match variables in scope.
         -> E.Consume a -> S (C.Consume a)
 
 lowerConsume nmsMatch (E.ConsumeAnn a uu)
@@ -264,11 +264,11 @@ lowerConsume nmsMatch (E.ConsumeWeight mWeight)
         return $ C.ConsumeWeight mWeight'
 
 
-------------------------------------------------------------------------------------------- Gain --
+----------------------------------------------------------------------- Gain --
 -- | Lower a gain clause to core.
 lowerGain
         :: Show a
-        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        => [(Name, C.Term a)]   -- ^ Definitions of match variables in scope.
         -> E.Gain a -> S (C.Gain a)
 
 lowerGain nmsMatch (E.GainAnn a ii)
@@ -287,7 +287,7 @@ lowerGain nmsMatch (E.GainTerm m)
         return  $ C.GainTerm m'
 
 
---------------------------------------------------------------------------------------- Scenario --
+------------------------------------------------------------------- Scenario --
 -- | Lower a source scenario to core.
 lowerScenario
         :: Show a
@@ -316,11 +316,11 @@ lowerAction E.ActionDump
  =      return  $ C.ActionDump
 
 
-------------------------------------------------------------------------------------------- Term --
+----------------------------------------------------------------------- Term --
 -- | Lower a source term to core.
 lowerTerm
         :: Show a
-        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        => [(Name, C.Term a)]   -- ^ Definitions of match variables in scope.
         -> E.Term a -> S (C.Term a)
 
 lowerTerm nmsMatch (E.MAnn a m)
@@ -392,7 +392,7 @@ lowerTerm _ _
  = error "lowerTerm: malformed term"
 
 
----------------------------------------------------------------------------------------- TermRef --
+-------------------------------------------------------------------- TermRef --
 -- | Lower a source term reference to core.
 lowerTermRef :: E.TermRef a -> S (C.TermRef a)
 lowerTermRef tr
@@ -400,10 +400,10 @@ lowerTermRef tr
         E.MRVal v       -> C.MRVal <$> lowerValue v
 
 
----------------------------------------------------------------------------------------- TermArg --
+-------------------------------------------------------------------- TermArg --
 lowerTermArg
         :: Show a
-        => [(Name, C.Term a)]           -- ^ Definitions of match variables in scope.
+        => [(Name, C.Term a)]  -- ^ Definitions of match variables in scope.
         -> E.TermArg a -> S [C.Term a]
 
 lowerTermArg nmsMatch tg
@@ -413,7 +413,7 @@ lowerTermArg nmsMatch tg
         E.MGTerms ms    -> mapM (lowerTerm nmsMatch) ms
 
 
------------------------------------------------------------------------------------------- Value --
+---------------------------------------------------------------------- Value --
 -- | Lower a source value to core.
 lowerValue :: E.Value -> S C.Value
 lowerValue vv

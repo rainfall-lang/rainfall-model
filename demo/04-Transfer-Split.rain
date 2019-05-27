@@ -1,10 +1,10 @@
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- In the paper "Smart Contracts as Authorized Production Rules"
 -- this example appears in Section 3.4: Nested Transactions.
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Offer by a giving party to give a coin to a receiving party.
 fact Offer   [id: Symbol, terms: Text, giver: Party, receiver: Party]
 
@@ -21,7 +21,7 @@ fact Agreed  [giver: Party, receiver: Party]
 fact Coin    [issuer: Party, holder: Party]
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- A giver and receiver agree on an offer, and build a
 -- joint Agree fact that witnesses the agreement.
 rule  agreeOffer
@@ -43,7 +43,7 @@ to
    by {!Isabelle,r} obs {!Mona}
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 scenario test do
  add    say Coin  [ issuer = !Isabelle, holder = !Alice]
         by {!Isabelle, !Alice}

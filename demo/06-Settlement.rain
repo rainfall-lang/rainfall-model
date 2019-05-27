@@ -1,6 +1,6 @@
 
 
--------------------------------------------------------------------------------- Market Creation --
+------------------------------------------------------------ Market Creation --
 -- Proposal to create a new market by the market registry.
 fact ProposeMarket
         [ market: Symbol, registry: Party, regulator: Party ]
@@ -27,7 +27,7 @@ to
    use {'addIssuer, 'issueSecurity, 'bilateralDemandSettlement}
 
 
---------------------------------------------------------------------------------- Adding Issuers --
+------------------------------------------------------------- Adding Issuers --
 -- Invitation by the registry to add an issuer of securities to the market.
 fact InviteIssuer [ market: Symbol, registry: Party, issuer: Party ]
 
@@ -61,7 +61,7 @@ to
    use {'addIssuer, 'issueSecurity, 'bilateralDemandSettlement}
 
 
-------------------------------------------------------------------------------- Issue Securities --
+----------------------------------------------------------- Issue Securities --
 fact IssueSecurity
         [ market: Symbol, holder: Party, issuer: Party
         , security: Text, amount: Nat ]
@@ -93,7 +93,7 @@ to
    num n
 
 
-------------------------------------------------------------------------------------- Settlement --
+----------------------------------------------------------------- Settlement --
 fact BilateralDemandSettlement
         [ market: Symbol
         , lhs: Party, lhsSecurity: Symbol, lhsAmount: Nat

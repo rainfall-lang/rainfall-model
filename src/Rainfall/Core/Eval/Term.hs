@@ -7,7 +7,8 @@ import Data.Maybe
 import qualified Data.Set               as Set
 import qualified Data.Map.Strict        as Map
 
----------------------------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
 -- | Evaluate a term.
 evalTerm :: Show a => Env -> Term a -> Value
 
@@ -107,7 +108,7 @@ evalTerm _ m@(MKey{})
         , show m ]
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 evalPrim :: Name -> [Value] -> Value
 
 evalPrim "bool'not"     [VBool b1]              = VBool (not b1)
@@ -140,8 +141,8 @@ evalPrim "set'minus"    [VSet vs1, VSet vs2]
 
 evalPrim "set'symbol'eq" [VSet vs1, VSet vs2]   = VBool (vs1 == vs2)
 
-evalPrim "sets'one"     [v]                     = VMap (Map.singleton v (VNat 1))
-evalPrim "sets'some"    [v, k]                  = VMap (Map.singleton v k)
+evalPrim "sets'one"     [v]     = VMap (Map.singleton v (VNat 1))
+evalPrim "sets'some"    [v, k]  = VMap (Map.singleton v k)
 evalPrim "sets'union"   [VMap mp1, VMap mp2]
  = VMap (Map.unionWith addNat mp1 mp2)
  where  addNat (VNat n1) (VNat n2) = VNat (n1 + n2)

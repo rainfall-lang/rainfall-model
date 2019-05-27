@@ -21,7 +21,7 @@ import qualified Text.Show.Pretty                       as Pretty
 import qualified Text.Parsec.Error                      as Parsec
 import qualified Text.Parsec.Pos                        as Parsec
 
-------------------------------------------------------------------------------------------- Main --
+----------------------------------------------------------------------- Main --
 main :: IO ()
 main
  = do   args    <- System.getArgs
@@ -38,7 +38,7 @@ main
                 System.exitSuccess
 
 
--------------------------------------------------------------------------------------------- Lex --
+------------------------------------------------------------------------ Lex --
 -- | Perform lexical analysis on a source file,
 --   then print the tokens to console.
 runLex :: Main.Config -> FilePath -> IO [Token.At Token.Token]
@@ -50,8 +50,9 @@ runLex _config filePath
           -> return toks
 
          (_, Token.Location l c, _)
-          -> do putStrLn $ filePath ++ ":" ++ show (l + 1) ++ ":" ++ show (c + 1)
-                         ++ " lexical error"
+          -> do putStrLn
+                 $ filePath ++ ":" ++ show (l + 1) ++ ":" ++ show (c + 1)
+                            ++ " lexical error"
                 System.exitFailure
 
 mainLex config filePath
@@ -59,7 +60,7 @@ mainLex config filePath
         putStr $ unlines $ map show toks
 
 
------------------------------------------------------------------------------------------- Parse --
+---------------------------------------------------------------------- Parse --
 -- | Parse a source file and print the AST to console.
 runParse :: Main.Config -> FilePath -> IO [S.Decl Parser.RL]
 runParse config filePath
@@ -86,7 +87,7 @@ mainParse config filePath
         putStrLn $ Pretty.ppShow ds
 
 
------------------------------------------------------------------------------------------- Check --
+---------------------------------------------------------------------- Check --
 -- | Parse and check a source file,
 --   returning a list of checked top-level declarations.
 runCheck :: Main.Config -> FilePath -> IO [S.Decl Parser.RL]
@@ -100,7 +101,7 @@ mainCheck config filePath
         return ()
 
 
------------------------------------------------------------------------------------------- Lower --
+---------------------------------------------------------------------- Lower --
 -- | Parse a source file, lower it to core, then print the core AST to console.
 runLower :: Main.Config -> FilePath -> IO [C.Decl Parser.RL]
 runLower config filePath
@@ -113,7 +114,7 @@ mainLower config filePath
         putStrLn $ Pretty.ppShow rs
 
 
--------------------------------------------------------------------------------------------- Run --
+------------------------------------------------------------------------ Run --
 -- | Load a source file and run the scenario tests.
 runRun :: Main.Config -> FilePath -> IO ()
 runRun config filePath

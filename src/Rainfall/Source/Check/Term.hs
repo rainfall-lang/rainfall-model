@@ -8,7 +8,7 @@ import Text.PrettyPrint.Leijen          hiding ((<$>))
 import qualified Data.Map.Strict        as Map
 
 
-------------------------------------------------------------------------------------------- Term --
+----------------------------------------------------------------------- Term --
 -- | Type check a single term.
 checkTerm :: RL -> Context RL
           -> Term RL -> IO (Term RL, Type RL)
@@ -63,14 +63,17 @@ checkTerm a ctx (MPrj mRcd nField)
         ntsField
          <- case tRcd of
                 TRcd ns ts -> return $ zip ns ts
-                _ -> nope a [ text "term being projected does not have record type"
-                            , text " actual type: " <+> squotes (ppType tRcd) ]
+                _ -> nope a
+                   [ text "term being projected does not have record type"
+                   , text " actual type: " <+> squotes (ppType tRcd) ]
 
         tField
          <- case lookup nField ntsField of
                 Just t  -> return t
-                _ -> nope a [ text "record does not have field" <+> squotes (ppName nField)
-                            , text " record type: " <+> squotes (ppType tRcd) ]
+                _ -> nope a
+                   [ text "record does not have field"
+                        <+> squotes (ppName nField)
+                   , text " record type: " <+> squotes (ppType tRcd) ]
 
         return  (mRcd', tField)
 
@@ -109,25 +112,25 @@ checkTerm a ctx (MSay nFact mData msBy msObs msUse msNum)
 
 checkTerm a ctx mm@(MInfix n m1 m2)
  = case n of
-        "&&"    -> checkTerm a ctx (MPrm "bool'and" [MGTerm m1, MGTerm m2])
-        "||"    -> checkTerm a ctx (MPrm "bool'or"  [MGTerm m1, MGTerm m2])
-        "∧"     -> checkTerm a ctx (MPrm "bool'and" [MGTerm m1, MGTerm m2])
-        "∨"     -> checkTerm a ctx (MPrm "bool'or"  [MGTerm m1, MGTerm m2])
+        "&&" -> checkTerm a ctx (MPrm "bool'and"  [MGTerm m1, MGTerm m2])
+        "||" -> checkTerm a ctx (MPrm "bool'or"   [MGTerm m1, MGTerm m2])
+        "∧"  -> checkTerm a ctx (MPrm "bool'and"  [MGTerm m1, MGTerm m2])
+        "∨"  -> checkTerm a ctx (MPrm "bool'or"   [MGTerm m1, MGTerm m2])
 
-        "+"     -> checkTerm a ctx (MPrm "nat'add"  [MGTerm m1, MGTerm m2])
-        "-"     -> checkTerm a ctx (MPrm "nat'sub"  [MGTerm m1, MGTerm m2])
-        "<"     -> checkTerm a ctx (MPrm "nat'lt"   [MGTerm m1, MGTerm m2])
-        ">"     -> checkTerm a ctx (MPrm "nat'gt"   [MGTerm m1, MGTerm m2])
-        "≤"     -> checkTerm a ctx (MPrm "nat'le"   [MGTerm m1, MGTerm m2])
-        "≥"     -> checkTerm a ctx (MPrm "nat'ge"   [MGTerm m1, MGTerm m2])
+        "+"  -> checkTerm a ctx (MPrm "nat'add"   [MGTerm m1, MGTerm m2])
+        "-"  -> checkTerm a ctx (MPrm "nat'sub"   [MGTerm m1, MGTerm m2])
+        "<"  -> checkTerm a ctx (MPrm "nat'lt"    [MGTerm m1, MGTerm m2])
+        ">"  -> checkTerm a ctx (MPrm "nat'gt"    [MGTerm m1, MGTerm m2])
+        "≤"  -> checkTerm a ctx (MPrm "nat'le"    [MGTerm m1, MGTerm m2])
+        "≥"  -> checkTerm a ctx (MPrm "nat'ge"    [MGTerm m1, MGTerm m2])
 
-        "∪"     -> checkTerm a ctx (MPrm "set'union"        [MGTerm m1, MGTerm m2])
-        "∩"     -> checkTerm a ctx (MPrm "set'intersection" [MGTerm m1, MGTerm m2])
-        "∈"     -> checkTerm a ctx (MPrm "set'in"           [MGTerm m1, MGTerm m2])
-        "∉"     -> checkTerm a ctx (MPrm "set'notin"        [MGTerm m1, MGTerm m2])
-        "∖"     -> checkTerm a ctx (MPrm "set'minus"        [MGTerm m1, MGTerm m2])
+        "∪"  -> checkTerm a ctx (MPrm "set'union" [MGTerm m1, MGTerm m2])
+        "∩"  -> checkTerm a ctx (MPrm "set'intersection" [MGTerm m1, MGTerm m2])
+        "∈"  -> checkTerm a ctx (MPrm "set'in"    [MGTerm m1, MGTerm m2])
+        "∉"  -> checkTerm a ctx (MPrm "set'notin" [MGTerm m1, MGTerm m2])
+        "∖"  -> checkTerm a ctx (MPrm "set'minus" [MGTerm m1, MGTerm m2])
 
-        "∪+"    -> checkTerm a ctx (MPrm "sets'union"       [MGTerm m1, MGTerm m2])
+        "∪+" -> checkTerm a ctx (MPrm "sets'union"[MGTerm m1, MGTerm m2])
 
         _       -> error $ unlines ["checkTerm: malformed infix exp", show mm]
 
@@ -150,8 +153,8 @@ checkTermIs a tExpected ctx m
         return m'
 
 
----------------------------------------------------------------------------------------- TermArg --
--- | Check a temr argument.
+-------------------------------------------------------------------- TermArg --
+-- | Check a term argument.
 checkTermArg
         :: RL -> Context RL
         -> TermArg RL -> IO (TermArg RL, Type RL)
@@ -185,7 +188,7 @@ checkTermArgIs a ctx mg tExpected
         return mg'
 
 
-------------------------------------------------------------------------------------------- Prim --
+----------------------------------------------------------------------- Prim --
 -- | Produce the parameter and result types of a primitive operator.
 typeOfPrim :: Name -> Maybe ([Type a], Type a)
 typeOfPrim n
@@ -221,7 +224,7 @@ typeOfPrim n
         _               -> Nothing
 
 
------------------------------------------------------------------------------------------- Value --
+---------------------------------------------------------------------- Value --
 checkValue :: Value -> IO (Type a)
 checkValue vv
  = case vv of

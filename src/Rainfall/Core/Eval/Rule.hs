@@ -11,7 +11,7 @@ import Data.Maybe
 import Control.Monad
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 data Transaction
         = Transaction
         { transactionRule       :: Name
@@ -20,7 +20,7 @@ data Transaction
         deriving Show
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- | Try to fire a rule applied to a store.
 applyFire
         :: Show a
@@ -52,7 +52,7 @@ applyFire aSub store rule
         return  (trans, store'')
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- | Match multiple patterns against the store,
 --   trying to satisfy them one after another.
 applyMatches
@@ -82,7 +82,7 @@ applyMatches name aSub store env (match : matches)
         return (fsRead'', dsSpend'', aGain'', env'')
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- | Match a single pattern against the store.
 --
 --   This rule is non-deterministic through the use of 'selectFromFacts',
@@ -120,7 +120,7 @@ applyMatch nRule aSub store env (Match bFact gather select consume gain)
         return  (fSelect, (fSelect, weight'), aGain, env')
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- | Gather visible facts from the store that match the gather predicates,
 --   returning all matching facts and the available weight of each one.
 applyGather
@@ -145,8 +145,9 @@ applyGather aSub store env bFact (GatherWhere nFact msPred)
    in [fs]
 
 
----------------------------------------------------------------------------------------------------
--- | Select a single fact from the given list, according to the selection specifier.
+-------------------------------------------------------------------------------
+-- | Select a single fact from the given list,
+--   according to the selection specifier.
 --
 --   This rule is non-deterministic due to the 'any' case.
 --
@@ -181,7 +182,7 @@ applySelect fs env bFact (SelectLast mKey)
          _              -> []
 
 
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- | Try to consume the given weight of a fact from the store,
 --   returning a new store if possible.
 applyConsume
@@ -204,15 +205,15 @@ applyConsume nRule fact env (ConsumeWeight mWeight)
         return nWeight
 
 
----------------------------------------------------------------------------------------------------
--- | Gain delegated authority from a given fact.
+-- | Try to consume the given weight of a fact from the store,
+--   Gain delegated authority from a given fact.
 applyGain
         :: Show a
-        => Name         -- ^ Name of enclosing rule.
-        -> Fact         -- ^ Fact to acquire authority from.
-        -> Env          -- ^ Current environment.
-        -> Gain a       -- ^ Gain specification.
-        -> [Auth]       -- ^ Resulting authority, including what we started with.
+        => Name     -- ^ Name of enclosing rule.
+        -> Fact     -- ^ Fact to acquire authority from.
+        -> Env      -- ^ Current environment.
+        -> Gain a   -- ^ Gain specification.
+        -> [Auth]   -- ^ Resulting authority, including what we started with.
 
 applyGain nRule fact env (GainAnn _a acquire)
  = applyGain nRule fact env acquire
