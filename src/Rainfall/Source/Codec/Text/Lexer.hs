@@ -20,14 +20,16 @@ scanner _fileName
         , fmap (stamp KPunc)
            $ munchWord (\ix c -> ix == 0 && elem c puncs)
 
+        , fmap (stamp KVar) $ munchPred Nothing
+                (\ix c -> case ix of
+                                0 -> Char.isLower c
+                                _ -> Char.isAlpha c)
+                (\str   -> if not $ elem str keywords then Just str else Nothing)
+
         , fmap (stamp KKey) $ munchPred Nothing
                 (\_ix c -> Char.isLower c)
                 (\str   -> if elem str keywords then Just str else Nothing)
 
-        , fmap (stamp KVar) $ munchWord $ \ix c
-          -> case ix of
-                0       -> Char.isLower c
-                _       -> Char.isAlpha c
 
         , fmap (stamp KCon) $ munchWord $ \ix c
           -> case ix of
@@ -78,12 +80,13 @@ scanner _fileName
         infixChars
          = [ '-', '+', '<', '>', '='
            , '∧', '∨', '∪'
-           , '≤', '≥' ]
+           , '≤', '≥'
+           , '∖', '∈', '∉' ]
 
         infixOps
          = [ "<", "<=", "≤"
            , ">", ">=", "≥"
-           , "∧", "∨", "∪", "∪+"
+           , "∧", "∨", "∪", "∪+", "∖", "∈", "∉"
            , "-", "+"]
 
         keywords

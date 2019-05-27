@@ -40,7 +40,7 @@ pTermInfix3 :: Parser (Term RL)
 pTermInfix3
  = do   m       <- pTermInfix2
         P.choice
-         [ do   op      <- pInfixOf ["<", "<=", "≤", ">", ">=", "≥"]
+         [ do   op      <- pInfixOf ["<", "<=", "≤", ">", ">=", "≥", "∈", "∉"]
                 m'      <- pTermInfix3
                 return  $  MInfix op m m'
 
@@ -52,7 +52,7 @@ pTermInfix2 :: Parser (Term RL)
 pTermInfix2
  = do   m       <- pTermInfix1
         P.choice
-         [ do   op      <- pInfixOf ["+", "-"]
+         [ do   op      <- pInfixOf ["+", "-", "∖"]
                 m'      <- pTermInfix2
                 return  $  MInfix op m m'
 

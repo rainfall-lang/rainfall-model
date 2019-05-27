@@ -13,6 +13,7 @@ import qualified System.Exit                            as System
 import qualified Data.Map.Strict                        as Map
 import qualified Text.PrettyPrint.Leijen                as P
 
+
 ---------------------------------------------------------------------------------------- Context --
 -- | Map of fact names to their payload types.
 type Facts a = Map Name [(Name, Type a)]

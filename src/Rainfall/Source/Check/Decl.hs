@@ -264,10 +264,3 @@ checkAction a facts (ActionFire mAuth mRules)
 
 checkAction _a _facts aa@ActionDump
  = do   return aa
-
-
-
-
-
-
-

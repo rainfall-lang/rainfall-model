@@ -110,6 +110,7 @@ evalTerm _ m@(MKey{})
 ---------------------------------------------------------------------------------------------------
 evalPrim :: Name -> [Value] -> Value
 
+evalPrim "bool'not"     [VBool b1]              = VBool (not b1)
 evalPrim "bool'eq"      [VBool b1, VBool b2]    = VBool (b1 == b2)
 evalPrim "bool'and"     [VBool b1, VBool b2]    = VBool (b1 && b2)
 evalPrim "bool'or"      [VBool b1, VBool b2]    = VBool (b1 || b2)
@@ -130,6 +131,12 @@ evalPrim "party'eq"     [VParty p1, VParty p2]  = VBool (p1 == p2)
 
 evalPrim "set'one"      [v]                     = VSet (Set.singleton v)
 evalPrim "set'union"    [VSet vs1, VSet vs2]    = VSet (Set.union vs1 vs2)
+evalPrim "set'member"   [v, VSet vs]            = VBool (Set.member v vs)
+evalPrim "set'in"       [v, VSet vs]            = VBool (Set.member v vs)
+evalPrim "set'notin"    [v, VSet vs]            = VBool (not $ Set.member v vs)
+evalPrim "set'delete"   [v, VSet vs]            = VSet (Set.delete v vs)
+evalPrim "set'minus"    [VSet vs1, VSet vs2]
+ = VSet (Set.filter (\v -> not $ Set.member v vs2) vs1)
 
 evalPrim "set'symbol'eq" [VSet vs1, VSet vs2]   = VBool (vs1 == vs2)
 

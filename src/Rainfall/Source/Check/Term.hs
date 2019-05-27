@@ -123,6 +123,9 @@ checkTerm a ctx mm@(MInfix n m1 m2)
 
         "∪"     -> checkTerm a ctx (MPrm "set'union"        [MGTerm m1, MGTerm m2])
         "∩"     -> checkTerm a ctx (MPrm "set'intersection" [MGTerm m1, MGTerm m2])
+        "∈"     -> checkTerm a ctx (MPrm "set'in"           [MGTerm m1, MGTerm m2])
+        "∉"     -> checkTerm a ctx (MPrm "set'notin"        [MGTerm m1, MGTerm m2])
+        "∖"     -> checkTerm a ctx (MPrm "set'minus"        [MGTerm m1, MGTerm m2])
 
         "∪+"    -> checkTerm a ctx (MPrm "sets'union"       [MGTerm m1, MGTerm m2])
 
@@ -207,6 +210,9 @@ typeOfPrim n
 
         "set'one"       -> Just ([TTop], TSet TTop)
         "set'union"     -> Just ([TSet TTop, TSet TTop], TSet TTop)
+        "set'in"        -> Just ([TTop, TSet TTop], TBool)
+        "set'notin"     -> Just ([TTop, TSet TTop], TBool)
+        "set'minus"     -> Just ([TSet TTop, TSet TTop], TSet TTop)
 
         "sets'one"      -> Just ([TTop], TSets TTop)
         "sets'some"     -> Just ([TTop, TNat], TSets TTop)

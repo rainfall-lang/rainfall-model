@@ -1,0 +1,140 @@
+
+
+-------------------------------------------------------------------------------- Market Creation --
+-- Proposal to create a new market by the market registry.
+fact ProposeMarket
+        [ market: Symbol, registry: Party, regulator: Party ]
+
+-- Regular accepts the market proposal.
+fact AcceptMarket
+        [ market: Symbol, registry: Party, regulator: Party ]
+
+-- New market containing a list of parties that can be invited
+-- to issue securities on that market.
+fact Market
+        [ market: Symbol, registry: Party, regulator: Party
+        , issuers: Set Party, invitedIssuers: Set Party ]
+
+-- The registry proposes a new market, and the regulator accepts it.
+rule makeMarket
+await ProposeMarket [ market = ?m, registry = ?r, regulator = ?a ] gain {r}
+  and AcceptMarket  [ market =  m, registry =  r, regulator =  a ] gain {a}
+to
+  say Market
+        [ market = m, registry = r, regulator = a
+        , issuers = {}, invitedIssuers = {} ]
+   by  {r, a}
+   use {'addIssuer, 'issueSecurity, 'bilateralDemandSettlement}
+
+
+--------------------------------------------------------------------------------- Adding Issuers --
+-- Invitation by the registry to add an issuer of securities to the market.
+fact InviteIssuer [ market: Symbol, registry: Party, issuer: Party ]
+
+-- Issuer accepts the invitation.
+fact AcceptIssuer [ market: Symbol, issuer: Party ]
+
+-- Addition of invited issuers to a market.
+--   When the issuer is added to the market it also gains their authority.
+--   In this version any new issuer can be added, but we could extend it
+--   so only issuers listed in the given set can be added.
+rule addIssuer
+await Market
+        [ market  = ?m, registry = ?r, regulator = ?a
+        , issuers = ?is, invitedIssuers = ?iis ]
+        gain {r, a}
+
+  and InviteIssuer
+        [ market = m, registry = r, issuer = ?i ]
+        gain {r}
+
+  and AcceptIssuer
+        [ market = m, issuer = i ]
+        where i ∉ is ∧ i ∉ iis
+        gain {i}
+to
+  say Market
+        [ market = m, registry = r, regulator = a
+        , issuers = {i} ∪ is
+        , invitedIssuers = iis ∖ {i} ]
+   by  {r, a}
+   use {'addIssuer, 'issueSecurity, 'bilateralDemandSettlement}
+
+
+------------------------------------------------------------------------------- Issue Securities --
+fact IssueSecurity
+        [ market: Symbol, holder: Party, issuer: Party
+        , security: Text, amount: Nat ]
+
+fact Holding
+        [ market: Symbol, registry: Party, regulator: Party
+        , holder: Party,  issuer: Party,   security: Text ]
+
+
+-- Issue a new security on the market.
+rule issueSecurity
+await Market
+        [ market  = ?m, registry = ?r, regulator = ?a
+        , issuers = ?is ]
+        consume none gain { r, a }
+
+  and IssueSecurity
+        [ market = ?m, holder = ?h, issuer = ?i
+        , security = ?s, amount = ?n]
+        where i ∈ is
+        gain {i, h}
+
+to
+  say Holding
+        [ market = m, registry = r, regulator = a
+        , holder = h, issuer   = i, security  = s ]
+   by  {r, a, h, i}
+   use {'bilateralDemandSettlement}
+   num n
+
+
+------------------------------------------------------------------------------------- Settlement --
+fact BilateralDemandSettlement
+        [ market: Symbol
+        , lhs: Party, lhsSecurity: Symbol, lhsAmount: Nat
+        , rhs: Party, rhsSecurity: Symbol, rhsAmount: Nat ]
+
+-- TODO Andrae's original version had an 'or' clause to match on the
+-- BilateralDemandSettlement fact either way around.
+rule bilateralDemandSettlement
+await Market
+        [ market = ?m, registry = ?r, regulator = ?a, issuers = ?is ]
+        consume none  gain {r, a}
+
+  and BilateralDemandSettlement
+        [ market = ?m
+        , lhs = ?lp, lhsSecurity = ?ls, lhsAmount = ?la
+        , rhs = ?rp, rhsSecurity = ?rs, rhsAmount = ?ra ]
+        gain {lp}
+
+  and BilateralDemandSettlement
+        [ market = ?m
+        , lhs = ?lp, lhsSecurity = ?ls, lhsAmount = ?la
+        , rhs = ?rp, rhsSecurity = ?rs, rhsAmount = ?ra ]
+        gain {rp}
+
+  and Holding
+        [ market = ?m,  registry = ?r, regulator = ?a
+        , holder = ?lp, issuer  = ?li, security  = ?ls ]
+        consume la gain {r, a, lp, li}
+
+  and Holding
+        [ market = ?m,  registry = ?r,  regulator = ?a
+        , holder = ?rp, issuer   = ?ri, security  = ?rs ]
+        consume ra gain {r, a, rp, ri}
+to
+  (say Holding
+        [ market = m,  registry = r, regulator = a
+        , holder = lp, issuer = ri,  security = rs ]
+   by {r, a, lp, ri} num ra)
+ ∪+
+  (say Holding
+        [ market = m,  registry = r, regulator = a
+        , holder = rp, issuer = li,  security = ls ]
+   by {r, a, rp, li} num la)
+

@@ -18,7 +18,8 @@ import qualified System.Environment                     as System
 import qualified System.Exit                            as System
 
 import qualified Text.Show.Pretty                       as Pretty
-
+import qualified Text.Parsec.Error                      as Parsec
+import qualified Text.Parsec.Pos                        as Parsec
 
 ------------------------------------------------------------------------------------------- Main --
 main :: IO ()
@@ -73,7 +74,11 @@ runParse config filePath
         case Parser.parseDecls toks' of
          Right ds -> return ds
          Left err
-          -> do putStrLn $ show err
+          -> do let pos = Parsec.errorPos err
+                putStrLn $ filePath
+                 ++ ":" ++ show (Parsec.sourceLine pos + 1)
+                 ++ ":" ++ show (Parsec.sourceColumn pos + 1)
+                 ++ " parse error"
                 System.exitFailure
 
 mainParse config filePath
