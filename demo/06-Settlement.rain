@@ -57,19 +57,20 @@ to
         [ market = m, registry = r, regulator = a
         , issuers = {i} ∪ is
         , invitedIssuers = iis ∖ {i} ]
-   by  {r, a}
+   by  {r, a} obs {i} ∪ is
    use {'addIssuer, 'issueSecurity, 'bilateralDemandSettlement}
 
 
 ----------------------------------------------------------- Issue Securities --
+-- Statement by an issuer to issue securities to a new holder.
 fact IssueSecurity
         [ market: Symbol, holder: Party, issuer: Party
         , security: Text, amount: Nat ]
 
+-- Holding record for some securities.
 fact Holding
         [ market: Symbol, registry: Party, regulator: Party
         , holder: Party,  issuer: Party,   security: Text ]
-
 
 -- Issue a new security on the market.
 rule issueSecurity
@@ -79,11 +80,9 @@ await Market
         consume none gain { r, a }
 
   and IssueSecurity
-        [ market = ?m, holder = ?h, issuer = ?i
+        [ market =  m, holder = ?h, issuer = ?i
         , security = ?s, amount = ?n]
-        where i ∈ is
-        gain {i, h}
-
+        where i ∈ is gain {i, h}
 to
   say Holding
         [ market = m, registry = r, regulator = a
@@ -96,11 +95,9 @@ to
 ----------------------------------------------------------------- Settlement --
 fact BilateralDemandSettlement
         [ market: Symbol
-        , lhs: Party, lhsSecurity: Symbol, lhsAmount: Nat
-        , rhs: Party, rhsSecurity: Symbol, rhsAmount: Nat ]
+        , lhs: Party, lhsSecurity: Text, lhsAmount: Nat
+        , rhs: Party, rhsSecurity: Text, rhsAmount: Nat ]
 
--- TODO Andrae's original version had an 'or' clause to match on the
--- BilateralDemandSettlement fact either way around.
 rule bilateralDemandSettlement
 await Market
         [ market = ?m, registry = ?r, regulator = ?a, issuers = ?is ]
@@ -131,10 +128,76 @@ to
   (say Holding
         [ market = m,  registry = r, regulator = a
         , holder = lp, issuer = ri,  security = rs ]
-   by {r, a, lp, ri} num ra)
+   by {r, a, lp, ri} use {'bilateralDemandSettlement} num ra)
  ∪+
   (say Holding
         [ market = m,  registry = r, regulator = a
         , holder = rp, issuer = li,  security = ls ]
-   by {r, a, rp, li} num la)
+   by {r, a, rp, li} use {'bilateralDemandSettlement} num la)
 
+
+-------------------------------------------------------------------------------
+scenario test do
+
+ -- Rachel (registry) and Rodger (regulator) agree to create a new market.
+ add    say ProposeMarket
+         [ market = 'Mark, registry = !Rachel, regulator = !Rodger]
+         by {!Rachel} obs {!Rodger} use {'makeMarket}
+
+ add    say AcceptMarket
+         [ market = 'Mark, registry = !Rachel, regulator = !Rodger]
+         by {!Rodger} obs {!Rachel} use {'makeMarket}
+
+ fire   by {!Rodger} rules {'makeMarket}
+        dump
+
+ -- Rachel (registry) invites Isabelle as a new issuer,
+ -- and Isabelle accepts the invitation.
+ add    say InviteIssuer
+         [ market = 'Mark, registry = !Rachel, issuer = !Isabelle]
+         by {!Rachel}   obs {!Isabelle} use {'addIssuer}
+
+ add    say AcceptIssuer
+         [ market = 'Mark, issuer = !Isabelle]
+         by {!Isabelle} obs {!Rachel} use {'addIssuer}
+
+ fire   by {!Rachel} rules {'addIssuer}
+        dump
+
+ -- Isabelle issues Plankton Investment shares to Horace the holder,
+ --  and some Clotted Clams to Harold the holder.
+ add    say IssueSecurity
+         [ market = 'Mark, holder = !Horace, issuer = !Isabelle
+         , security = "Plankton Investments"
+         , amount = 100 ]
+         by {!Isabelle, !Horace}
+         use {'issueSecurity}
+
+ fire   by {!Isabelle} rules {'issueSecurity}
+
+ add    say IssueSecurity
+         [ market = 'Mark, holder = !Harold, issuer = !Isabelle
+         , security = "Clotted Clams"
+         , amount = 100 ]
+         by {!Isabelle, !Harold}
+         use {'issueSecurity}
+
+ fire   by {!Isabelle} rules {'issueSecurity}
+
+        dump
+
+-- Horace and Harold swap their respective shares.
+add    say BilateralDemandSettlement
+        [ market = 'Mark
+        , lhs = !Horace, lhsSecurity = "Plankton Investments", lhsAmount = 100
+        , rhs = !Harold, rhsSecurity = "Clotted Clams",        rhsAmount = 100 ]
+        by {!Horace} obs {!Rachel} use {'bilateralDemandSettlement}
+
+add    say BilateralDemandSettlement
+        [ market = 'Mark
+        , lhs = !Horace, lhsSecurity = "Plankton Investments", lhsAmount = 100
+        , rhs = !Harold, rhsSecurity = "Clotted Clams",        rhsAmount = 100 ]
+        by {!Harold} obs {!Rachel} use {'bilateralDemandSettlement}
+
+fire    by {!Rachel} rules {'bilateralDemandSettlement}
+        dump

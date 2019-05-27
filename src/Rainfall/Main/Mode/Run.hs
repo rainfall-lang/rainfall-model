@@ -95,11 +95,14 @@ fireRuleIO auth rule store
  = do   let C.Name sName = C.ruleName rule
 
         case C.applyFire auth store rule of
+         -- No rules matched.
          []
           -> do putStrLn $ "* Fizz: " ++ sName
                 return Nothing
 
-         [(trans, store')]
+         -- If multiple rules match then just fire the first available one,
+         -- in natural order.
+         (trans, store') : _
           -> do putStrLn $ "* Fire: " ++ sName
                 let dsSpent = Map.toList $ C.transactionSpent trans
                 let dsNew   = Map.toList $ C.transactionNew   trans
@@ -107,10 +110,6 @@ fireRuleIO auth rule store
                                 $ renderMax
                                 $ C.ppFiring dsSpent dsNew store') ""
                 return $ Just (trans, store')
-
-         _ -> do
-                putStrLn "* Many"
-                return Nothing
 
 
 renderMax = P.renderPretty 1.0 100

@@ -15,7 +15,7 @@ data Type a
 
 -- | Type Reference.
 data TypeRef a
-        = TRPrm Na      -- ^ Primitive type constructor.
+        = TRPrm Name    -- ^ Primitive type constructor.
         | TRCon Name    -- ^ User defined type synonym or constructor.
         deriving (Show, Eq, Ord)
 

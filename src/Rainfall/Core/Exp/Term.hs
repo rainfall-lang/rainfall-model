@@ -84,7 +84,6 @@ data Clo = Clo Env [(Bind, Type ())] (Term ())
 data Env = Env [(Name, Value)]
          deriving (Show, Eq, Ord)
 
-
 instance IsString Value where
  fromString s = VLit (LText s)
 
@@ -103,5 +102,4 @@ type Facts      = Set Fact
 
 type Factoid    = (Fact, Weight)
 type Factoids   = Map Fact Weight
-
 
