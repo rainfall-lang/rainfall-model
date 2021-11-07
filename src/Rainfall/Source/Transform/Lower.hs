@@ -7,7 +7,6 @@ import qualified Rainfall.EDSL                          as CC
 import qualified Control.Monad.Trans.State.Strict       as S
 import Data.Maybe
 import qualified Data.Map.Strict                        as Map
-import Data.Map                                         (Map)
 
 
 ---------------------------------------------------------------------- Fresh --

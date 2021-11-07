@@ -23,11 +23,11 @@ data Transaction
 -------------------------------------------------------------------------------
 -- | Try to fire a rule applied to a store.
 applyFire
-        :: Show a
-        => Auth         -- ^ Authority of submitter.
-        -> Store        -- ^ Initial store.
-        -> Rule a       -- ^ Rule to apply.
-        -> [(Transaction, Store)]
+ :: Show a
+ => Auth         -- ^ Authority of submitter.
+ -> Store        -- ^ Initial store.
+ -> Rule a       -- ^ Rule to apply.
+ -> [(Transaction, Store)]
 
 applyFire aSub store rule
  = do
@@ -56,13 +56,13 @@ applyFire aSub store rule
 -- | Match multiple patterns against the store,
 --   trying to satisfy them one after another.
 applyMatches
-        :: Show a
-        => Name         -- ^ Name of the current rule.
-        -> Auth         -- ^ Authority of the submitter.
-        -> Store        -- ^ Initial store.
-        -> Env          -- ^ Initial environment.
-        -> [Match a]    -- ^ Matches to apply.
-        -> [(Facts, Factoids, Auth, Env)]
+ :: Show a
+ => Name         -- ^ Name of the current rule.
+ -> Auth         -- ^ Authority of the submitter.
+ -> Store        -- ^ Initial store.
+ -> Env          -- ^ Initial environment.
+ -> [Match a]    -- ^ Matches to apply.
+ -> [(Facts, Factoids, Auth, Env)]
 
 applyMatches _name _aSub _store env []
  =      return (Set.empty, Map.empty, Set.empty, env)

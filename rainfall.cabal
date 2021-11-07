@@ -1,6 +1,6 @@
 
 name:           rainfall
-version:        1.0.0.0
+version:        1.0.0.1
 license:        MIT
 author:         Ben Lippmeier <benl@ouroborus.net>
 maintainer:     Ben Lippmeier <benl@ouroborus.net>
@@ -28,6 +28,7 @@ executable rainfall
         -Wno-missing-signatures
         -Wno-missing-pattern-synonym-signatures
         -Wno-name-shadowing
+        -Wno-incomplete-uni-patterns
 
  extensions:
         LambdaCase

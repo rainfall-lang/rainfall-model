@@ -28,7 +28,6 @@ where
 import Rainfall.Core.Exp
 import Rainfall.Core.Eval
 import Rainfall.Core.Codec.Text.Pretty
-import Data.Map                                         (Map)
 import qualified Control.Monad.Trans.State.Strict       as S
 import qualified Control.Monad.IO.Class                 as S
 import qualified Text.PrettyPrint.Leijen                as P

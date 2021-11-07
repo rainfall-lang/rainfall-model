@@ -2,8 +2,6 @@
 module Rainfall.Core.Exp.Term where
 import Rainfall.Core.Exp.Base
 import Data.String
-import Data.Set                 (Set)
-import Data.Map                 (Map)
 
 
 -------------------------------------------------------------------------------
